@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-blush-50">
         <Header />
         <main>
+            <ScrollToTop />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />

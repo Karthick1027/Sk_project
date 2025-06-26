@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+       dropShadow: {
+      glow: "0 0 6px rgba(236, 72, 153, 0.7)", // Pink glow
+    },
       colors: {
         blush: {
           50: '#fdf2f8',

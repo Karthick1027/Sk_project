@@ -99,19 +99,19 @@ Sent from SK Bridal Studio Website
               <div className="space-y-6">
                 <a
                   href="tel:+918668038093"
-                  className="flex items-center space-x-4 p-6 bg-gradient-to-r from-blush-50 to-rose-50 rounded-2xl hover:shadow-lg transition-all duration-300 group"
+                  className="flex items-center space-x-4 p-6 bg-gradient-to-r from-sky-50 to-blue-50 rounded-2xl hover:shadow-lg transition-all duration-300 group"
                 >
-                  <div className="w-14 h-14 bg-gradient-to-br from-blush-500 to-rose-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Phone className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <h3 className="font-inter font-semibold text-gray-800 text-lg">Call Me</h3>
-                    <p className="font-inter text-blush-600 font-medium">+91 8668038093</p>
+                    <p className="font-inter text-sky-600 font-medium">+91 8668038093</p>
                     <p className="font-inter text-sm text-gray-600">Available Mon-Sat, 9AM-7PM</p>
                   </div>
                 </a>
 
-                <a
+                {/* <a
                   href="mailto:srinithibridalmakeupartist@gmail.com"
                   className="flex items-center space-x-4 p-6 bg-gradient-to-r from-rose-50 to-blush-50 rounded-2xl hover:shadow-lg transition-all duration-300 group"
                 >
@@ -123,7 +123,7 @@ Sent from SK Bridal Studio Website
                     <p className="font-inter text-rose-600 font-medium">srinithibridalmakeupartist@gmail.com</p>
                     <p className="font-inter text-sm text-gray-600">I'll respond within 24 hours</p>
                   </div>
-                </a>
+                </a> */}
 
                 <a
                   href="https://instagram.com/srinithimakeupartist"
@@ -185,7 +185,7 @@ Sent from SK Bridal Studio Website
             <div className="bg-gradient-to-br from-white to-blush-50/30 rounded-3xl p-8 shadow-xl border border-blush-100">
               <div className="flex items-center space-x-3 mb-6">
                 <Heart className="w-8 h-8 text-blush-500" />
-                <h2 className="font-playfair text-3xl font-bold text-gray-800">Send a Message</h2>
+                <h2 className="font-playfair text-3xl font-bold text-gray-800">Send a Message - Email</h2>
               </div>
 
               {submitStatus === 'success' && (
@@ -300,7 +300,7 @@ Sent from SK Bridal Studio Website
               Visit My Studio
             </h2>
             <p className="font-inter text-xl text-gray-600 max-w-2xl mx-auto">
-              Located in the heart of Chennai, my studio provides a comfortable and professional environment 
+              Located in the Thiruninravur near Chennai, my studio provides a comfortable and professional environment 
               for all your beauty needs.
             </p>
           </div>
@@ -345,7 +345,7 @@ Sent from SK Bridal Studio Website
             {/* Embedded Google Map */}
             <div className="rounded-3xl overflow-hidden shadow-xl">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3885.0234567890123!2d80.1234567!3d13.1234567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDA3JzI0LjQiTiA4MMKwMDcnMjQuNCJF!5e0!3m2!1sen!2sin!4v1234567890123!5m2!1sen!2sin"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3885.477101878278!2d80.04585987484434!3d13.132277787198033!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a528927b98383a9%3A0x3c986555f3a183ad!2sSrinithi%20Makeup%20Artist!5e0!3m2!1sen!2sin!4v1750842139765!5m2!1sen!2sin"
                 width="100%"
                 height="400"
                 style={{ border: 0 }}
@@ -355,6 +355,7 @@ Sent from SK Bridal Studio Website
                 title="SK Bridal Studio Location"
                 className="w-full h-96"
               ></iframe>
+              
             </div>
           </div>
         </div>

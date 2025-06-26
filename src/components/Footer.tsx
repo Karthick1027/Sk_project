@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
                 <h3 className="font-playfair text-2xl font-bold bg-gradient-to-r from-blush-300 to-rose-300 bg-clip-text text-transparent">
                   SK Bridal Studio
                 </h3>
-                <p className="font-inter text-sm text-gray-400">Professional Makeup Artist</p>
+                <p className="font-inter text-sm text-gray-400">Makeup is an Art</p>
               </div>
             </div>
             <p className="font-inter text-gray-300 leading-relaxed">

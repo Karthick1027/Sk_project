@@ -4,11 +4,11 @@ import srinithiPic from '../../src/images/srinithi_pic.png';
 
 const About: React.FC = () => {
   const certifications = [
-    "Professional Makeup Artistry Certification",
-    "Bridal Makeup Specialist",
+    "Professional Makeup Artist",
+    "Advanced Mehendi",
     "Advanced Color Theory",
-    "Airbrush Makeup Certification",
-    "Beauty Photography Makeup"
+    "Airbrush Makeup",
+    "Professional Nail Art"
   ];
 
   const testimonials = [
@@ -39,7 +39,7 @@ const About: React.FC = () => {
     <div className="pt-20">
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-br from-blush-50 via-white to-rose-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-[90%]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="animate-fade-in">
               <h1 className="font-playfair text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent">
@@ -174,7 +174,7 @@ const About: React.FC = () => {
 
       {/* Testimonials Section */}
       <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-[95%]">
           <div className="text-center mb-16">
             <h2 className="font-playfair text-4xl md:text-5xl font-bold text-gray-800 mb-4">
               What Clients Say

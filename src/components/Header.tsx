@@ -26,7 +26,7 @@ const Header: React.FC = () => {
     <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
       isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
     }`}>
-      <nav className="container mx-auto px-4 py-4">
+      <nav className="container mx-auto px-4 py-4 max-w-[90%]">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
@@ -37,7 +37,7 @@ const Header: React.FC = () => {
               <h1 className="font-playfair text-2xl font-bold bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent">
                 SK Bridal Studio
               </h1>
-              <p className="font-inter text-xs text-gray-600 -mt-1">Professional Makeup Artist</p>
+              <p className="font-inter text-xs text-gray-600 -mt-1">Makeup is an Art</p>
             </div>
           </Link>
 
@@ -59,12 +59,12 @@ const Header: React.FC = () => {
                 }`}></span>
               </Link>
             ))}
-            <Link
+            {/* <Link
               to="/contact"
               className="bg-gradient-to-r from-blush-500 to-rose-500 text-white px-6 py-2 rounded-full font-inter font-medium hover:shadow-lg hover:scale-105 transition-all duration-300"
             >
               Book Now
-            </Link>
+            </Link> */}
           </div>
 
           {/* Mobile Menu Button */}

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Users, GraduationCap, Heart, Award, Calendar } from 'lucide-react';
+import classImage from '../../src/images/bridal_class.jpg';
+import bridalImage from '../../src/images/Bridal_pic.png';
+import eventImage from '../../src/images/event_makeup.png';
 
 const Counter: React.FC<{ end: number; duration: number; label: string; icon: React.ReactNode }> = ({ 
   end, duration, label, icon 
@@ -77,10 +80,10 @@ const Home: React.FC = () => {
         
         <div className="relative z-10 container mx-auto px-4 text-center">
           <div className="animate-fade-in">
-            <h1 className="font-playfair text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blush-600 via-rose-600 to-blush-700 bg-clip-text text-transparent leading-tight">
+            <h1 className=" font-playfair text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blush-600 via-rose-600 to-blush-700 bg-clip-text text-transparent leading-tight">
               Beauty Beyond
               <br />
-              <span className="italic">Expectations</span>
+              <span className="italic !leading-[1.2]">Expectations</span>
             </h1>
             <p className="font-inter text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto leading-relaxed">
               Professional makeup artistry for your most precious moments. From dreamy bridal looks to glamorous events, 
@@ -94,13 +97,15 @@ const Home: React.FC = () => {
                 <Calendar className="w-5 h-5" />
                 <span>Book Your Session</span>
               </Link>
-              <Link
-                to="/contact"
-                className="border-2 border-blush-400 text-blush-600 px-8 py-4 rounded-full font-inter font-semibold text-lg hover:bg-blush-50 hover:scale-105 transition-all duration-300 inline-flex items-center space-x-2"
-              >
-                <GraduationCap className="w-5 h-5" />
-                <span>Join Makeup Class</span>
-              </Link>
+             <a
+              href="https://docs.google.com/forms/d/1xsbl8JnCwmDV62Ib9qHI4mAb2puVRq4YArCf3WbypoI/edit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border-2 border-blush-400 text-blush-600 px-8 py-4 rounded-full font-inter font-semibold text-lg hover:bg-blush-50 hover:scale-105 transition-all duration-300 inline-flex items-center space-x-2"
+            >
+              <GraduationCap className="w-5 h-5" />
+              <span>Join Makeup Class</span>
+            </a>
             </div>
           </div>
 
@@ -163,19 +168,19 @@ const Home: React.FC = () => {
               {
                 title: 'Bridal Makeup',
                 description: 'Your wedding day deserves perfection. Timeless, elegant looks that photograph beautifully.',
-                image: 'https://images.pexels.com/photos/1729931/pexels-photo-1729931.jpeg?auto=compress&cs=tinysrgb&w=800',
+                image: bridalImage,
                 icon: <Heart className="w-6 h-6" />
               },
               {
                 title: 'Event Makeup',
                 description: 'Special occasions call for glamorous looks. From galas to parties, shine bright.',
-                image: 'https://images.pexels.com/photos/3373739/pexels-photo-3373739.jpeg?auto=compress&cs=tinysrgb&w=800',
+                image: eventImage,
                 icon: <Star className="w-6 h-6" />
               },
               {
                 title: 'Makeup Classes',
                 description: 'Learn professional techniques in personalized sessions. Master the art of beauty.',
-                image: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=800',
+                image: classImage,
                 icon: <GraduationCap className="w-6 h-6" />
               }
             ].map((service, index) => (
