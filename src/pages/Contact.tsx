@@ -83,7 +83,7 @@ Sent from SK Bridal Studio Website
       </section>
 
       <div className="py-20 bg-white">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-[95%]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Contact Information */}
             <div className="space-y-8">
@@ -294,7 +294,7 @@ Sent from SK Bridal Studio Website
 
       {/* Location Section */}
       <section className="py-20 bg-gradient-to-br from-rose-50 to-blush-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-[95%]">
           <div className="text-center mb-12">
             <h2 className="font-playfair text-4xl md:text-5xl font-bold text-gray-800 mb-4">
               Visit My Studio

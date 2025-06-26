@@ -98,7 +98,7 @@ const Home: React.FC = () => {
                 <span>Book Your Session</span>
               </Link>
              <a
-              href="https://docs.google.com/forms/d/1xsbl8JnCwmDV62Ib9qHI4mAb2puVRq4YArCf3WbypoI/edit"
+              href="https://forms.gle/rfW2a95NHFgN874XA"
               target="_blank"
               rel="noopener noreferrer"
               className="border-2 border-blush-400 text-blush-600 px-8 py-4 rounded-full font-inter font-semibold text-lg hover:bg-blush-50 hover:scale-105 transition-all duration-300 inline-flex items-center space-x-2"

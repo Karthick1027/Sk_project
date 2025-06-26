@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Sparkles } from 'lucide-react';
+import Logo_white from '../../src/images/SK_logo_white.png';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -30,8 +31,13 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="p-2 bg-gradient-to-br from-blush-400 to-rose-500 rounded-full group-hover:scale-110 transition-transform duration-300">
-              <Sparkles className="w-6 h-6 text-white" />
+            <div className="p-0 bg-gradient-to-br from-blush-400 to-rose-500 rounded-full group-hover:scale-110 transition-transform duration-300">
+              {/* <Sparkles className="w-6 h-6 text-white" /> */}
+                <img
+                  src={Logo_white}
+                  alt="SK Logo"
+                  className="w-[50px]"
+                />
             </div>
             <div className="hidden sm:block">
               <h1 className="font-playfair text-2xl font-bold bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent">
@@ -93,7 +99,7 @@ const Header: React.FC = () => {
                 {item.name}
               </Link>
             ))}
-            <div className="px-6 pt-3">
+            {/* <div className="px-6 pt-3">
               <Link
                 to="/contact"
                 className="block w-full text-center bg-gradient-to-r from-blush-500 to-rose-500 text-white px-6 py-3 rounded-full font-inter font-medium hover:shadow-lg transition-all duration-300"
@@ -101,7 +107,7 @@ const Header: React.FC = () => {
               >
                 Book Now
               </Link>
-            </div>
+            </div> */}
           </div>
         )}
       </nav>

@@ -1,16 +1,22 @@
 import React from 'react';
 import { Instagram, Mail, Phone, Sparkles } from 'lucide-react';
+import Logo_white from '../../src/images/SK_logo_white.png';
 
 const Footer: React.FC = () => {
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 py-12 max-w-[95%]">
+        <div className="grid grid-cols-1 md:grid-cols-3 justify-between gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-gradient-to-br from-blush-400 to-rose-500 rounded-full">
-                <Sparkles className="w-6 h-6 text-white" />
+              <div className="p-1 bg-gradient-to-br from-blush-400 to-rose-500 rounded-full">
+                {/* <Sparkles className="w-6 h-6 text-white" /> */}
+                <img
+                  src={Logo_white}
+                  alt="SK Logo"
+                  className="w-[50px]"
+                />
               </div>
               <div>
                 <h3 className="font-playfair text-2xl font-bold bg-gradient-to-r from-blush-300 to-rose-300 bg-clip-text text-transparent">
@@ -25,7 +31,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Services */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:ml-[8rem]">
             <h4 className="font-playfair text-xl font-semibold text-blush-300">Services</h4>
             <ul className="font-inter space-y-2 text-gray-300">
               <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Bridal Makeup</li>
