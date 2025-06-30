@@ -1,6 +1,11 @@
 import React from 'react';
 import { Award, Heart, Users, BookOpen, Star, Sparkles } from 'lucide-react';
 import srinithiPic from '../../src/images/srinithi_pic.png';
+import Sheeba from '../../src/images/Sheeba.png';
+import Sabari from '../../src/images/Sabari.png';
+import Ruby_Ganesh from '../../src/images/Ruby_Ganesh.png';
+import Janani from '../../src/images/Janani.png';
+import Chandru_pic from '../../src/images/Chandru_pic.png';
 
 const About: React.FC = () => {
   const certifications = [
@@ -13,26 +18,48 @@ const About: React.FC = () => {
 
   const testimonials = [
     {
-      name: "Saranya",
-      event: "Wedding 2024",
-      text: "Absolutely magical! I felt like a princess on my wedding day. The makeup lasted through tears of joy and dancing until midnight.",
+      name: "Janani",
+      event: "Engagement",
+      text: "I booked for my engagement makeup I'm so happy and satisfied with her amazing work everyone complimented me once again thank you for the beautiful work and make my day so beautiful",
       rating: 5,
-      image: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150"
+      image: Janani
     },
     {
-      name: "Vishali",
-      event: "Makeup Student",
-      text: "The classes transformed my skills completely. Now I do makeup professionally thanks to the amazing techniques I learned!",
-      rating: 4,
-      image: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150"
+      name: "Chandra Prakash",
+      event: "Wedding 2025",
+      text: "We booked srinithimakeupartist for our wedding and reception. Make up was subtle, which we asked for. The output came out very well in the photoshoot as well. Overall it was very satisfying. Price is very reasonable. I would also recommend them for all your party events.",
+      rating: 5,
+      image: Chandru_pic
     },
     {
-      name: "Avila",
-      event: "Anniversary Party",
-      text: "Perfect for our 25th anniversary celebration. The attention to detail and artistry exceeded all expectations.",
-      rating: 4,
-      image: "https://images.pexels.com/photos/762020/pexels-photo-762020.jpeg?auto=compress&cs=tinysrgb&w=150"
-    }
+      name: "Ruby Ganesh",
+      event: "Wedding & Reception",
+      text: "Worth for money. Loved the look on my big day. It was amazing no words can explain the joy I had... Thanks a lot ❤❤❤Wishing you to achieve the greatest heights..... ❤",
+      rating: 5,
+      image: Ruby_Ganesh
+    },
+    {
+      name: "Nivetha",
+      event: "Engagement, Wedding, Reception",
+      text: "Hi, I am nivetha. I booked makeup for my engagement, reception, marriage.. She done a great job. Makeup turn so good I like very much... Thank u for making my big day spl❤️😊.. All the best for your career srinithi 😊",
+      rating: 5,
+      image: ""
+    },
+    {
+      name: "Sheeba Fathima",
+      event: "Reception",
+      text: "I really love how you made my makeup look so natural and enhanced my features, I'm so glad the makeup lasted all day without any touch-ups! Thank you for making my wedding day look so perfect❤️",
+      rating: 5,
+      image: Sheeba
+    },
+    {
+      name: "Sabari Nathan",
+      event: "Wedding",
+      text: "Srinithi is absolutely amazing! She made my sister feel so confident and beautiful on her special day. The makeup was flawless, long-lasting, and looked stunning both in person and in photos. My sister received so many compliments! Thank you, Srinithi, for making my sister feel like the best version of herself. Highly recommended! 💖✨",
+      rating: 5,
+      image: Sabari
+    },
+
   ];
 
   return (
