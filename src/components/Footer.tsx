@@ -54,11 +54,11 @@ const Footer: React.FC = () => {
                 <span>+91 8668038093</span>
               </a>
               <a
-                href="mailto:srinithibridalmakeupartist@gmail.com"
+                href="mailto:skbridalstudioteam@gmail.com"
                 className="flex items-center space-x-3 font-inter text-gray-300 hover:text-blush-300 transition-colors duration-300 group"
               >
                 <Mail className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                <span>srinithibridalmakeupartist@gmail.com</span>
+                <span>skbridalstudioteam@gmail.com</span>
               </a>
               <a
                 href="https://instagram.com/srinithimakeupartist"
