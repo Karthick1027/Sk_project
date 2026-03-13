@@ -136,13 +136,13 @@ const Home: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
             <Counter
-              end={150}
+              end={200}
               duration={2500}
               label="Happy Bridal Clients"
               icon={<Heart className="w-8 h-8 text-blush-500" />}
             />
             <Counter
-              end={10}
+              end={5}
               duration={2500}
               label="Makeup Students Trained"
               icon={<GraduationCap className="w-8 h-8 text-rose-500" />}

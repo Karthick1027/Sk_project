@@ -1,6 +1,7 @@
 import React from 'react';
 import { Instagram, Mail, Phone, Sparkles } from 'lucide-react';
 import Logo_white from '../../src/images/SK_logo_white.png';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -37,8 +38,16 @@ const Footer: React.FC = () => {
               <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Bridal Makeup</li>
               <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Event Makeup</li>
               <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Party Makeup</li>
-              <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Makeup Classes</li>
-              <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Online Tutorials</li>
+            <li>   <a
+              href="https://forms.gle/rfW2a95NHFgN874XA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">
+            
+              <span>Makeup Classes Online / Offline</span>
+            </a>
+            </li>
+              
             </ul>
           </div>
 

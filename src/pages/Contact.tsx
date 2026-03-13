@@ -15,7 +15,7 @@ const Contact: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Create email body
       const emailBody = `
@@ -34,14 +34,14 @@ Sent from SK Bridal Studio Website
 
       // Create mailto link for email
       const mailtoLink = `mailto:skbridalstudioteam@gmail.com?subject=New Contact Form Submission from ${formData.name}&body=${encodeURIComponent(emailBody)}`;
-      
+
       // Create WhatsApp message
       const whatsappMessage = `New website inquiry from ${formData.name}%0A%0AEmail: ${formData.email}%0APhone: ${formData.phone}%0A%0AMessage: ${formData.message}`;
       const whatsappLink = `https://wa.me/918668038093?text=${whatsappMessage}`;
 
       // Open email client
       window.open(mailtoLink, '_blank');
-      
+
       // Small delay then open WhatsApp
       setTimeout(() => {
         window.open(whatsappLink, '_blank');
@@ -49,7 +49,7 @@ Sent from SK Bridal Studio Website
 
       setSubmitStatus('success');
       setFormData({ name: '', email: '', phone: '', message: '' });
-      
+
     } catch (error) {
       console.error('Error submitting form:', error);
       setSubmitStatus('error');
@@ -76,7 +76,7 @@ Sent from SK Bridal Studio Website
             Let's Connect
           </h1>
           <p className="font-inter text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-            Ready to transform your look or learn professional makeup techniques? I'd love to hear from you. 
+            Ready to transform your look or learn professional makeup techniques? I'd love to hear from you.
             Let's discuss your vision and create something beautiful together.
           </p>
         </div>
@@ -90,7 +90,7 @@ Sent from SK Bridal Studio Website
               <div>
                 <h2 className="font-playfair text-3xl font-bold text-gray-800 mb-6">Get in Touch</h2>
                 <p className="font-inter text-gray-600 text-lg leading-relaxed mb-8">
-                  I'm here to make your beauty dreams come true. Whether you're planning your wedding, 
+                  I'm here to make your beauty dreams come true. Whether you're planning your wedding,
                   preparing for a special event, or want to master makeup artistry, let's chat!
                 </p>
               </div>
@@ -300,7 +300,7 @@ Sent from SK Bridal Studio Website
               Visit My Studio
             </h2>
             <p className="font-inter text-xl text-gray-600 max-w-2xl mx-auto">
-              Located in the Thiruninravur near Chennai, my studio provides a comfortable and professional environment 
+              Located in the Thiruninravur near Chennai, my studio provides a comfortable and professional environment
               for all your beauty needs.
             </p>
           </div>
@@ -355,7 +355,7 @@ Sent from SK Bridal Studio Website
                 title="SK Bridal Studio Location"
                 className="w-full h-96"
               ></iframe>
-              
+
             </div>
           </div>
         </div>

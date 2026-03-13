@@ -73,20 +73,20 @@ const About: React.FC = () => {
                 Meet Srinithi.A.K
               </h1>
               <p className="font-inter text-xl text-gray-700 mb-8 leading-relaxed">
-                With over 3 years of experience in professional makeup artistry, I believe that beauty is not just about 
+                With over 4 years of experience in professional makeup artistry, I believe that beauty is not just about 
                 looking good - it's about feeling confident, radiant, and authentically yourself.
               </p>
               <div className="flex items-center space-x-6 mb-8">
                 <div className="text-center">
-                  <div className="font-playfair text-3xl font-bold text-blush-600">3+</div>
+                  <div className="font-playfair text-3xl font-bold text-blush-600">4+</div>
                   <div className="font-inter text-sm text-gray-600">Years Experience</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-playfair text-3xl font-bold text-rose-600">150+</div>
+                  <div className="font-playfair text-3xl font-bold text-rose-600">180+</div>
                   <div className="font-inter text-sm text-gray-600">Happy Brides</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-playfair text-3xl font-bold text-blush-600">10+</div>
+                  <div className="font-playfair text-3xl font-bold text-blush-600">5+</div>
                   <div className="font-inter text-sm text-gray-600">Students Trained</div>
                 </div>
               </div>
@@ -126,19 +126,19 @@ const About: React.FC = () => {
             </h2>
             <div className="space-y-6 font-inter text-lg text-gray-700 leading-relaxed">
               <p>
-                My passion for makeup began as a young girl, watching my grandmother apply her signature red lipstick 
-                with such grace and confidence. That moment sparked something in me—the understanding that makeup is 
-                not just about enhancement, but about empowerment.
+                My passion for makeup started in my childhood. I was always fascinated by watching the elders in my family get ready and apply makeup. Inspired by them, I began experimenting with makeup myself, discovering how beautiful and confident it can make someone feel.
               </p>
               <p>
-                After completing my professional training at the prestigious Beauty Academy, I specialized in bridal 
-                and event makeup. Every bride who sits in my chair brings a unique story, and I consider myself 
-                blessed to be part of their most beautiful chapters.
+              After completing my college, my boyfriend supported my dream and encouraged me to pursue makeup professionally. He enrolled me in a professional makeup course, where I received my certification and began building my career in the beauty industry.
               </p>
               <p>
-                Today, I not only create stunning looks for weddings and special events but also share my knowledge 
-                through personalized makeup classes. My mission is simple: to help every person discover their unique 
-                beauty and feel absolutely radiant.
+               During this journey, our relationship also grew stronger. We got engaged and later married, but the past four years were not easy. We faced many challenges, including health issues and financial struggles. However, our passion and determination kept us moving forward. No matter how difficult the situation was, we never stopped believing in our dream.
+              </p>
+              <p>
+              Together, we built our brand <span className='font-bold text-rose-600'>SK Bridal Studio</span> a name that represents both of us.
+S stands for Srinithi, and K stands for Karthikeyan.
+
+Today, SK Bridal Studio is more than just a makeup brand for us. It represents our love, dedication, hard work, and the journey we fought to achieve. Our goal is to make every bride and client feel confident, beautiful, and special on their most important days.
               </p>
             </div>
           </div>
