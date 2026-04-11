@@ -57,7 +57,7 @@ const Counter: React.FC<{ end: number; duration: number; label: string; icon: Re
           {icon}
         </div>
       </div>
-      <div className="font-playfair text-4xl md:text-5xl font-bold bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent mb-2">
+      <div className="font-playfair !leading-tight text-4xl md:text-5xl font-bold bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent mb-2">
         {count}+
       </div>
       <p className="font-inter text-gray-600 font-medium">{label}</p>
@@ -136,13 +136,13 @@ const Home: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
             <Counter
-              end={200}
+              end={220}
               duration={2500}
               label="Happy Bridal Clients"
               icon={<Heart className="w-8 h-8 text-blush-500" />}
             />
             <Counter
-              end={5}
+              end={3}
               duration={2500}
               label="Makeup Students Trained"
               icon={<GraduationCap className="w-8 h-8 text-rose-500" />}
@@ -201,13 +201,25 @@ const Home: React.FC = () => {
                     <h3 className="font-playfair text-2xl font-semibold text-gray-800">{service.title}</h3>
                   </div>
                   <p className="font-inter text-gray-600 leading-relaxed mb-6">{service.description}</p>
-                  <Link
-                    to="/contact"
-                    className="inline-flex items-center font-inter font-semibold text-blush-600 group-hover:text-rose-600 transition-colors duration-300"
-                  >
-                    Learn More
-                    <span className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300">→</span>
-                  </Link>
+                  {service.title === "Makeup Classes" ? (
+                    <a
+                      href="https://forms.gle/rfW2a95NHFgN874XA"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center font-inter font-semibold text-green-600 group-hover:text-emerald-600 transition-colors duration-300"
+                    >
+                      Join Class
+                      <span className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300">→</span>
+                    </a>
+                  ) : (
+                    <Link
+                      to="/contact"
+                      className="inline-flex items-center font-inter font-semibold text-blush-600 group-hover:text-rose-600 transition-colors duration-300"
+                    >
+                      Learn More
+                      <span className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300">→</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

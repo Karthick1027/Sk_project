@@ -43,7 +43,7 @@ const Header: React.FC = () => {
               <h1 className="font-playfair text-2xl font-bold bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent">
                 SK Bridal Studio
               </h1>
-              <p className="font-inter text-xs text-gray-600 -mt-1">Makeup is an Art</p>
+              <p className="font-inter text-xs text-gray-600 -mt-1">Built with Love, Driven by Passion</p>
             </div>
           </Link>
 

@@ -82,11 +82,11 @@ const About: React.FC = () => {
                   <div className="font-inter text-sm text-gray-600">Years Experience</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-playfair text-3xl font-bold text-rose-600">180+</div>
+                  <div className="font-playfair text-3xl font-bold text-rose-600">220+</div>
                   <div className="font-inter text-sm text-gray-600">Happy Brides</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-playfair text-3xl font-bold text-blush-600">5+</div>
+                  <div className="font-playfair text-3xl font-bold text-blush-600">3+</div>
                   <div className="font-inter text-sm text-gray-600">Students Trained</div>
                 </div>
               </div>
@@ -126,19 +126,28 @@ const About: React.FC = () => {
             </h2>
             <div className="space-y-6 font-inter text-lg text-gray-700 leading-relaxed">
               <p>
-                My passion for makeup started in my childhood. I was always fascinated by watching the elders in my family get ready and apply makeup. Inspired by them, I began experimenting with makeup myself, discovering how beautiful and confident it can make someone feel.
+                My journey into the world of makeup began with a deep passion that grew within me from a young age. What started as a fascination soon became a dream to make people feel confident, beautiful, and special through my work.
               </p>
               <p>
-              After completing my college, my boyfriend supported my dream and encouraged me to pursue makeup professionally. He enrolled me in a professional makeup course, where I received my certification and began building my career in the beauty industry.
+              After completing my studies, my husband, Karthikeyan, became my biggest support system. From the very beginning of our 10-year journey of love, he believed in my talent and encouraged me to pursue makeup as a profession. His constant motivation helped me take the first step toward becoming a certified professional makeup artist.
               </p>
               <p>
-               During this journey, our relationship also grew stronger. We got engaged and later married, but the past four years were not easy. We faced many challenges, including health issues and financial struggles. However, our passion and determination kept us moving forward. No matter how difficult the situation was, we never stopped believing in our dream.
+              Our journey together has not always been easy. We have faced many challenges, including financial struggles and medical difficulties. Despite everything, we stood strong, supporting each other through every situation. While I was working night shifts to support our financial needs, I also continued building my career in makeup with dedication and determination. At the same time, Karthikeyan, working in the IT field, managed both our responsibilities and supported my dreams without hesitation.
               </p>
               <p>
-              Together, we built our brand <span className='font-bold text-rose-600'>SK Bridal Studio</span> a name that represents both of us.
-S stands for Srinithi, and K stands for Karthikeyan.
-
-Today, SK Bridal Studio is more than just a makeup brand for us. It represents our love, dedication, hard work, and the journey we fought to achieve. Our goal is to make every bride and client feel confident, beautiful, and special on their most important days.
+              Makeup is not just my passion—it is my identity. And this business is not just mine, it is my husband’s dream too. Together, we have traveled across many places for events, gaining experience, meeting wonderful clients, and growing stronger both professionally and personally. Through love, fights, challenges, and happiness, we have always stood by each other.
+              </p>
+              <p>
+              In 2026, we turned our long journey of love into a beautiful marriage. Today, I am proud to be a full-time professional makeup artist, while my husband continues to manage and support every aspect of our business.
+              </p>
+              <p>
+              Together, we built our brand <span className='font-bold text-rose-600'>SK Bridal Studio</span>, which is officially registered under MSME and also GST certified. This reflects our commitment to professionalism, trust, and quality service for every client we serve. 
+              </p>
+               <p>
+              Looking ahead, our next big dream is to start a professional makeup academy. Our goal is to train and inspire the next generation of makeup artists, helping them build successful careers, earn independently, and follow their passion with confidence.
+              </p>
+               <p>
+              This journey is not just about makeup it is about love, perseverance, hard work, and believing in each other’s dreams. We are grateful for every experience, every client, and every moment that has shaped our story. And we look forward to continuing this beautiful journey together, creating more magic with makeup and inspiring others to follow their dreams as well.
               </p>
             </div>
           </div>

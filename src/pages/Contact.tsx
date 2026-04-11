@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Phone, Mail, Instagram, MapPin, Clock, Send, Heart, Calendar, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Phone, Instagram, MapPin, Clock, Send, Heart, MessageCircle } from 'lucide-react';
 
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -67,6 +67,13 @@ Sent from SK Bridal Studio Website
     });
   };
 
+  useEffect(() => {
+  const section = document.getElementById("contact");
+  if (section) {
+    section.scrollIntoView({ behavior: "smooth" });
+  }
+}, []);
+
   return (
     <div className="pt-20">
       {/* Hero Section */}
@@ -82,7 +89,7 @@ Sent from SK Bridal Studio Website
         </div>
       </section>
 
-      <div className="py-20 bg-white">
+      <div id="contact" className="py-20 bg-white">
         <div className="container mx-auto px-4 max-w-[95%]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Contact Information */}
@@ -107,7 +114,7 @@ Sent from SK Bridal Studio Website
                   <div>
                     <h3 className="font-inter font-semibold text-gray-800 text-lg">Call Me</h3>
                     <p className="font-inter text-sky-600 font-medium">+91 8668038093</p>
-                    <p className="font-inter text-sm text-gray-600">Available Mon-Sat, 9AM-7PM</p>
+                    <p className="font-inter text-sm text-gray-600">Available Mon-Sun, 10AM-6PM</p>
                   </div>
                 </a>
 

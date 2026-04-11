@@ -10,6 +10,7 @@ import Special_Occasion from '../../src/images/Special_Occasion.jpeg';
 import Classic_Bridal from '../../src/images/Classic_Bridal.jpeg';
 import Glamorous from '../../src/images/Glamorous.jpg';
 import Bridal_Look from '../../src/images/Bridal_Look.jpeg';
+import { useNavigate } from "react-router-dom";
 
 interface GalleryImage {
   id: number;
@@ -97,6 +98,8 @@ const Gallery: React.FC = () => {
 
  const [likedImages, setLikedImages] = useState<{ [key: string]: boolean }>({});
 
+ const navigate = useNavigate();
+ 
   return (
     <div className="pt-20">
       {/* Hero Section */}
@@ -230,12 +233,25 @@ const Gallery: React.FC = () => {
                   {selectedImage.description}
                 </p>
                 <div className="flex items-center space-x-4">
-                  <Link to="/contact">
-                    <button className="flex items-center space-x-2 bg-gradient-to-r from-blush-500 to-rose-500 text-white px-6 py-3 rounded-full font-inter font-medium hover:shadow-lg transition-all duration-300">
-                      <Calendar className="w-5 h-5" />
-                      <span>Book Similar Look</span>
-                    </button>
-                  </Link>
+                  {selectedImage?.category === "Classes" ? (
+                    <a
+                      href="https://forms.gle/rfW2a95NHFgN874XA"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <button className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-full font-inter font-medium hover:shadow-lg transition-all duration-300">
+                        <Calendar className="w-5 h-5" />
+                        <span>Join Class</span>
+                      </button>
+                    </a>
+                  ) : (
+                    <Link to="/contact">
+                      <button className="flex items-center space-x-2 bg-gradient-to-r from-blush-500 to-rose-500 text-white px-6 py-3 rounded-full font-inter font-medium hover:shadow-lg transition-all duration-300">
+                        <Calendar className="w-5 h-5" />
+                        <span>Book Similar Look</span>
+                      </button>
+                    </Link>
+                  )}
                   {/* <button className="flex items-center space-x-2 text-blush-600 hover:text-rose-600 transition-colors duration-300">
                     <Heart className="w-5 h-5" />
                     <span className="font-inter font-medium">Save to Favorites</span>
@@ -259,13 +275,13 @@ const Gallery: React.FC = () => {
             absolutely radiant.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link
-              to="/contact"
+            <button 
+              onClick={() => navigate("/contact")}
               className="bg-white text-blush-600 px-8 py-4 rounded-full font-inter font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 inline-flex items-center justify-center space-x-2"
             >
               <Calendar className="w-5 h-5" />
               <span>Book Your Session</span>
-            </Link>
+            </button>
             <a
               href="https://forms.gle/rfW2a95NHFgN874XA"
               target="_blank"
