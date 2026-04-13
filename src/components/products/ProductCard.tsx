@@ -31,7 +31,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
           {product.price != null && product.price !== "" ? (
             <div className="flex flex-col gap-1">
-              {/* Top Row: Discount + Price */}
               <div className="flex items-center gap-2">
                 {product.discount && (
                   <span className="text-sm font-semibold text-blush-700">
@@ -50,19 +49,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 )}
               </div>
 
-              {/* Bottom Row: MRP + Price History */}
               <div className="flex items-center gap-2 text-sm">
                 {product.mrp && (
                   <span className="text-gray-400 line-through">
                     ₹{product.mrp}
                   </span>
                 )}
-
-                <span className="text-gray-300">|</span>
-
-                <button className="text-blush-700 hover:underline text-sm">
-                  Price history
-                </button>
               </div>
             </div>
           ) : (
