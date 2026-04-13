@@ -10,7 +10,7 @@ export const products: Product[] = [
     image: retinolColaginImage,
     description: "Retinol Collagen Serum for Anti-Aging Skin Care",
     affiliateLink: "https://amzn.to/3Og9Ik4",
-    price: "₹901",
+    price: "901",
     discount: 10,
     weight: "100ml",
     mrp: "₹1001",
@@ -25,7 +25,7 @@ export const products: Product[] = [
     description:
       "Vitamin C serum for brighter, more even-looking skin over time.",
     affiliateLink: "https://example.com/affiliate/serum",
-    price: "$42",
+    price: "42",
     featured: true,
   },
   {
@@ -37,7 +37,7 @@ export const products: Product[] = [
     description:
       "Salon-style waves with adjustable heat and a smooth ceramic barrel.",
     affiliateLink: "https://example.com/affiliate/wand",
-    price: "$68",
+    price: "68",
     featured: true,
   },
   {
@@ -49,7 +49,7 @@ export const products: Product[] = [
     description:
       "Deep conditioning mask for soft, shiny hair after just one use.",
     affiliateLink: "https://example.com/affiliate/hair-mask",
-    price: "$28",
+    price: "28",
     featured: true,
   },
   {
@@ -61,7 +61,7 @@ export const products: Product[] = [
     description:
       "Buildable powder blush duo for a natural flush or sculpted cheek.",
     affiliateLink: "https://example.com/affiliate/blush",
-    price: "$32",
+    price: "32",
   },
   {
     id: 6,
@@ -72,7 +72,7 @@ export const products: Product[] = [
     description:
       "Smudge-resistant formula for defined lashes without clumping.",
     affiliateLink: "https://example.com/affiliate/mascara",
-    price: "$22",
+    price: "22",
   },
   {
     id: 7,
@@ -83,7 +83,7 @@ export const products: Product[] = [
     description:
       "pH-balanced cleanser that removes makeup without stripping moisture.",
     affiliateLink: "https://example.com/affiliate/cleanser",
-    price: "$18",
+    price: "18",
   },
   {
     id: 8,
@@ -93,7 +93,7 @@ export const products: Product[] = [
       "https://images.unsplash.com/photo-1570194065650-d99fb4b38b14?w=600&h=600&fit=crop&q=80",
     description: "Lightweight sunscreen that sits beautifully under makeup.",
     affiliateLink: "https://example.com/affiliate/spf",
-    price: "$36",
+    price: "36",
   },
   {
     id: 9,
@@ -104,7 +104,7 @@ export const products: Product[] = [
     description:
       "Silicone-free oil blend to tame frizz and add mirror-like shine.",
     affiliateLink: "https://example.com/affiliate/hair-oil",
-    price: "$26",
+    price: "26",
   },
   {
     id: 10,
@@ -115,7 +115,7 @@ export const products: Product[] = [
     description:
       "Absorbs oil and adds volume between washes with a fresh scent.",
     affiliateLink: "https://example.com/affiliate/dry-shampoo",
-    price: "$19",
+    price: "19",
   },
   {
     id: 11,
@@ -126,7 +126,7 @@ export const products: Product[] = [
     description:
       "Soft synthetic bristles for seamless blending and precise lines.",
     affiliateLink: "https://example.com/affiliate/brushes",
-    price: "$54",
+    price: "54",
   },
   {
     id: 12,
@@ -137,7 +137,7 @@ export const products: Product[] = [
     description:
       "Adjustable lighting for flawless application at any time of day.",
     affiliateLink: "https://example.com/affiliate/mirror",
-    price: "$89",
+    price: "89",
   },
 ];
 
