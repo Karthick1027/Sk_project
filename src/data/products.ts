@@ -6,7 +6,7 @@ export const products: Product[] = [
     id: 1,
     name: "Retinol Collagen",
     category: "Skincare",
-    image: "../../src/images/retinol_colagin.jpg",
+    image: "/src/images/retinol_colagin.jpg",
     description: "Retinol Collagen Serum for Anti-Aging Skin Care",
     affiliateLink: "https://amzn.to/3Og9Ik4",
     price: "₹901",
