@@ -1,4 +1,5 @@
 import type { Product } from "../types/product";
+import retinolColaginImage from "../images/retinol_colagin.jpg";
 
 /** Sample affiliate catalog — replace `affiliateLink` values with your real tracking URLs. */
 export const products: Product[] = [
@@ -6,7 +7,7 @@ export const products: Product[] = [
     id: 1,
     name: "Retinol Collagen",
     category: "Skincare",
-    image: "/src/images/retinol_colagin.jpg",
+    image: retinolColaginImage,
     description: "Retinol Collagen Serum for Anti-Aging Skin Care",
     affiliateLink: "https://amzn.to/3Og9Ik4",
     price: "₹901",
