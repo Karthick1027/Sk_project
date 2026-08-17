@@ -1,20 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { products as allProducts, CATEGORY_ORDER } from '../data/products';
-import type { ProductCategory } from '../types/product';
-import CategoryTabs, { type FilterTab } from '../components/products/CategoryTabs';
-import CategorySection from '../components/products/CategorySection';
-import FeaturedProducts from '../components/products/FeaturedProducts';
-import ProductListingSkeleton from '../components/products/ProductListingSkeleton';
+import React, { useEffect } from 'react';
+import { ShoppingBag, ExternalLink } from 'lucide-react';
+import { affiliateProducts } from '../data/affiliateProducts';
 
-const SEO_TITLE = 'Best Beauty Products - Affiliate Picks';
+const SEO_TITLE = 'Amazon Products | SK Bridal Studio';
 const SEO_DESCRIPTION =
-  'Curated affiliate picks for makeup, skincare, haircare, and beauty tools. Compare trusted products and shop via secure partner links.';
+  'Shop the skincare, haircare, beauty and personal care products featured in SK Bridal Studio videos through our Amazon affiliate links.';
 
 const Products: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
-  const skipTabScrollRef = useRef(true);
-
   useEffect(() => {
     const prevTitle = document.title;
     let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
@@ -39,123 +31,78 @@ const Products: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const t = window.setTimeout(() => setLoading(false), 900);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    if (skipTabScrollRef.current) {
-      skipTabScrollRef.current = false;
-      return;
-    }
-    if (activeTab === 'all') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    const el = document.getElementById(`category-${activeTab.toLowerCase()}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [activeTab]);
-
-  const featured = useMemo(
-    () => allProducts.filter((p) => p.featured),
-    []
-  );
-
-  const featuredIds = useMemo(
-    () => new Set(featured.map((p) => p.id)),
-    [featured]
-  );
-
-  /** Category grids on "All" exclude featured items so cards are not duplicated under Featured. */
-  const productsByCategoryExcludingFeatured = useMemo(() => {
-    const map = new Map<ProductCategory, typeof allProducts>();
-    for (const cat of CATEGORY_ORDER) {
-      map.set(
-        cat,
-        allProducts.filter((p) => p.category === cat && !featuredIds.has(p.id))
-      );
-    }
-    return map;
-  }, [featuredIds]);
-
-  const productsForCategory = useCallback(
-    (category: ProductCategory) => {
-      if (activeTab === 'all') {
-        return productsByCategoryExcludingFeatured.get(category) ?? [];
-      }
-      return allProducts.filter((p) => p.category === category);
-    },
-    [activeTab, productsByCategoryExcludingFeatured]
-  );
-
-  if (loading) {
-    return (
-      <div className="pt-20">
-        <div className="container mx-auto max-w-6xl px-4 py-10 sm:py-14">
-          <header className="mb-10 text-center sm:mb-14">
-            <p className="font-inter text-sm font-medium uppercase tracking-widest text-blush-600">
-              Shop
-            </p>
-            <h1 className="font-playfair mt-2 text-3xl font-bold text-gray-900 sm:text-4xl md:text-5xl">
-              Beauty picks
-            </h1>
-            <p className="font-inter mx-auto mt-3 max-w-2xl text-gray-600">
-              Loading curated products…
-            </p>
-          </header>
-          <ProductListingSkeleton />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="pt-20">
+    <div className="pt-20 min-h-screen bg-gradient-to-br from-rose-50 via-white to-blush-50">
       <div className="container mx-auto max-w-6xl px-4 py-10 sm:py-14">
-        <header className="mb-8 text-center sm:mb-10">
-          <p className="font-inter text-sm font-medium uppercase tracking-widest text-blush-600">
-            Affiliate boutique
-          </p>
-          <h1 className="font-playfair mt-2 text-3xl font-bold text-gray-900 sm:text-4xl md:text-5xl">
-            Beauty products we love
-          </h1>
-          <p className="font-inter mx-auto mt-3 max-w-2xl text-gray-600">
-            Honest picks across makeup, skincare, haircare, and tools. When you buy through our
-            links, we may earn a commission at no extra cost to you.
-          </p>
-        </header>
+        {/* Header Section */}
+        <div className="text-center mb-12 sm:mb-16">
+          {/* Shopping Bag Icon */}
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-gradient-to-br from-blush-100 to-rose-100 rounded-full">
+              <ShoppingBag className="w-10 h-10 text-blush-600" />
+            </div>
+          </div>
 
-        <div className="mb-10 sm:mb-12">
-          <CategoryTabs
-            active={activeTab}
-            onChange={setActiveTab}
-            categories={CATEGORY_ORDER}
-          />
+          {/* Heading */}
+          <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Products Mentioned in This Video
+          </h1>
+
+          {/* Subtitle */}
+          <p className="font-inter text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+            Shop all the products featured in our video. Tap any product below to check it out on Amazon.
+          </p>
         </div>
 
-        <div className="space-y-14 sm:space-y-16">
-          {activeTab === 'all' && <FeaturedProducts products={featured} />}
+        {/* Product Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-16">
+          {affiliateProducts.map((product) => (
+            <a
+              key={product.id}
+              href={product.affiliateLink}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="group"
+            >
+              <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-full hover:scale-105">
+                {/* Card Content */}
+                <div className="p-6 sm:p-8 h-full flex flex-col justify-between">
+                  {/* Product Badge and Number */}
+                  <div className="mb-4 flex items-center gap-2 flex-wrap">
+                    <span className="inline-block bg-gradient-to-r from-blush-100 to-rose-100 text-blush-700 px-3 py-1 rounded-full text-sm font-semibold">
+                      Product {product.id}
+                    </span>
+                    <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">
+                      🔗 Affiliate Link
+                    </span>
+                  </div>
 
-          {activeTab === 'all'
-            ? CATEGORY_ORDER.map((category) => {
-                const list = productsForCategory(category);
-                if (list.length === 0) return null;
-                return (
-                  <CategorySection key={category} category={category} products={list} />
-                );
-              })
-            : (() => {
-                const list = productsForCategory(activeTab);
-                if (list.length === 0) {
-                  return (
-                    <p className="font-inter text-center text-gray-500">
-                      No products in this category yet.
+                  {/* Product Name */}
+                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-gray-900 mb-6 group-hover:text-blush-600 transition-colors duration-300 break-words">
+                    {product.name}
+                  </h3>
+
+                  {/* CTA Button */}
+                  <div className="flex flex-col gap-2">
+                    <button className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blush-500 to-rose-500 hover:from-blush-600 hover:to-rose-600 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300 group-hover:shadow-lg w-full">
+                      Shop on Amazon
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                    <p className="text-xs text-gray-500 text-center font-inter">
+                      Affiliate commission earned
                     </p>
-                  );
-                }
-                return <CategorySection category={activeTab} products={list} />;
-              })()}
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        {/* Affiliate Disclosure */}
+        <div className="bg-gradient-to-r from-blush-50 to-rose-50 rounded-2xl p-6 sm:p-8 border border-blush-200 text-center mb-12">
+          <p className="font-inter text-gray-700 text-sm sm:text-base leading-relaxed">
+            <span className="font-semibold">Affiliate Disclosure:</span> Some links on this page are Amazon affiliate links. If you purchase through these links, I may earn a small commission at no additional cost to you. Thank you for supporting my content! ❤️
+          </p>
         </div>
       </div>
     </div>
