@@ -33,7 +33,7 @@ const Products: React.FC = () => {
 
   return (
     <div className="pt-20 min-h-screen bg-gradient-to-br from-rose-50 via-white to-blush-50">
-      <div className="container mx-auto max-w-6xl px-4 py-10 sm:py-14">
+      <div className="container mx-auto px-4 py-10 sm:py-14">
         {/* Header Section */}
         <div className="text-center mb-12 sm:mb-16">
           {/* Shopping Bag Icon */}
@@ -55,7 +55,7 @@ const Products: React.FC = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-16">
           {affiliateProducts.map((product) => (
             <a
               key={product.id}
@@ -65,10 +65,19 @@ const Products: React.FC = () => {
               className="group"
             >
               <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-full hover:scale-105">
+                {/* Product Image */}
+                <div className="relative w-full h-24 bg-gradient-to-br from-blush-50 to-rose-50 overflow-hidden flex items-center justify-center">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+
                 {/* Card Content */}
-                <div className="p-6 sm:p-8 h-full flex flex-col justify-between">
+                <div className="p-4 sm:p-6 h-full flex flex-col">
                   {/* Product Badge and Number */}
-                  <div className="mb-4 flex items-center gap-2 flex-wrap">
+                  <div className="mb-2 flex items-center gap-2 flex-wrap">
                     <span className="inline-block bg-gradient-to-r from-blush-100 to-rose-100 text-blush-700 px-3 py-1 rounded-full text-sm font-semibold">
                       Product {product.id}
                     </span>
@@ -78,7 +87,7 @@ const Products: React.FC = () => {
                   </div>
 
                   {/* Product Name */}
-                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-gray-900 mb-6 group-hover:text-blush-600 transition-colors duration-300 break-words">
+                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-gray-900 mb-3 group-hover:text-blush-600 transition-colors duration-300 break-words">
                     {product.name}
                   </h3>
 
