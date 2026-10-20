@@ -42,9 +42,9 @@ const Products: React.FC = () => {
         subtitle="Shop all the products featured in our video. Tap any product below to check it out on Amazon."
       />
 
-      <div className="container mx-auto px-4 py-16 sm:py-20 max-w-[90%]">
+      <div className="container mx-auto px-4 py-12 sm:py-16 md:py-20 md:max-w-[90%]">
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 mb-16">
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-12 sm:mb-16">
           {affiliateProducts.map((product) => (
             <a
               key={product.id}
@@ -55,7 +55,7 @@ const Products: React.FC = () => {
             >
               <div className="flex h-full flex-col bg-ivory rounded-2xl border border-sand/70 shadow-soft hover:shadow-luxe hover:-translate-y-1 hover:border-champagne transition-all duration-500 overflow-hidden">
                 {/* Product Image */}
-                <div className="relative w-full h-48 bg-beige overflow-hidden flex items-center justify-center p-4">
+                <div className="relative w-full h-44 sm:h-48 bg-beige overflow-hidden flex items-center justify-center p-4">
                   <img
                     src={product.image}
                     alt={product.name}
@@ -68,7 +68,7 @@ const Products: React.FC = () => {
                 </div>
 
                 {/* Card Content */}
-                <div className="p-5 sm:p-6 flex flex-1 flex-col">
+                <div className="p-4 sm:p-6 flex flex-1 flex-col">
                   <span className="self-start bg-blush text-cocoa px-2.5 py-1 rounded-md font-inter text-[11px] font-semibold uppercase tracking-[0.15em] mb-3">
                     Affiliate Link
                   </span>
@@ -80,7 +80,7 @@ const Products: React.FC = () => {
 
                   {/* CTA Button */}
                   <div className="flex flex-col gap-2">
-                    <span className="btn-primary w-full !py-3 text-sm">
+                    <span className="btn-primary w-full !px-4 !py-3 text-sm">
                       Shop on Amazon
                       <ExternalLink className="w-4 h-4" />
                     </span>

@@ -16,12 +16,12 @@ const SectionHeading: React.FC<SectionHeadingProps> = ({
   return (
     <div className={`${centered ? 'text-center mx-auto' : 'text-left'} max-w-3xl ${className}`}>
       {eyebrow && <p className="eyebrow mb-4">{eyebrow}</p>}
-      <h2 className="font-playfair text-4xl md:text-5xl font-medium text-chocolate leading-tight">
+      <h2 className="font-playfair text-3xl sm:text-4xl md:text-5xl font-medium text-chocolate leading-tight text-balance">
         {title}
       </h2>
       <div className={`ornament mt-6 ${centered ? 'mx-auto' : ''}`} />
       {subtitle && (
-        <p className="font-inter text-lg text-ink leading-relaxed mt-6">
+        <p className="font-inter text-base sm:text-lg text-ink leading-relaxed mt-6">
           {subtitle}
         </p>
       )}

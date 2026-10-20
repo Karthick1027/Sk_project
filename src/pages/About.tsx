@@ -85,50 +85,50 @@ const About: React.FC = () => {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 lg:py-24 bg-gradient-to-b from-beige to-ivory">
+      <section className="relative overflow-hidden py-14 sm:py-20 lg:py-24 bg-gradient-to-b from-beige to-ivory">
         <AboutBackdrop />
-        <div className="relative container mx-auto px-4 max-w-[90%]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="relative container mx-auto px-4 md:max-w-[90%]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-16 items-center">
             <div className="animate-fade-in text-center lg:text-left">
               <p className="eyebrow mb-5">The Artist Behind SK Bridal Studio</p>
-              <h1 className="font-playfair text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
+              <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
                 Meet <span className="font-cormorant italic text-cocoa">Srinithi.A.K</span>
               </h1>
-              <div className="ornament mt-8 mx-auto lg:mx-0" />
-              <p className="font-inter text-lg md:text-xl text-ink mt-8 mb-10 leading-relaxed">
+              <div className="ornament mt-6 sm:mt-8 mx-auto lg:mx-0" />
+              <p className="font-inter text-base sm:text-lg md:text-xl text-ink mt-6 sm:mt-8 mb-8 sm:mb-10 leading-relaxed">
                 With over 5 years of experience in professional makeup artistry, I believe that beauty is not just about
                 looking good - it's about feeling confident, radiant, and authentically yourself.
               </p>
-              <div className="inline-grid grid-cols-3 divide-x divide-sand card">
+              <div className="grid w-full sm:inline-grid sm:w-auto grid-cols-3 divide-x divide-sand card">
                 {[
                   { value: '5+', label: 'Years Experience' },
                   { value: '230+', label: 'Happy Brides' },
                   { value: '5+', label: 'Students Trained' },
                 ].map((stat) => (
-                  <div key={stat.label} className="px-5 sm:px-8 py-5 text-center">
-                    <div className="font-playfair text-3xl font-medium text-chocolate">{stat.value}</div>
-                    <div className="font-inter text-[11px] uppercase tracking-[0.2em] text-cocoa mt-1">{stat.label}</div>
+                  <div key={stat.label} className="px-2 sm:px-8 py-4 sm:py-5 text-center">
+                    <div className="font-playfair text-2xl sm:text-3xl font-medium text-chocolate">{stat.value}</div>
+                    <div className="font-inter text-[10px] sm:text-[11px] uppercase tracking-[0.12em] sm:tracking-[0.2em] text-cocoa mt-1">{stat.label}</div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
+            <div className="relative mx-auto w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md lg:max-w-lg">
               <Mandala className="pointer-events-none absolute left-1/2 top-[42%] w-[150%] max-w-none -translate-x-1/2 -translate-y-1/2 text-mocha opacity-25 animate-[spin_160s_linear_infinite] motion-reduce:animate-none" />
               <div className="absolute inset-0 -translate-x-5 translate-y-5 rounded-t-full border border-champagne" />
               <div className="relative overflow-hidden rounded-t-full shadow-luxe bg-sand">
                 <img
                   src={srinithiPic}
                   alt="Srinithi - Professional Makeup Artist"
-                  className="w-full h-[28rem] lg:h-[620px] object-cover"
+                  className="w-full h-[24rem] sm:h-[28rem] lg:h-[620px] object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-chocolate/25 via-transparent to-transparent"></div>
               </div>
               {/* Floating elements */}
-              <div className="absolute top-10 -right-3 w-16 h-16 bg-chocolate rounded-full flex items-center justify-center shadow-luxe animate-float">
-                <Sparkles className="w-7 h-7 text-champagne" />
+              <div className="absolute top-10 -right-3 w-12 h-12 sm:w-16 sm:h-16 bg-chocolate rounded-full flex items-center justify-center shadow-luxe animate-float">
+                <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 text-champagne" />
               </div>
-              <div className="absolute -bottom-5 left-6 card px-5 py-3 animate-float" style={{ animationDelay: '1s' }}>
-                <p className="font-script text-2xl text-cocoa leading-none">Makeup is an Art</p>
+              <div className="absolute -bottom-5 left-4 sm:left-6 card px-4 sm:px-5 py-3 animate-float" style={{ animationDelay: '1s' }}>
+                <p className="font-script text-xl sm:text-2xl text-cocoa leading-none whitespace-nowrap">Makeup is an Art</p>
               </div>
             </div>
           </div>
@@ -136,11 +136,11 @@ const About: React.FC = () => {
       </section>
 
       {/* Story Section */}
-      <section className="py-24 bg-ivory">
+      <section className="py-16 md:py-24 bg-ivory">
         <div className="container mx-auto px-4">
           <SectionHeading eyebrow="Our Story" title="My Beauty Journey" className="mb-12" />
-          <div className="max-w-3xl mx-auto space-y-6 font-inter text-lg text-ink leading-relaxed">
-            <p className="first-letter:float-left first-letter:mr-3 first-letter:font-playfair first-letter:text-6xl first-letter:leading-[0.85] first-letter:text-chocolate">
+          <div className="max-w-3xl mx-auto space-y-6 font-inter text-base sm:text-lg text-ink leading-relaxed">
+            <p className="first-letter:float-left first-letter:mr-3 first-letter:font-playfair first-letter:text-5xl sm:first-letter:text-6xl first-letter:leading-[0.85] first-letter:text-chocolate">
               My journey into the world of makeup began with a deep passion that grew within me from a young age. What started as a fascination soon became a dream to make people feel confident, beautiful, and special through my work.
             </p>
             <p>
@@ -149,8 +149,8 @@ const About: React.FC = () => {
             <p>
             Our journey together has not always been easy. We have faced many challenges, including financial struggles and medical difficulties. Despite everything, we stood strong, supporting each other through every situation. While I was working night shifts to support our financial needs, I also continued building my career in makeup with dedication and determination. At the same time, Karthikeyan, working in the IT field, managed both our responsibilities and supported my dreams without hesitation.
             </p>
-            <blockquote className="my-10 border-y border-sand py-8 text-center">
-              <p className="font-cormorant italic text-3xl md:text-4xl text-chocolate leading-snug">
+            <blockquote className="my-8 sm:my-10 border-y border-sand py-6 sm:py-8 text-center">
+              <p className="font-cormorant italic text-2xl sm:text-3xl md:text-4xl text-chocolate leading-snug">
                 "Makeup is not just my passion—it is my identity."
               </p>
             </blockquote>
@@ -171,9 +171,9 @@ const About: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14 md:mt-20 max-w-6xl mx-auto">
             {values.map((value) => (
-              <div key={value.title} className="text-center group card px-8 py-10 hover:-translate-y-1 transition-transform duration-500">
+              <div key={value.title} className="text-center group card px-6 py-8 lg:px-8 lg:py-10 hover:-translate-y-1 transition-transform duration-500">
                 <div className="w-14 h-14 border border-champagne bg-beige text-cocoa rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500">
                   {value.icon}
                 </div>
@@ -186,18 +186,18 @@ const About: React.FC = () => {
       </section>
 
       {/* Certifications Section */}
-      <section className="py-24 bg-beige">
+      <section className="py-16 md:py-24 bg-beige">
         <div className="container mx-auto px-4">
           <SectionHeading
             eyebrow="Certified Expertise"
             title="Professional Credentials"
             subtitle="Committed to excellence through continuous education and professional development"
-            className="mb-16"
+            className="mb-10 md:mb-16"
           />
 
-          <div className="flex flex-wrap justify-center gap-6 max-w-6xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 max-w-6xl mx-auto">
             {certifications.map((cert) => (
-              <div key={cert} className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] bg-ivory rounded-2xl p-6 border border-sand/70 shadow-soft hover:shadow-luxe transition-all duration-300 group">
+              <div key={cert} className="w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] bg-ivory rounded-2xl p-5 sm:p-6 border border-sand/70 shadow-soft hover:shadow-luxe transition-all duration-300 group">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 shrink-0 bg-sand text-cocoa rounded-full flex items-center justify-center group-hover:bg-chocolate group-hover:text-champagne transition-colors duration-500">
                     <BookOpen className="w-5 h-5" />
@@ -214,18 +214,18 @@ const About: React.FC = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-24 bg-ivory">
-        <div className="container mx-auto px-4 max-w-[90%]">
+      <section className="py-16 md:py-24 bg-ivory">
+        <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="Kind Words"
             title="What Clients Say"
             subtitle="The joy and confidence of my clients is the greatest testament to my work"
-            className="mb-16"
+            className="mb-10 md:mb-16"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {testimonials.map((testimonial) => (
-              <div key={testimonial.name} className="relative flex flex-col bg-beige rounded-2xl p-8 border border-sand/60 hover:shadow-luxe hover:-translate-y-1 transition-all duration-500">
+              <div key={testimonial.name} className="relative flex flex-col bg-beige rounded-2xl p-6 sm:p-8 border border-sand/60 hover:shadow-luxe hover:-translate-y-1 transition-all duration-500">
                 <Quote className="absolute top-6 right-6 w-10 h-10 text-champagne/70" />
 
                 <div className="flex mb-5">

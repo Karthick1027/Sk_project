@@ -4,6 +4,10 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Only apply hover styles on devices that can hover, so taps don't leave cards stuck in their hover state
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       // SK Bridal Studio brand palette

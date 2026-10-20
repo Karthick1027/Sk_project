@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Heart, Star, Calendar, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import classImage from '../../src/images/bridal_class.jpg';
@@ -103,6 +103,21 @@ const Gallery: React.FC = () => {
 
  const navigate = useNavigate();
 
+  // While the lightbox is open, stop the page behind it from scrolling (important on touch devices) and close on Escape
+  useEffect(() => {
+    if (!selectedImage) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedImage(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [selectedImage]);
+
   return (
     <div className="pt-20">
       <PageHero
@@ -113,14 +128,14 @@ const Gallery: React.FC = () => {
       />
 
       {/* Category Filter */}
-      <section className="sticky top-[72px] z-30 py-5 bg-ivory/90 backdrop-blur-md border-y border-sand/60">
+      <section className="sticky top-[72px] z-30 py-3 sm:py-5 bg-ivory/90 backdrop-blur-md border-y border-sand/60">
         <div className="container mx-auto px-4">
-          <div className="flex gap-3 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
+          <div className="no-scrollbar -mx-4 flex gap-2 sm:gap-3 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`shrink-0 px-6 py-2.5 rounded-lg font-inter text-sm font-medium tracking-wide transition-all duration-300 ${
+                className={`shrink-0 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-inter text-sm font-medium tracking-wide transition-all duration-300 ${
                   selectedCategory === category
                     ? "bg-chocolate text-ivory shadow-soft"
                     : "bg-ivory text-cocoa border border-sand hover:border-champagne hover:bg-beige"
@@ -134,9 +149,9 @@ const Gallery: React.FC = () => {
       </section>
 
       {/* Gallery Grid */}
-      <section className="py-20 bg-ivory">
-        <div className="container mx-auto px-4 max-w-[90%]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <section className="py-12 sm:py-16 md:py-20 bg-ivory">
+        <div className="container mx-auto px-4 md:max-w-[90%]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {filteredImages.map((image) => (
               <div
                 key={image.id}
@@ -147,7 +162,7 @@ const Gallery: React.FC = () => {
                   <img
                     src={image.src}
                     alt={image.title}
-                    className="w-full h-96 object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="w-full aspect-[4/5] lg:aspect-auto lg:h-96 object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-chocolate/80 via-chocolate/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                     <div className="absolute bottom-5 left-5 right-5 text-ivory">
@@ -160,9 +175,9 @@ const Gallery: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="px-6 py-5">
+                <div className="px-5 py-4 sm:px-6 sm:py-5">
                   <div className="flex items-center justify-between gap-4">
-                    <div>
+                    <div className="min-w-0">
                       <span className="font-inter text-[11px] font-semibold uppercase tracking-[0.25em] text-mocha">
                         {image.category}
                       </span>
@@ -202,11 +217,14 @@ const Gallery: React.FC = () => {
       {/* Lightbox Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 bg-chocolate/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 bg-chocolate/90 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           onClick={() => setSelectedImage(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedImage.title}
         >
           <div
-            className="relative max-w-4xl w-full max-h-[90vh] overflow-y-auto bg-ivory rounded-2xl shadow-luxe"
+            className="relative max-w-4xl w-full max-h-[90dvh] overflow-y-auto bg-ivory rounded-2xl shadow-luxe"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -221,18 +239,18 @@ const Gallery: React.FC = () => {
               <img
                 src={selectedImage.src}
                 alt={selectedImage.title}
-                className="w-full h-96 lg:h-full object-cover bg-sand"
+                className="w-full h-72 sm:h-96 md:h-[28rem] lg:h-full lg:min-h-[32rem] object-cover bg-sand"
               />
-              <div className="p-8 lg:p-10 flex flex-col justify-center">
+              <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
                 <p className="eyebrow mb-4">{selectedImage.category}</p>
-                <h2 className="font-playfair text-3xl lg:text-4xl font-medium text-chocolate mb-4">
+                <h2 className="font-playfair text-2xl sm:text-3xl lg:text-4xl font-medium text-chocolate mb-4">
                   {selectedImage.title}
                 </h2>
                 <div className="ornament mb-6" />
-                <p className="font-inter text-ink text-lg leading-relaxed mb-8">
+                <p className="font-inter text-ink text-base sm:text-lg leading-relaxed mb-6 sm:mb-8">
                   {selectedImage.description}
                 </p>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   {selectedImage?.category === "Classes" ? (
                     <a
                       href="https://forms.gle/rfW2a95NHFgN874XA"

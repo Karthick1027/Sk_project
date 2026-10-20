@@ -116,16 +116,16 @@ Sent from SK Bridal Studio Website
         subtitle="Ready to transform your look or learn professional makeup techniques? I'd love to hear from you. Let's discuss your vision and create something beautiful together."
       />
 
-      <div id="contact" className="py-24 bg-ivory scroll-mt-20">
-        <div className="container mx-auto px-4 max-w-[90%]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <div id="contact" className="py-16 md:py-24 bg-ivory scroll-mt-20">
+        <div className="container mx-auto px-4 md:max-w-[90%]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
             {/* Contact Information */}
             <div className="space-y-8">
               <div>
                 <p className="eyebrow mb-4">Reach Out</p>
-                <h2 className="font-playfair text-4xl font-medium text-chocolate mb-6">Get in Touch</h2>
+                <h2 className="font-playfair text-3xl sm:text-4xl font-medium text-chocolate mb-6">Get in Touch</h2>
                 <div className="ornament mb-6" />
-                <p className="font-inter text-ink text-lg leading-relaxed">
+                <p className="font-inter text-ink text-base sm:text-lg leading-relaxed">
                   I'm here to make your beauty dreams come true. Whether you're planning your wedding,
                   preparing for a special event, or want to master makeup artistry, let's chat!
                 </p>
@@ -138,23 +138,23 @@ Sent from SK Bridal Studio Website
                     key={method.title}
                     href={method.href}
                     {...(method.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                    className="flex items-center gap-5 p-5 bg-ivory border border-sand/70 rounded-2xl shadow-soft hover:shadow-luxe hover:border-champagne transition-all duration-300 group"
+                    className="flex items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-ivory border border-sand/70 rounded-2xl shadow-soft hover:shadow-luxe hover:border-champagne transition-all duration-300 group"
                   >
-                    <div className="w-14 h-14 shrink-0 bg-chocolate text-champagne rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 bg-chocolate text-champagne rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                       {method.icon}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-inter text-xs font-semibold uppercase tracking-[0.25em] text-mocha">{method.title}</h3>
-                      <p className="font-playfair text-xl text-chocolate mt-1">{method.value}</p>
+                      <p className="font-playfair text-lg sm:text-xl text-chocolate mt-1 break-words">{method.value}</p>
                       <p className="font-inter text-sm text-ink">{method.note}</p>
                     </div>
-                    <ArrowUpRight className="w-5 h-5 text-mocha group-hover:text-chocolate group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300" />
+                    <ArrowUpRight className="w-5 h-5 shrink-0 text-mocha group-hover:text-chocolate group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300" />
                   </a>
                 ))}
               </div>
 
               {/* Business Hours */}
-              <div className="bg-beige border border-sand/70 rounded-2xl p-7">
+              <div className="bg-beige border border-sand/70 rounded-2xl p-5 sm:p-7">
                 <div className="flex items-center gap-3 mb-5">
                   <Clock className="w-5 h-5 text-cocoa" />
                   <h3 className="font-playfair text-2xl font-medium text-chocolate">Business Hours</h3>
@@ -177,9 +177,9 @@ Sent from SK Bridal Studio Website
             </div>
 
             {/* Contact Form */}
-            <div className="relative bg-beige rounded-2xl p-8 md:p-10 border border-sand/70 shadow-luxe self-start">
+            <div className="relative bg-beige rounded-2xl p-5 sm:p-8 md:p-10 border border-sand/70 shadow-luxe self-start">
               <p className="font-script text-3xl text-mocha mb-1">Say hello</p>
-              <h2 className="font-playfair text-3xl md:text-4xl font-medium text-chocolate mb-2">Send a Message</h2>
+              <h2 className="font-playfair text-2xl sm:text-3xl md:text-4xl font-medium text-chocolate mb-2">Send a Message</h2>
               <p className="font-inter text-sm text-ink mb-8">Your message opens in Email & WhatsApp so I can reply quickly.</p>
 
               {submitStatus === 'success' && (
@@ -200,7 +200,7 @@ Sent from SK Bridal Studio Website
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="name" className={labelClass}>
                       Your Name *
@@ -288,18 +288,18 @@ Sent from SK Bridal Studio Website
       </div>
 
       {/* Location Section */}
-      <section className="py-24 bg-beige">
-        <div className="container mx-auto px-4 max-w-[90%]">
+      <section className="py-16 md:py-24 bg-beige">
+        <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="Find Us"
             title="Visit My Studio"
             subtitle="Located in the Thiruninravur near Chennai, my studio provides a comfortable and professional environment for all your beauty needs."
-            className="mb-16"
+            className="mb-10 md:mb-16"
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="space-y-6">
-              <div className="flex items-start gap-4 card p-6">
+              <div className="flex items-start gap-4 card p-5 sm:p-6">
                 <div className="w-12 h-12 shrink-0 bg-sand text-cocoa rounded-full flex items-center justify-center">
                   <MapPin className="w-5 h-5" />
                 </div>
@@ -313,7 +313,7 @@ Sent from SK Bridal Studio Website
                 </div>
               </div>
 
-              <div className="card p-7">
+              <div className="card p-5 sm:p-7">
                 <h4 className="font-playfair text-2xl font-medium text-chocolate mb-5">What to Expect</h4>
                 <ul className="space-y-4 font-inter text-ink">
                   {[
@@ -344,7 +344,7 @@ Sent from SK Bridal Studio Website
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 title="SK Bridal Studio Location"
-                className="w-full h-96 grayscale-[30%] sepia-[15%]"
+                className="w-full h-72 sm:h-96 grayscale-[30%] sepia-[15%]"
               ></iframe>
 
             </div>

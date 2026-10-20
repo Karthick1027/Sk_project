@@ -12,7 +12,7 @@ import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-ivory">
+      <div className="min-h-screen bg-ivory overflow-x-clip">
         <Header />
         <main>
             <ScrollToTop />

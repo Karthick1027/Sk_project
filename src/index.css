@@ -19,7 +19,7 @@
 @layer components {
   /* Buttons — matches the brand "Button Styles" sheet */
   .btn {
-    @apply inline-flex items-center justify-center gap-3 rounded-lg px-7 py-3.5 font-inter text-[15px] font-medium tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-2 focus-visible:ring-offset-ivory disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-lg px-7 py-3.5 font-inter text-[15px] font-medium tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-2 focus-visible:ring-offset-ivory disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
     @apply btn bg-chocolate text-ivory shadow-soft hover:-translate-y-0.5 hover:bg-cocoa;
@@ -54,5 +54,16 @@
   /* Form fields */
   .field {
     @apply w-full rounded-lg border border-mist bg-white px-4 py-3 font-inter text-chocolate outline-none transition-all duration-300 placeholder:text-mocha/70 focus:border-champagne focus:ring-2 focus:ring-champagne/40 disabled:opacity-60;
+  }
+}
+
+@layer utilities {
+  /* Horizontally scrollable rows (e.g. filter chips on mobile) without a visible scrollbar */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

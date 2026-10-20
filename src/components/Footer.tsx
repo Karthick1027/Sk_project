@@ -8,12 +8,12 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="bg-chocolate text-ivory">
-      <div className="container mx-auto px-4 pt-16 pb-10 max-w-[90%]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-12">
+      <div className="container mx-auto px-4 pt-16 pb-10 md:max-w-[90%]">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-12 gap-x-6 gap-y-10 sm:gap-x-10 sm:gap-y-12 xl:gap-x-8">
           {/* Brand */}
-          <div className="space-y-6 lg:col-span-4">
+          <div className="col-span-2 space-y-6 md:col-span-3 xl:col-span-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full ring-1 ring-champagne/60">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full ring-1 ring-champagne/60">
                 <img
                   src={Logo_white}
                   alt="SK Bridal Studio logo"
@@ -21,7 +21,7 @@ const Footer: React.FC = () => {
                 />
               </div>
               <div className="leading-none">
-                <h3 className="font-playfair text-2xl font-medium uppercase tracking-[0.15em] text-ivory">
+                <h3 className="font-playfair text-lg sm:text-2xl xl:text-xl font-medium uppercase tracking-[0.12em] sm:tracking-[0.15em] text-ivory whitespace-nowrap">
                   SK Bridal Studio
                 </h3>
                 <p className="mt-2 font-inter text-[10px] uppercase tracking-[0.35em] text-champagne">
@@ -36,7 +36,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Explore */}
-          <div className="space-y-5 lg:col-span-2">
+          <div className="space-y-5 xl:col-span-2">
             <h4 className="font-inter text-xs font-semibold uppercase tracking-[0.3em] text-champagne">Explore</h4>
             <ul className="font-inter space-y-3">
               {[
@@ -54,7 +54,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Services */}
-          <div className="space-y-5 lg:col-span-3">
+          <div className="space-y-5 xl:col-span-3">
             <h4 className="font-inter text-xs font-semibold uppercase tracking-[0.3em] text-champagne">Services</h4>
             <ul className="font-inter space-y-3 text-sand/80">
               <li>Bridal Makeup</li>
@@ -74,7 +74,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Contact */}
-          <div className="space-y-5 lg:col-span-3">
+          <div className="col-span-2 space-y-5 md:col-span-1 xl:col-span-3">
             <h4 className="font-inter text-xs font-semibold uppercase tracking-[0.3em] text-champagne">Connect</h4>
             <div className="space-y-4 font-inter">
               <a href="tel:+918668038093" className={`flex items-center gap-3 group ${linkClass}`}>
@@ -102,7 +102,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-champagne/20 mt-14 pt-8 flex flex-col md:flex-row items-center justify-between gap-3 text-center">
+        <div className="border-t border-champagne/20 mt-12 sm:mt-14 pt-8 flex flex-col md:flex-row items-center justify-between gap-3 text-center">
           <p className="font-inter text-sm text-sand/60">
             © 2022 SK Bridal Studio. All rights reserved.
           </p>

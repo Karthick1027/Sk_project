@@ -52,16 +52,16 @@ const Counter: React.FC<{ end: number; duration: number; label: string; icon: Re
   }, [isVisible, end, duration]);
 
   return (
-    <div ref={ref} className="text-center group px-6 py-8">
-      <div className="flex justify-center mb-5">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-champagne bg-beige text-cocoa group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500">
+    <div ref={ref} className="text-center group px-4 py-6 md:px-6 md:py-8">
+      <div className="flex justify-center mb-4 md:mb-5">
+        <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-champagne bg-beige text-cocoa group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500">
           {icon}
         </div>
       </div>
-      <div className="font-playfair leading-tight text-5xl md:text-6xl font-medium text-chocolate mb-3">
+      <div className="font-playfair leading-tight text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate mb-3">
         {count}+
       </div>
-      <p className="font-inter text-xs sm:text-sm uppercase tracking-[0.25em] text-cocoa">{label}</p>
+      <p className="font-inter text-xs md:text-sm uppercase tracking-[0.15em] md:tracking-[0.25em] text-cocoa">{label}</p>
     </div>
   );
 };
@@ -94,19 +94,19 @@ const Home: React.FC = () => {
       <section className="relative overflow-hidden bg-gradient-to-b from-beige via-ivory to-ivory">
         <HeroBackdrop />
 
-        <div className="relative container mx-auto max-w-[90%] px-4 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="relative container mx-auto md:max-w-[90%] px-4 py-12 sm:py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="animate-fade-in text-center lg:text-left">
             <p className="eyebrow">Bridal Makeup · Events · Academy</p>
-            <h1 className="mt-6 font-playfair text-5xl md:text-6xl xl:text-7xl font-medium text-chocolate leading-[1.08]">
+            <h1 className="mt-6 font-playfair text-4xl min-[400px]:text-5xl md:text-6xl xl:text-7xl font-medium text-chocolate leading-[1.08]">
               Beauty Beyond
               <span className="block font-cormorant italic font-medium text-cocoa mt-2">Expectations</span>
             </h1>
-            <div className="ornament mt-8 mx-auto lg:mx-0" />
-            <p className="mt-8 font-inter text-lg md:text-xl text-ink max-w-xl mx-auto lg:mx-0 leading-relaxed">
+            <div className="ornament mt-6 sm:mt-8 mx-auto lg:mx-0" />
+            <p className="mt-6 sm:mt-8 font-inter text-base sm:text-lg md:text-xl text-ink max-w-xl mx-auto lg:mx-0 leading-relaxed">
               Professional makeup artistry for your most precious moments. From dreamy bridal looks to glamorous events,
               I create beauty that reflects your unique radiance.
             </p>
-            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row sm:flex-wrap gap-4 justify-center lg:justify-start">
               <Link to="/contact" className="btn-primary">
                 Book Your Makeup
                 <ArrowRight className="w-4 h-4" />
@@ -122,7 +122,7 @@ const Home: React.FC = () => {
               </a>
             </div>
 
-            <div className="mt-12 flex items-center justify-center lg:justify-start gap-6 text-cocoa">
+            <div className="mt-10 sm:mt-12 flex items-center justify-center lg:justify-start gap-4 sm:gap-6 text-cocoa">
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 text-mocha fill-current" />
@@ -136,7 +136,7 @@ const Home: React.FC = () => {
           </div>
 
           {/* Arched portrait */}
-          <div className="relative mx-auto mt-10 lg:mt-0 w-full max-w-md animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="relative mx-auto mt-12 lg:mt-0 w-[calc(100%-2rem)] max-w-xs sm:max-w-sm md:max-w-md animate-fade-in" style={{ animationDelay: '0.2s' }}>
             {/* Outer hairline arch */}
             <div className="absolute -inset-4 rounded-t-full border border-champagne" />
             {/* Lotus crowning the arch */}
@@ -163,8 +163,8 @@ const Home: React.FC = () => {
               </div>
             </div>
 
-            <div className="absolute -bottom-6 -left-4 sm:-left-10 card px-5 py-4 flex items-center gap-4 animate-float">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-chocolate text-champagne">
+            <div className="absolute -bottom-6 -left-4 sm:-left-10 card px-4 py-3 sm:px-5 sm:py-4 flex items-center gap-3 sm:gap-4 animate-float">
+              <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-chocolate text-champagne">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
@@ -177,16 +177,16 @@ const Home: React.FC = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-24 bg-ivory">
+      <section className="py-16 md:py-24 bg-ivory">
         <div className="container mx-auto px-4">
           <SectionHeading
             eyebrow="Our Promise"
             title="Trusted by Beautiful People"
             subtitle="Every client is a testament to our commitment to excellence and artistry"
-            className="mb-16"
+            className="mb-10 md:mb-16"
           />
 
-          <div className="card grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-sand/70 max-w-5xl mx-auto">
+          <div className="card grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-sand/70 max-w-5xl mx-auto">
             <Counter
               end={220}
               duration={2500}
@@ -210,16 +210,17 @@ const Home: React.FC = () => {
       </section>
 
       {/* Services Section */}
-      <section className="py-24 bg-beige">
-        <div className="container mx-auto px-4 max-w-[90%]">
+      <section className="py-16 md:py-24 bg-beige">
+        <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="What We Offer"
             title="Signature Services"
             subtitle="From intimate celebrations to grand occasions, I bring your vision to life"
-            className="mb-16"
+            className="mb-10 md:mb-16"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Flex-wrap rather than grid so the odd card out centres on two-column tablet layouts */}
+          <div className="flex flex-wrap justify-center gap-6 lg:gap-8">
             {services.map((service) => {
               const isClass = service.title === 'Makeup Classes';
               const linkClass = 'inline-flex items-center gap-2 font-inter text-sm font-semibold uppercase tracking-[0.2em] text-cocoa hover:text-chocolate transition-colors duration-300';
@@ -231,16 +232,16 @@ const Home: React.FC = () => {
               );
 
               return (
-                <div key={service.title} className="group bg-ivory rounded-2xl overflow-hidden border border-sand/60 shadow-soft hover:shadow-luxe transition-all duration-500 hover:-translate-y-2">
+                <div key={service.title} className="group w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1.334rem)] bg-ivory rounded-2xl overflow-hidden border border-sand/60 shadow-soft hover:shadow-luxe transition-all duration-500 hover:-translate-y-2">
                   <div className="relative overflow-hidden">
                     <img
                       src={service.image}
                       alt={service.title}
-                      className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-700"
+                      className="w-full h-64 sm:h-72 object-cover group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-chocolate/40 via-transparent to-transparent"></div>
                   </div>
-                  <div className="p-8">
+                  <div className="p-6 sm:p-8">
                     <div className="flex items-center gap-4 mb-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sand text-cocoa">
                         {service.icon}

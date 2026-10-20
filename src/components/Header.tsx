@@ -32,29 +32,30 @@ const Header: React.FC = () => {
         ? 'bg-ivory/90 backdrop-blur-md border-sand/60 shadow-[0_10px_30px_-24px_rgba(59,38,30,0.6)]'
         : 'bg-ivory/40 backdrop-blur-sm border-transparent'
     }`}>
-      <nav className="container mx-auto px-4 py-3 max-w-[90%]">
+      <nav className="container mx-auto px-4 py-3 md:max-w-[90%]">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-chocolate ring-1 ring-champagne ring-offset-2 ring-offset-ivory transition-transform duration-500 group-hover:scale-105">
+          <Link to="/" className="flex min-w-0 items-center gap-3 group">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-chocolate ring-1 ring-champagne ring-offset-2 ring-offset-ivory transition-transform duration-500 group-hover:scale-105">
               <img
                 src={Logo_white}
                 alt="SK Bridal Studio logo"
                 className="w-11"
               />
             </div>
-            <div className="hidden sm:block leading-none">
-              <span className="block font-playfair text-xl font-medium uppercase tracking-[0.2em] text-chocolate">
+            {/* Brand text is hidden on the narrowest phones and at lg, where the full nav needs the room */}
+            <div className="hidden min-[360px]:block lg:hidden xl:block leading-none">
+              <span className="block font-playfair text-base sm:text-xl font-medium uppercase tracking-[0.15em] sm:tracking-[0.2em] text-chocolate whitespace-nowrap">
                 SK Bridal Studio
               </span>
-              <span className="mt-1.5 block font-inter text-[10px] uppercase tracking-[0.35em] text-mocha">
+              <span className="mt-1.5 block font-inter text-[9px] sm:text-[10px] uppercase tracking-[0.25em] sm:tracking-[0.35em] text-mocha whitespace-nowrap">
                 Beauty · Bridals · Academy
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8 lg:gap-10">
+          <div className="hidden lg:flex items-center gap-7 xl:gap-10">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -80,7 +81,7 @@ const Header: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 rounded-lg text-chocolate hover:bg-beige transition-colors duration-300"
+            className="lg:hidden shrink-0 p-2 rounded-lg text-chocolate hover:bg-beige transition-colors duration-300"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMenuOpen}
@@ -91,7 +92,7 @@ const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 mb-2 py-3 bg-ivory rounded-2xl shadow-luxe border border-sand/60 animate-fade-in">
+          <div className="lg:hidden mt-4 mb-2 py-3 max-h-[calc(100dvh-6rem)] overflow-y-auto bg-ivory rounded-2xl shadow-luxe border border-sand/60 animate-fade-in">
             {navItems.map((item) => (
               <Link
                 key={item.name}
