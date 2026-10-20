@@ -96,14 +96,14 @@ const About: React.FC = () => {
               </h1>
               <div className="ornament mt-8 mx-auto lg:mx-0" />
               <p className="font-inter text-lg md:text-xl text-ink mt-8 mb-10 leading-relaxed">
-                With over 4 years of experience in professional makeup artistry, I believe that beauty is not just about
+                With over 5 years of experience in professional makeup artistry, I believe that beauty is not just about
                 looking good - it's about feeling confident, radiant, and authentically yourself.
               </p>
               <div className="inline-grid grid-cols-3 divide-x divide-sand card">
                 {[
-                  { value: '4+', label: 'Years Experience' },
-                  { value: '220+', label: 'Happy Brides' },
-                  { value: '3+', label: 'Students Trained' },
+                  { value: '5+', label: 'Years Experience' },
+                  { value: '230+', label: 'Happy Brides' },
+                  { value: '5+', label: 'Students Trained' },
                 ].map((stat) => (
                   <div key={stat.label} className="px-5 sm:px-8 py-5 text-center">
                     <div className="font-playfair text-3xl font-medium text-chocolate">{stat.value}</div>

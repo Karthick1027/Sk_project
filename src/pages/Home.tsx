@@ -194,7 +194,7 @@ const Home: React.FC = () => {
               icon={<Heart className="w-6 h-6" />}
             />
             <Counter
-              end={4}
+              end={5}
               duration={1500}
               label="Years of Artistry"
               icon={<Award className="w-6 h-6" />}
