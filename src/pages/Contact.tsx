@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Instagram, MapPin, Clock, Send, Heart, MessageCircle } from 'lucide-react';
+import { Phone, Instagram, MapPin, Clock, Send, MessageCircle, ArrowUpRight, Check } from 'lucide-react';
+import PageHero from '../components/PageHero';
+import { ContactBackdrop } from '../components/PageBackdrops';
+import SectionHeading from '../components/SectionHeading';
+import CtaBanner from '../components/CtaBanner';
 
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -74,138 +78,122 @@ Sent from SK Bridal Studio Website
   }
 }, []);
 
+  const contactMethods = [
+    {
+      href: 'tel:+918668038093',
+      icon: <Phone className="w-6 h-6" />,
+      title: 'Call Me',
+      value: '+91 8668038093',
+      note: 'Available Mon-Sun, 10AM-6PM',
+      external: false
+    },
+    {
+      href: 'https://instagram.com/srinithimakeupartist',
+      icon: <Instagram className="w-6 h-6" />,
+      title: 'Follow Me',
+      value: '@srinithimakeupartist',
+      note: 'Daily beauty inspiration',
+      external: true
+    },
+    {
+      href: 'https://wa.me/918668038093',
+      icon: <MessageCircle className="w-6 h-6" />,
+      title: 'WhatsApp Me',
+      value: '+91 8668038093',
+      note: 'Quick responses & booking',
+      external: true
+    }
+  ];
+
+  const labelClass = 'block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa mb-2';
+
   return (
     <div className="pt-20">
-      {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-br from-blush-50 via-white to-rose-50">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="font-playfair text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent">
-            Let's Connect
-          </h1>
-          <p className="font-inter text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-            Ready to transform your look or learn professional makeup techniques? I'd love to hear from you.
-            Let's discuss your vision and create something beautiful together.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Get in Touch"
+        backdrop={<ContactBackdrop />}
+        title="Let's Connect"
+        subtitle="Ready to transform your look or learn professional makeup techniques? I'd love to hear from you. Let's discuss your vision and create something beautiful together."
+      />
 
-      <div id="contact" className="py-20 bg-white">
-        <div className="container mx-auto px-4 max-w-[95%]">
+      <div id="contact" className="py-24 bg-ivory scroll-mt-20">
+        <div className="container mx-auto px-4 max-w-[90%]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Contact Information */}
             <div className="space-y-8">
               <div>
-                <h2 className="font-playfair text-3xl font-bold text-gray-800 mb-6">Get in Touch</h2>
-                <p className="font-inter text-gray-600 text-lg leading-relaxed mb-8">
+                <p className="eyebrow mb-4">Reach Out</p>
+                <h2 className="font-playfair text-4xl font-medium text-chocolate mb-6">Get in Touch</h2>
+                <div className="ornament mb-6" />
+                <p className="font-inter text-ink text-lg leading-relaxed">
                   I'm here to make your beauty dreams come true. Whether you're planning your wedding,
                   preparing for a special event, or want to master makeup artistry, let's chat!
                 </p>
               </div>
 
               {/* Contact Methods */}
-              <div className="space-y-6">
-                <a
-                  href="tel:+918668038093"
-                  className="flex items-center space-x-4 p-6 bg-gradient-to-r from-sky-50 to-blue-50 rounded-2xl hover:shadow-lg transition-all duration-300 group"
-                >
-                  <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Phone className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-inter font-semibold text-gray-800 text-lg">Call Me</h3>
-                    <p className="font-inter text-sky-600 font-medium">+91 8668038093</p>
-                    <p className="font-inter text-sm text-gray-600">Available Mon-Sun, 10AM-6PM</p>
-                  </div>
-                </a>
-
-                {/* <a
-                  href="mailto:srinithibridalmakeupartist@gmail.com"
-                  className="flex items-center space-x-4 p-6 bg-gradient-to-r from-rose-50 to-blush-50 rounded-2xl hover:shadow-lg transition-all duration-300 group"
-                >
-                  <div className="w-14 h-14 bg-gradient-to-br from-rose-500 to-blush-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Mail className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-inter font-semibold text-gray-800 text-lg">Email Me</h3>
-                    <p className="font-inter text-rose-600 font-medium">srinithibridalmakeupartist@gmail.com</p>
-                    <p className="font-inter text-sm text-gray-600">I'll respond within 24 hours</p>
-                  </div>
-                </a> */}
-
-                <a
-                  href="https://instagram.com/srinithimakeupartist"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-4 p-6 bg-gradient-to-r from-blush-50 to-rose-50 rounded-2xl hover:shadow-lg transition-all duration-300 group"
-                >
-                  <div className="w-14 h-14 bg-gradient-to-br from-blush-500 to-rose-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Instagram className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-inter font-semibold text-gray-800 text-lg">Follow Me</h3>
-                    <p className="font-inter text-blush-600 font-medium">@srinithimakeupartist</p>
-                    <p className="font-inter text-sm text-gray-600">Daily beauty inspiration</p>
-                  </div>
-                </a>
-
-                <a
-                  href="https://wa.me/918668038093"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl hover:shadow-lg transition-all duration-300 group"
-                >
-                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <MessageCircle className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-inter font-semibold text-gray-800 text-lg">WhatsApp Me</h3>
-                    <p className="font-inter text-green-600 font-medium">+91 8668038093</p>
-                    <p className="font-inter text-sm text-gray-600">Quick responses & booking</p>
-                  </div>
-                </a>
+              <div className="space-y-4">
+                {contactMethods.map((method) => (
+                  <a
+                    key={method.title}
+                    href={method.href}
+                    {...(method.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    className="flex items-center gap-5 p-5 bg-ivory border border-sand/70 rounded-2xl shadow-soft hover:shadow-luxe hover:border-champagne transition-all duration-300 group"
+                  >
+                    <div className="w-14 h-14 shrink-0 bg-chocolate text-champagne rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                      {method.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-inter text-xs font-semibold uppercase tracking-[0.25em] text-mocha">{method.title}</h3>
+                      <p className="font-playfair text-xl text-chocolate mt-1">{method.value}</p>
+                      <p className="font-inter text-sm text-ink">{method.note}</p>
+                    </div>
+                    <ArrowUpRight className="w-5 h-5 text-mocha group-hover:text-chocolate group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300" />
+                  </a>
+                ))}
               </div>
 
               {/* Business Hours */}
-              <div className="bg-gradient-to-br from-gray-50 to-blush-50/30 rounded-2xl p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Clock className="w-6 h-6 text-blush-600" />
-                  <h3 className="font-playfair text-xl font-semibold text-gray-800">Business Hours</h3>
+              <div className="bg-beige border border-sand/70 rounded-2xl p-7">
+                <div className="flex items-center gap-3 mb-5">
+                  <Clock className="w-5 h-5 text-cocoa" />
+                  <h3 className="font-playfair text-2xl font-medium text-chocolate">Business Hours</h3>
                 </div>
-                <div className="space-y-2 font-inter text-gray-700">
-                  <div className="flex justify-between">
+                <div className="divide-y divide-sand font-inter text-ink">
+                  <div className="flex justify-between gap-4 py-3 text-sm sm:text-base">
                     <span>Monday - Friday</span>
-                    <span className="font-medium">9:00 AM - 7:00 PM</span>
+                    <span className="font-medium text-chocolate whitespace-nowrap">9:00 AM - 7:00 PM</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-4 py-3 text-sm sm:text-base">
                     <span>Saturday</span>
-                    <span className="font-medium">9:00 AM - 2:00 PM</span>
+                    <span className="font-medium text-chocolate whitespace-nowrap">9:00 AM - 2:00 PM</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-4 py-3 text-sm sm:text-base">
                     <span>Sunday</span>
-                    <span className="font-medium">By Appointment</span>
+                    <span className="font-medium text-chocolate whitespace-nowrap">By Appointment</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Contact Form */}
-            <div className="bg-gradient-to-br from-white to-blush-50/30 rounded-3xl p-8 shadow-xl border border-blush-100">
-              <div className="flex items-center space-x-3 mb-6">
-                <Heart className="w-8 h-8 text-blush-500" />
-                <h2 className="font-playfair text-3xl font-bold text-gray-800">Send a Message - Email</h2>
-              </div>
+            <div className="relative bg-beige rounded-2xl p-8 md:p-10 border border-sand/70 shadow-luxe self-start">
+              <p className="font-script text-3xl text-mocha mb-1">Say hello</p>
+              <h2 className="font-playfair text-3xl md:text-4xl font-medium text-chocolate mb-2">Send a Message</h2>
+              <p className="font-inter text-sm text-ink mb-8">Your message opens in Email & WhatsApp so I can reply quickly.</p>
 
               {submitStatus === 'success' && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-                  <p className="font-inter text-green-800 text-center">
-                    ✨ Thank you! Your message has been sent. I'll get back to you soon!
+                <div className="mb-6 p-4 bg-sage/15 border border-sage/50 rounded-lg flex items-center gap-3">
+                  <Check className="w-5 h-5 text-sage shrink-0" />
+                  <p className="font-inter text-chocolate">
+                    Thank you! Your message has been sent. I'll get back to you soon!
                   </p>
                 </div>
               )}
 
               {submitStatus === 'error' && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="font-inter text-red-800 text-center">
+                <div className="mb-6 p-4 bg-clay/10 border border-clay/50 rounded-lg">
+                  <p className="font-inter text-clay text-center">
                     Something went wrong. Please try calling or emailing directly.
                   </p>
                 </div>
@@ -214,7 +202,7 @@ Sent from SK Bridal Studio Website
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="name" className="block font-inter font-medium text-gray-700 mb-2">
+                    <label htmlFor="name" className={labelClass}>
                       Your Name *
                     </label>
                     <input
@@ -224,13 +212,13 @@ Sent from SK Bridal Studio Website
                       required
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blush-500 focus:border-transparent transition-all duration-300 font-inter"
+                      className="field"
                       placeholder="Enter your full name"
                       disabled={isSubmitting}
                     />
                   </div>
                   <div>
-                    <label htmlFor="email" className="block font-inter font-medium text-gray-700 mb-2">
+                    <label htmlFor="email" className={labelClass}>
                       Email Address *
                     </label>
                     <input
@@ -240,7 +228,7 @@ Sent from SK Bridal Studio Website
                       required
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blush-500 focus:border-transparent transition-all duration-300 font-inter"
+                      className="field"
                       placeholder="your@email.com"
                       disabled={isSubmitting}
                     />
@@ -248,7 +236,7 @@ Sent from SK Bridal Studio Website
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block font-inter font-medium text-gray-700 mb-2">
+                  <label htmlFor="phone" className={labelClass}>
                     Phone Number *
                   </label>
                   <input
@@ -258,14 +246,14 @@ Sent from SK Bridal Studio Website
                     required
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blush-500 focus:border-transparent transition-all duration-300 font-inter"
+                    className="field"
                     placeholder="+91 XXXXX XXXXX"
                     disabled={isSubmitting}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block font-inter font-medium text-gray-700 mb-2">
+                  <label htmlFor="message" className={labelClass}>
                     Your Message *
                   </label>
                   <textarea
@@ -275,7 +263,7 @@ Sent from SK Bridal Studio Website
                     rows={5}
                     value={formData.message}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blush-500 focus:border-transparent transition-all duration-300 font-inter resize-none"
+                    className="field resize-none"
                     placeholder="Tell me about your event date, preferred style, any specific requirements, or questions you have..."
                     disabled={isSubmitting}
                   ></textarea>
@@ -284,14 +272,14 @@ Sent from SK Bridal Studio Website
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blush-500 to-rose-500 text-white py-4 px-8 rounded-xl font-inter font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="btn-primary w-full !py-4 text-base"
                 >
                   <Send className="w-5 h-5" />
                   <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
                 </button>
 
-                <p className="font-inter text-sm text-gray-600 text-center">
-                  I'll get back to you within 24 hours. Can't wait to hear about your vision! ✨
+                <p className="font-inter text-sm text-ink text-center">
+                  I'll get back to you within 24 hours. Can't wait to hear about your vision!
                 </p>
               </form>
             </div>
@@ -300,25 +288,24 @@ Sent from SK Bridal Studio Website
       </div>
 
       {/* Location Section */}
-      <section className="py-20 bg-gradient-to-br from-rose-50 to-blush-50">
-        <div className="container mx-auto px-4 max-w-[95%]">
-          <div className="text-center mb-12">
-            <h2 className="font-playfair text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-              Visit My Studio
-            </h2>
-            <p className="font-inter text-xl text-gray-600 max-w-2xl mx-auto">
-              Located in the Thiruninravur near Chennai, my studio provides a comfortable and professional environment
-              for all your beauty needs.
-            </p>
-          </div>
+      <section className="py-24 bg-beige">
+        <div className="container mx-auto px-4 max-w-[90%]">
+          <SectionHeading
+            eyebrow="Find Us"
+            title="Visit My Studio"
+            subtitle="Located in the Thiruninravur near Chennai, my studio provides a comfortable and professional environment for all your beauty needs."
+            className="mb-16"
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <div className="flex items-start space-x-4">
-                <MapPin className="w-6 h-6 text-blush-600 mt-1" />
+              <div className="flex items-start gap-4 card p-6">
+                <div className="w-12 h-12 shrink-0 bg-sand text-cocoa rounded-full flex items-center justify-center">
+                  <MapPin className="w-5 h-5" />
+                </div>
                 <div>
-                  <h3 className="font-inter font-semibold text-gray-800 text-lg mb-1">Studio Address</h3>
-                  <p className="font-inter text-gray-600">
+                  <h3 className="font-inter text-xs font-semibold uppercase tracking-[0.25em] text-mocha mb-2">Studio Address</h3>
+                  <p className="font-playfair text-lg text-chocolate leading-relaxed">
                     56, 11th Cross street,<br />
                     Prakash nagar, Thiruninravur<br />
                     Chennai, 602024
@@ -326,31 +313,28 @@ Sent from SK Bridal Studio Website
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-lg">
-                <h4 className="font-playfair text-xl font-semibold text-gray-800 mb-4">What to Expect</h4>
-                <ul className="space-y-3 font-inter text-gray-600">
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-blush-400 rounded-full"></div>
-                    <span>Professional lighting for perfect makeup application</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-rose-400 rounded-full"></div>
-                    <span>High-end makeup products and tools</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-blush-400 rounded-full"></div>
-                    <span>Comfortable seating and refreshments</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-rose-400 rounded-full"></div>
-                    <span>Free parking available</span>
-                  </li>
+              <div className="card p-7">
+                <h4 className="font-playfair text-2xl font-medium text-chocolate mb-5">What to Expect</h4>
+                <ul className="space-y-4 font-inter text-ink">
+                  {[
+                    'Professional lighting for perfect makeup application',
+                    'High-end makeup products and tools',
+                    'Comfortable seating and refreshments',
+                    'Free parking available'
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-beige border border-champagne">
+                        <Check className="w-3.5 h-3.5 text-cocoa" />
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
 
             {/* Embedded Google Map */}
-            <div className="rounded-3xl overflow-hidden shadow-xl">
+            <div className="rounded-2xl overflow-hidden shadow-luxe border-4 border-ivory">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3885.477101878278!2d80.04585987484434!3d13.132277787198033!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a528927b98383a9%3A0x3c986555f3a183ad!2sSrinithi%20Makeup%20Artist!5e0!3m2!1sen!2sin!4v1750842139765!5m2!1sen!2sin"
                 width="100%"
@@ -360,7 +344,7 @@ Sent from SK Bridal Studio Website
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 title="SK Bridal Studio Location"
-                className="w-full h-96"
+                className="w-full h-96 grayscale-[30%] sepia-[15%]"
               ></iframe>
 
             </div>
@@ -369,34 +353,24 @@ Sent from SK Bridal Studio Website
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 bg-gradient-to-r from-blush-500 via-rose-500 to-blush-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="font-playfair text-4xl md:text-5xl font-bold mb-6">
-            Ready to Begin Your Beauty Journey?
-          </h2>
-          <p className="font-inter text-xl mb-10 opacity-90 max-w-2xl mx-auto">
-            Don't wait for the perfect moment—create it. Book your session today and let's make magic happen together.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <a
-              href="tel:+918668038093"
-              className="bg-white text-blush-600 px-8 py-4 rounded-full font-inter font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 inline-flex items-center justify-center space-x-2"
-            >
-              <Phone className="w-5 h-5" />
-              <span>Call Now</span>
-            </a>
-            <a
-              href="https://wa.me/918668038093"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-2 border-white text-white px-8 py-4 rounded-full font-inter font-semibold text-lg hover:bg-white/10 hover:scale-105 transition-all duration-300 inline-flex items-center justify-center space-x-2"
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>WhatsApp</span>
-            </a>
-          </div>
-        </div>
-      </section>
+      <CtaBanner
+        title="Ready to Begin Your Beauty Journey?"
+        text="Don't wait for the perfect moment—create it. Book your session today and let's make magic happen together."
+      >
+        <a href="tel:+918668038093" className="btn-light">
+          <Phone className="w-5 h-5" />
+          Call Now
+        </a>
+        <a
+          href="https://wa.me/918668038093"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-ghost-light"
+        >
+          <MessageCircle className="w-5 h-5" />
+          WhatsApp
+        </a>
+      </CtaBanner>
     </div>
   );
 };

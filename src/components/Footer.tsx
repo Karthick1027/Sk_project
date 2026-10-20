@@ -1,90 +1,113 @@
 import React from 'react';
-import { Instagram, Mail, Phone, Sparkles } from 'lucide-react';
+import { Instagram, Mail, Phone, MapPin } from 'lucide-react';
 import Logo_white from '../../src/images/SK_logo_white.png';
 import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
+  const linkClass = 'text-sand/80 hover:text-champagne transition-colors duration-300';
+
   return (
-    <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12 max-w-[95%]">
-        <div className="grid grid-cols-1 md:grid-cols-3 justify-between gap-8">
+    <footer className="bg-chocolate text-ivory">
+      <div className="container mx-auto px-4 pt-16 pb-10 max-w-[90%]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-12">
           {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-1 bg-gradient-to-br from-blush-400 to-rose-500 rounded-full">
-                {/* <Sparkles className="w-6 h-6 text-white" /> */}
+          <div className="space-y-6 lg:col-span-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full ring-1 ring-champagne/60">
                 <img
                   src={Logo_white}
-                  alt="SK Logo"
-                  className="w-[50px]"
+                  alt="SK Bridal Studio logo"
+                  className="w-12"
                 />
               </div>
-              <div>
-                <h3 className="font-playfair text-2xl font-bold bg-gradient-to-r from-blush-300 to-rose-300 bg-clip-text text-transparent">
+              <div className="leading-none">
+                <h3 className="font-playfair text-2xl font-medium uppercase tracking-[0.15em] text-ivory">
                   SK Bridal Studio
                 </h3>
-                <p className="font-inter text-sm text-gray-400">Makeup is an Art</p>
+                <p className="mt-2 font-inter text-[10px] uppercase tracking-[0.35em] text-champagne">
+                  Beauty · Bridals · Academy
+                </p>
               </div>
             </div>
-            <p className="font-inter text-gray-300 leading-relaxed">
+            <p className="font-inter text-sand/80 leading-relaxed max-w-sm">
               Creating beautiful, confident looks for your most special moments. From bridal elegance to everyday glamour.
             </p>
+            <p className="font-script text-3xl text-champagne">Makeup is an Art</p>
+          </div>
+
+          {/* Explore */}
+          <div className="space-y-5 lg:col-span-2">
+            <h4 className="font-inter text-xs font-semibold uppercase tracking-[0.3em] text-champagne">Explore</h4>
+            <ul className="font-inter space-y-3">
+              {[
+                { name: 'Home', path: '/' },
+                { name: 'About', path: '/about' },
+                { name: 'Gallery', path: '/gallery' },
+                { name: 'Products', path: '/products' },
+                { name: 'Contact', path: '/contact' },
+              ].map((item) => (
+                <li key={item.name}>
+                  <Link to={item.path} className={linkClass}>{item.name}</Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Services */}
-          <div className="space-y-4 lg:ml-[8rem]">
-            <h4 className="font-playfair text-xl font-semibold text-blush-300">Services</h4>
-            <ul className="font-inter space-y-2 text-gray-300">
-              <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Bridal Makeup</li>
-              <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Event Makeup</li>
-              <li className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">Party Makeup</li>
-            <li>   <a
-              href="https://forms.gle/rfW2a95NHFgN874XA"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blush-300 transition-colors duration-300 cursor-pointer">
-            
-              <span>Makeup Classes Online / Offline</span>
-            </a>
-            </li>
-              
+          <div className="space-y-5 lg:col-span-3">
+            <h4 className="font-inter text-xs font-semibold uppercase tracking-[0.3em] text-champagne">Services</h4>
+            <ul className="font-inter space-y-3 text-sand/80">
+              <li>Bridal Makeup</li>
+              <li>Event Makeup</li>
+              <li>Party Makeup</li>
+              <li>
+                <a
+                  href="https://forms.gle/rfW2a95NHFgN874XA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                >
+                  Makeup Classes Online / Offline
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Contact */}
-          <div className="space-y-4">
-            <h4 className="font-playfair text-xl font-semibold text-blush-300">Connect</h4>
-            <div className="space-y-3">
-              <a
-                href="tel:+1234567890"
-                className="flex items-center space-x-3 font-inter text-gray-300 hover:text-blush-300 transition-colors duration-300 group"
-              >
-                <Phone className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          <div className="space-y-5 lg:col-span-3">
+            <h4 className="font-inter text-xs font-semibold uppercase tracking-[0.3em] text-champagne">Connect</h4>
+            <div className="space-y-4 font-inter">
+              <a href="tel:+918668038093" className={`flex items-center gap-3 group ${linkClass}`}>
+                <Phone className="w-4 h-4 text-champagne" />
                 <span>+91 8668038093</span>
               </a>
-              <a
-                href="mailto:skbridalstudioteam@gmail.com"
-                className="flex items-center space-x-3 font-inter text-gray-300 hover:text-blush-300 transition-colors duration-300 group"
-              >
-                <Mail className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+              <a href="mailto:skbridalstudioteam@gmail.com" className={`flex items-center gap-3 group break-all ${linkClass}`}>
+                <Mail className="w-4 h-4 shrink-0 text-champagne" />
                 <span>skbridalstudioteam@gmail.com</span>
               </a>
               <a
                 href="https://instagram.com/srinithimakeupartist"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-3 font-inter text-gray-300 hover:text-blush-300 transition-colors duration-300 group"
+                className={`flex items-center gap-3 group ${linkClass}`}
               >
-                <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                <Instagram className="w-4 h-4 text-champagne" />
                 <span>@srinithimakeupartist</span>
               </a>
+              <p className="flex items-start gap-3 text-sand/80">
+                <MapPin className="w-4 h-4 mt-1 shrink-0 text-champagne" />
+                <span>Thiruninravur, Chennai 602024</span>
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-700 mt-12 pt-8 text-center">
-          <p className="font-inter text-gray-400">
-            © 2022 SK Bridal Studio. All rights reserved. | Crafted with love for beautiful moments.
+        <div className="border-t border-champagne/20 mt-14 pt-8 flex flex-col md:flex-row items-center justify-between gap-3 text-center">
+          <p className="font-inter text-sm text-sand/60">
+            © 2022 SK Bridal Studio. All rights reserved.
+          </p>
+          <p className="font-inter text-xs uppercase tracking-[0.3em] text-sand/60">
+            Crafted with love for beautiful moments
           </p>
         </div>
       </div>

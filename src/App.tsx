@@ -12,7 +12,7 @@ import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-blush-50">
+      <div className="min-h-screen bg-ivory">
         <Header />
         <main>
             <ScrollToTop />

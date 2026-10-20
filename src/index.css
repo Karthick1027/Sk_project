@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ivory font-inter text-ink antialiased lining-nums;
+  }
+
+  ::selection {
+    @apply bg-champagne text-chocolate;
+  }
+}
+
+@layer components {
+  /* Buttons — matches the brand "Button Styles" sheet */
+  .btn {
+    @apply inline-flex items-center justify-center gap-3 rounded-lg px-7 py-3.5 font-inter text-[15px] font-medium tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-2 focus-visible:ring-offset-ivory disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-chocolate text-ivory shadow-soft hover:-translate-y-0.5 hover:bg-cocoa;
+  }
+  .btn-secondary {
+    @apply btn bg-champagne text-chocolate hover:-translate-y-0.5 hover:bg-sand;
+  }
+  .btn-outline {
+    @apply btn border border-chocolate/70 bg-ivory text-chocolate hover:bg-chocolate hover:text-ivory;
+  }
+  /* For use on dark (chocolate) backgrounds */
+  .btn-light {
+    @apply btn bg-ivory text-chocolate hover:-translate-y-0.5 hover:bg-champagne;
+  }
+  .btn-ghost-light {
+    @apply btn border border-champagne/60 text-ivory hover:bg-ivory/10;
+  }
+
+  /* Typography helpers */
+  .eyebrow {
+    @apply font-inter text-xs font-semibold uppercase tracking-[0.3em] text-mocha sm:text-[13px];
+  }
+  .ornament {
+    @apply h-px w-20 bg-gradient-to-r from-transparent via-champagne to-transparent;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply rounded-2xl border border-sand/60 bg-ivory shadow-soft;
+  }
+
+  /* Form fields */
+  .field {
+    @apply w-full rounded-lg border border-mist bg-white px-4 py-3 font-inter text-chocolate outline-none transition-all duration-300 placeholder:text-mocha/70 focus:border-champagne focus:ring-2 focus:ring-champagne/40 disabled:opacity-60;
+  }
+}

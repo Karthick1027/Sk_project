@@ -20,11 +20,11 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, products })
         <div>
           <h2
             id={`${sectionId}-heading`}
-            className="font-playfair text-2xl font-bold text-gray-900 sm:text-3xl"
+            className="font-playfair text-2xl font-bold text-chocolate sm:text-3xl"
           >
             {category}
           </h2>
-          <p className="font-inter mt-1 text-sm text-gray-500">
+          <p className="font-inter mt-1 text-sm text-ink">
             Hand-picked {category.toLowerCase()} favorites
           </p>
         </div>

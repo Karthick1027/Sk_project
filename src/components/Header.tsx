@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Sparkles } from 'lucide-react';
+import { Menu, X, ArrowRight } from 'lucide-react';
 import Logo_white from '../../src/images/SK_logo_white.png';
 
 const Header: React.FC = () => {
@@ -10,7 +10,7 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setIsScrolled(window.scrollY > 30);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -24,60 +24,66 @@ const Header: React.FC = () => {
     { name: 'Contact', path: '/contact' },
   ];
 
+  const isSolid = isScrolled || isMenuOpen;
+
   return (
-    <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
+    <header className={`fixed top-0 w-full z-50 transition-all duration-500 border-b ${
+      isSolid
+        ? 'bg-ivory/90 backdrop-blur-md border-sand/60 shadow-[0_10px_30px_-24px_rgba(59,38,30,0.6)]'
+        : 'bg-ivory/40 backdrop-blur-sm border-transparent'
     }`}>
-      <nav className="container mx-auto px-4 py-4 max-w-[90%]">
+      <nav className="container mx-auto px-4 py-3 max-w-[90%]">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
-            <div className="p-0 bg-gradient-to-br from-blush-400 to-rose-500 rounded-full group-hover:scale-110 transition-transform duration-300">
-              {/* <Sparkles className="w-6 h-6 text-white" /> */}
-                <img
-                  src={Logo_white}
-                  alt="SK Logo"
-                  className="w-[50px]"
-                />
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-chocolate ring-1 ring-champagne ring-offset-2 ring-offset-ivory transition-transform duration-500 group-hover:scale-105">
+              <img
+                src={Logo_white}
+                alt="SK Bridal Studio logo"
+                className="w-11"
+              />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="font-playfair text-2xl font-bold bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent">
+            <div className="hidden sm:block leading-none">
+              <span className="block font-playfair text-xl font-medium uppercase tracking-[0.2em] text-chocolate">
                 SK Bridal Studio
-              </h1>
-              <p className="font-inter text-xs text-gray-600 -mt-1">Built with Love, Driven by Passion</p>
+              </span>
+              <span className="mt-1.5 block font-inter text-[10px] uppercase tracking-[0.35em] text-mocha">
+                Beauty · Bridals · Academy
+              </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`font-inter font-medium transition-colors duration-300 relative group ${
-                  location.pathname === item.path
-                    ? 'text-blush-600'
-                    : 'text-gray-700 hover:text-blush-600'
-                }`}
-              >
-                {item.name}
-                <span className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blush-400 to-rose-500 transition-all duration-300 group-hover:w-full ${
-                  location.pathname === item.path ? 'w-full' : ''
-                }`}></span>
-              </Link>
-            ))}
-            {/* <Link
-              to="/contact"
-              className="bg-gradient-to-r from-blush-500 to-rose-500 text-white px-6 py-2 rounded-full font-inter font-medium hover:shadow-lg hover:scale-105 transition-all duration-300"
-            >
+          <div className="hidden md:flex items-center gap-8 lg:gap-10">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`relative group py-1 font-inter text-[13px] font-medium uppercase tracking-[0.2em] transition-colors duration-300 ${
+                    isActive ? 'text-chocolate' : 'text-cocoa/80 hover:text-chocolate'
+                  }`}
+                >
+                  {item.name}
+                  <span className={`absolute -bottom-0.5 left-1/2 h-px -translate-x-1/2 bg-mocha transition-all duration-300 ${
+                    isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                  }`}></span>
+                </Link>
+              );
+            })}
+            <Link to="/contact" className="btn-primary !px-5 !py-2.5 text-sm">
               Book Now
-            </Link> */}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 rounded-lg hover:bg-blush-50 transition-colors duration-300"
+            className="md:hidden p-2 rounded-lg text-chocolate hover:bg-beige transition-colors duration-300"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -85,30 +91,31 @@ const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 py-4 bg-white rounded-2xl shadow-xl border animate-fade-in">
+          <div className="md:hidden mt-4 mb-2 py-3 bg-ivory rounded-2xl shadow-luxe border border-sand/60 animate-fade-in">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
-                className={`block px-6 py-3 font-inter font-medium transition-colors duration-300 ${
+                className={`block px-6 py-3 font-inter text-sm font-medium uppercase tracking-[0.2em] transition-colors duration-300 ${
                   location.pathname === item.path
-                    ? 'text-blush-600 bg-blush-50'
-                    : 'text-gray-700 hover:text-blush-600 hover:bg-blush-50'
+                    ? 'text-chocolate bg-beige'
+                    : 'text-cocoa hover:text-chocolate hover:bg-beige'
                 }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
-            {/* <div className="px-6 pt-3">
+            <div className="px-6 pt-3 pb-1">
               <Link
                 to="/contact"
-                className="block w-full text-center bg-gradient-to-r from-blush-500 to-rose-500 text-white px-6 py-3 rounded-full font-inter font-medium hover:shadow-lg transition-all duration-300"
+                className="btn-primary w-full"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Book Now
+                Book Your Makeup
+                <ArrowRight className="w-4 h-4" />
               </Link>
-            </div> */}
+            </div>
           </div>
         )}
       </nav>

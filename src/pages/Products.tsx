@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
-import { ShoppingBag, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { affiliateProducts } from '../data/affiliateProducts';
+import PageHero from '../components/PageHero';
+import { ProductsBackdrop } from '../components/PageBackdrops';
 
 const SEO_TITLE = 'Amazon Products | SK Bridal Studio';
 const SEO_DESCRIPTION =
@@ -32,30 +34,17 @@ const Products: React.FC = () => {
   }, []);
 
   return (
-    <div className="pt-20 min-h-screen bg-gradient-to-br from-rose-50 via-white to-blush-50">
-      <div className="container mx-auto px-4 py-10 sm:py-14">
-        {/* Header Section */}
-        <div className="text-center mb-12 sm:mb-16">
-          {/* Shopping Bag Icon */}
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-gradient-to-br from-blush-100 to-rose-100 rounded-full">
-              <ShoppingBag className="w-10 h-10 text-blush-600" />
-            </div>
-          </div>
+    <div className="pt-20 min-h-screen bg-ivory">
+      <PageHero
+        eyebrow="Shop the Look"
+        backdrop={<ProductsBackdrop />}
+        title="Products Mentioned in This Video"
+        subtitle="Shop all the products featured in our video. Tap any product below to check it out on Amazon."
+      />
 
-          {/* Heading */}
-          <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Products Mentioned in This Video
-          </h1>
-
-          {/* Subtitle */}
-          <p className="font-inter text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Shop all the products featured in our video. Tap any product below to check it out on Amazon.
-          </p>
-        </div>
-
+      <div className="container mx-auto px-4 py-16 sm:py-20 max-w-[90%]">
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 mb-16">
           {affiliateProducts.map((product) => (
             <a
               key={product.id}
@@ -64,40 +53,38 @@ const Products: React.FC = () => {
               rel="noopener noreferrer sponsored"
               className="group"
             >
-              <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-full hover:scale-105">
+              <div className="flex h-full flex-col bg-ivory rounded-2xl border border-sand/70 shadow-soft hover:shadow-luxe hover:-translate-y-1 hover:border-champagne transition-all duration-500 overflow-hidden">
                 {/* Product Image */}
-                <div className="relative w-full h-24 bg-gradient-to-br from-blush-50 to-rose-50 overflow-hidden flex items-center justify-center">
+                <div className="relative w-full h-48 bg-beige overflow-hidden flex items-center justify-center p-4">
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                    loading="lazy"
+                    className="h-full object-contain group-hover:scale-105 transition-transform duration-500"
                   />
+                  <span className="absolute top-3 left-3 bg-ivory/90 text-cocoa border border-sand px-2.5 py-1 rounded-md font-inter text-[11px] font-semibold uppercase tracking-[0.15em]">
+                    No. {String(product.id).padStart(2, '0')}
+                  </span>
                 </div>
 
                 {/* Card Content */}
-                <div className="p-4 sm:p-6 h-full flex flex-col">
-                  {/* Product Badge and Number */}
-                  <div className="mb-2 flex items-center gap-2 flex-wrap">
-                    <span className="inline-block bg-gradient-to-r from-blush-100 to-rose-100 text-blush-700 px-3 py-1 rounded-full text-sm font-semibold">
-                      Product {product.id}
-                    </span>
-                    <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">
-                      🔗 Affiliate Link
-                    </span>
-                  </div>
+                <div className="p-5 sm:p-6 flex flex-1 flex-col">
+                  <span className="self-start bg-blush text-cocoa px-2.5 py-1 rounded-md font-inter text-[11px] font-semibold uppercase tracking-[0.15em] mb-3">
+                    Affiliate Link
+                  </span>
 
                   {/* Product Name */}
-                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-gray-900 mb-3 group-hover:text-blush-600 transition-colors duration-300 break-words">
+                  <h3 className="flex-1 font-playfair text-lg font-medium text-chocolate leading-snug mb-5 group-hover:text-cocoa transition-colors duration-300 break-words">
                     {product.name}
                   </h3>
 
                   {/* CTA Button */}
                   <div className="flex flex-col gap-2">
-                    <button className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blush-500 to-rose-500 hover:from-blush-600 hover:to-rose-600 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300 group-hover:shadow-lg w-full">
+                    <span className="btn-primary w-full !py-3 text-sm">
                       Shop on Amazon
                       <ExternalLink className="w-4 h-4" />
-                    </button>
-                    <p className="text-xs text-gray-500 text-center font-inter">
+                    </span>
+                    <p className="text-xs text-mocha text-center font-inter">
                       Affiliate commission earned
                     </p>
                   </div>
@@ -108,9 +95,9 @@ const Products: React.FC = () => {
         </div>
 
         {/* Affiliate Disclosure */}
-        <div className="bg-gradient-to-r from-blush-50 to-rose-50 rounded-2xl p-6 sm:p-8 border border-blush-200 text-center mb-12">
-          <p className="font-inter text-gray-700 text-sm sm:text-base leading-relaxed">
-            <span className="font-semibold">Affiliate Disclosure:</span> Some links on this page are Amazon affiliate links. If you purchase through these links, I may earn a small commission at no additional cost to you. Thank you for supporting my content! ❤️
+        <div className="max-w-4xl mx-auto bg-beige rounded-2xl p-6 sm:p-8 border border-sand text-center">
+          <p className="font-inter text-ink text-sm sm:text-base leading-relaxed">
+            <span className="font-semibold text-chocolate">Affiliate Disclosure:</span> Some links on this page are Amazon affiliate links. If you purchase through these links, I may earn a small commission at no additional cost to you. Thank you for supporting my content! ❤️
           </p>
         </div>
       </div>

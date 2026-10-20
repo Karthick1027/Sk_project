@@ -1,17 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Users, GraduationCap, Heart, Award, Calendar } from 'lucide-react';
+import { Star, GraduationCap, Heart, Award, Calendar, ArrowRight, Sparkles } from 'lucide-react';
 import classImage from '../../src/images/bridal_class.jpg';
 import bridalImage from '../../src/images/Bridal_pic.png';
 import eventImage from '../../src/images/event_makeup.png';
+import SectionHeading from '../components/SectionHeading';
+import CtaBanner from '../components/CtaBanner';
+import HeroBackdrop, { LotusFlower } from '../components/HeroBackdrop';
 
-const Counter: React.FC<{ end: number; duration: number; label: string; icon: React.ReactNode }> = ({ 
-  end, duration, label, icon 
+const CLASS_FORM_URL = 'https://forms.gle/rfW2a95NHFgN874XA';
+
+const Counter: React.FC<{ end: number; duration: number; label: string; icon: React.ReactNode }> = ({
+  end, duration, label, icon
 }) => {
   const [count, setCount] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -20,18 +29,10 @@ const Counter: React.FC<{ end: number; duration: number; label: string; icon: Re
       },
       { threshold: 0.3 }
     );
+    observer.observe(element);
 
-    const element = document.getElementById(`counter-${label}`);
-    if (element) {
-      observer.observe(element);
-    }
-
-    return () => {
-      if (element) {
-        observer.unobserve(element);
-      }
-    };
-  }, [label]);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!isVisible) return;
@@ -41,222 +42,244 @@ const Counter: React.FC<{ end: number; duration: number; label: string; icon: Re
       if (!startTime) startTime = currentTime;
       const progress = Math.min((currentTime - startTime) / duration, 1);
       setCount(Math.floor(progress * end));
-      
+
       if (progress < 1) {
         requestAnimationFrame(animate);
       }
     };
-    
+
     requestAnimationFrame(animate);
   }, [isVisible, end, duration]);
 
   return (
-    <div id={`counter-${label}`} className="text-center group">
-      <div className="flex justify-center mb-4">
-        <div className="p-4 bg-gradient-to-br from-blush-100 to-rose-100 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+    <div ref={ref} className="text-center group px-6 py-8">
+      <div className="flex justify-center mb-5">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-champagne bg-beige text-cocoa group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500">
           {icon}
         </div>
       </div>
-      <div className="font-playfair !leading-tight text-4xl md:text-5xl font-bold bg-gradient-to-r from-blush-600 to-rose-600 bg-clip-text text-transparent mb-2">
+      <div className="font-playfair leading-tight text-5xl md:text-6xl font-medium text-chocolate mb-3">
         {count}+
       </div>
-      <p className="font-inter text-gray-600 font-medium">{label}</p>
+      <p className="font-inter text-xs sm:text-sm uppercase tracking-[0.25em] text-cocoa">{label}</p>
     </div>
   );
 };
 
 const Home: React.FC = () => {
+  const services = [
+    {
+      title: 'Bridal Makeup',
+      description: 'Your wedding day deserves perfection. Timeless, elegant looks that photograph beautifully.',
+      image: bridalImage,
+      icon: <Heart className="w-5 h-5" />
+    },
+    {
+      title: 'Event Makeup',
+      description: 'Special occasions call for glamorous looks. From galas to parties, shine bright.',
+      image: eventImage,
+      icon: <Star className="w-5 h-5" />
+    },
+    {
+      title: 'Makeup Classes',
+      description: 'Learn professional techniques in personalized sessions. Master the art of beauty.',
+      image: classImage,
+      icon: <GraduationCap className="w-5 h-5" />
+    }
+  ];
+
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blush-50/90 via-white/95 to-rose-50/90"></div>
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-20"
-          style={{
-            backgroundImage: 'url(https://images.pexels.com/photos/3373746/pexels-photo-3373746.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&fit=crop)'
-          }}
-        ></div>
-        
-        <div className="relative z-10 container mx-auto px-4 text-center">
-          <div className="animate-fade-in">
-            <h1 className=" font-playfair text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blush-600 via-rose-600 to-blush-700 bg-clip-text text-transparent leading-tight">
+      <section className="relative overflow-hidden bg-gradient-to-b from-beige via-ivory to-ivory">
+        <HeroBackdrop />
+
+        <div className="relative container mx-auto max-w-[90%] px-4 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="animate-fade-in text-center lg:text-left">
+            <p className="eyebrow">Bridal Makeup · Events · Academy</p>
+            <h1 className="mt-6 font-playfair text-5xl md:text-6xl xl:text-7xl font-medium text-chocolate leading-[1.08]">
               Beauty Beyond
-              <br />
-              <span className="italic !leading-[1.2]">Expectations</span>
+              <span className="block font-cormorant italic font-medium text-cocoa mt-2">Expectations</span>
             </h1>
-            <p className="font-inter text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Professional makeup artistry for your most precious moments. From dreamy bridal looks to glamorous events, 
+            <div className="ornament mt-8 mx-auto lg:mx-0" />
+            <p className="mt-8 font-inter text-lg md:text-xl text-ink max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              Professional makeup artistry for your most precious moments. From dreamy bridal looks to glamorous events,
               I create beauty that reflects your unique radiance.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link
-                to="/contact"
-                className="bg-gradient-to-r from-blush-500 to-rose-500 text-white px-8 py-4 rounded-full font-inter font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 inline-flex items-center space-x-2"
-              >
-                <Calendar className="w-5 h-5" />
-                <span>Book Your Session</span>
+            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <Link to="/contact" className="btn-primary">
+                Book Your Makeup
+                <ArrowRight className="w-4 h-4" />
               </Link>
-             <a
-              href="https://forms.gle/rfW2a95NHFgN874XA"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-2 border-blush-400 text-blush-600 px-8 py-4 rounded-full font-inter font-semibold text-lg hover:bg-blush-50 hover:scale-105 transition-all duration-300 inline-flex items-center space-x-2"
-            >
-              <GraduationCap className="w-5 h-5" />
-              <span>Join Makeup Class</span>
-            </a>
+              <a
+                href={CLASS_FORM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+              >
+                Join Makeup Class
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+
+            <div className="mt-12 flex items-center justify-center lg:justify-start gap-6 text-cocoa">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 text-mocha fill-current" />
+                ))}
+              </div>
+              <span className="h-4 w-px bg-champagne" />
+              <p className="font-inter text-sm">
+                Loved by <span className="font-semibold text-chocolate">220+ brides</span>
+              </p>
             </div>
           </div>
 
-          {/* Floating Elements */}
-          <div className="absolute top-20 left-10 animate-float">
-            <div className="w-3 h-3 bg-gradient-to-r from-blush-400 to-rose-400 rounded-full opacity-60"></div>
-          </div>
-          <div className="absolute top-40 right-16 animate-float" style={{ animationDelay: '1s' }}>
-            <div className="w-2 h-2 bg-gradient-to-r from-rose-400 to-blush-400 rounded-full opacity-60"></div>
-          </div>
-          <div className="absolute bottom-40 left-20 animate-float" style={{ animationDelay: '2s' }}>
-            <div className="w-4 h-4 bg-gradient-to-r from-blush-300 to-rose-300 rounded-full opacity-40"></div>
+          {/* Arched portrait */}
+          <div className="relative mx-auto mt-10 lg:mt-0 w-full max-w-md animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            {/* Outer hairline arch */}
+            <div className="absolute -inset-4 rounded-t-full border border-champagne" />
+            {/* Lotus crowning the arch */}
+            <svg
+              viewBox="-95 -112 190 128"
+              className="absolute -top-[4.5rem] left-1/2 w-28 -translate-x-1/2 text-mocha"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <LotusFlower x={0} y={0} />
+            </svg>
+            {/* Gold rim */}
+            <div className="relative aspect-[4/5] rounded-t-full p-1.5 bg-gradient-to-b from-champagne via-mocha to-champagne shadow-luxe">
+              <div className="relative h-full w-full overflow-hidden rounded-t-full bg-sand ring-1 ring-ivory/70">
+                <img
+                  src={bridalImage}
+                  alt="Bridal makeup by SK Bridal Studio"
+                  className="h-full w-full object-cover object-[50%_35%]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-chocolate/30 via-transparent to-transparent" />
+              </div>
+            </div>
+
+            <div className="absolute -bottom-6 -left-4 sm:-left-10 card px-5 py-4 flex items-center gap-4 animate-float">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-chocolate text-champagne">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-playfair text-lg text-chocolate leading-tight">Your Special Day</p>
+                <p className="font-inter text-xs uppercase tracking-[0.2em] text-mocha">Our Artistry</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-white">
+      <section className="py-24 bg-ivory">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-playfair text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-              Trusted by Beautiful People
-            </h2>
-            <p className="font-inter text-xl text-gray-600 max-w-2xl mx-auto">
-              Every client is a testament to our commitment to excellence and artistry
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Our Promise"
+            title="Trusted by Beautiful People"
+            subtitle="Every client is a testament to our commitment to excellence and artistry"
+            className="mb-16"
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+          <div className="card grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-sand/70 max-w-5xl mx-auto">
             <Counter
               end={220}
               duration={2500}
               label="Happy Bridal Clients"
-              icon={<Heart className="w-8 h-8 text-blush-500" />}
+              icon={<Heart className="w-6 h-6" />}
+            />
+            <Counter
+              end={4}
+              duration={1500}
+              label="Years of Artistry"
+              icon={<Award className="w-6 h-6" />}
             />
             <Counter
               end={3}
-              duration={2500}
-              label="Makeup Students Trained"
-              icon={<GraduationCap className="w-8 h-8 text-rose-500" />}
+              duration={1500}
+              label="Students Trained"
+              icon={<GraduationCap className="w-6 h-6" />}
             />
           </div>
         </div>
       </section>
 
       {/* Services Section */}
-      <section className="py-20 bg-gradient-to-br from-blush-50 to-rose-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-playfair text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-              Signature Services
-            </h2>
-            <p className="font-inter text-xl text-gray-600 max-w-2xl mx-auto">
-              From intimate celebrations to grand occasions, I bring your vision to life
-            </p>
-          </div>
+      <section className="py-24 bg-beige">
+        <div className="container mx-auto px-4 max-w-[90%]">
+          <SectionHeading
+            eyebrow="What We Offer"
+            title="Signature Services"
+            subtitle="From intimate celebrations to grand occasions, I bring your vision to life"
+            className="mb-16"
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Bridal Makeup',
-                description: 'Your wedding day deserves perfection. Timeless, elegant looks that photograph beautifully.',
-                image: bridalImage,
-                icon: <Heart className="w-6 h-6" />
-              },
-              {
-                title: 'Event Makeup',
-                description: 'Special occasions call for glamorous looks. From galas to parties, shine bright.',
-                image: eventImage,
-                icon: <Star className="w-6 h-6" />
-              },
-              {
-                title: 'Makeup Classes',
-                description: 'Learn professional techniques in personalized sessions. Master the art of beauty.',
-                image: classImage,
-                icon: <GraduationCap className="w-6 h-6" />
-              }
-            ].map((service, index) => (
-              <div key={index} className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
-                <div className="relative overflow-hidden">
-                  <img
-                    src={service.image}
-                    alt={service.title}
-                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <div className="p-8">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-blush-100 to-rose-100 rounded-xl text-blush-600">
-                      {service.icon}
-                    </div>
-                    <h3 className="font-playfair text-2xl font-semibold text-gray-800">{service.title}</h3>
+            {services.map((service) => {
+              const isClass = service.title === 'Makeup Classes';
+              const linkClass = 'inline-flex items-center gap-2 font-inter text-sm font-semibold uppercase tracking-[0.2em] text-cocoa hover:text-chocolate transition-colors duration-300';
+              const linkContent = (
+                <>
+                  {isClass ? 'Join Class' : 'Learn More'}
+                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" />
+                </>
+              );
+
+              return (
+                <div key={service.title} className="group bg-ivory rounded-2xl overflow-hidden border border-sand/60 shadow-soft hover:shadow-luxe transition-all duration-500 hover:-translate-y-2">
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={service.image}
+                      alt={service.title}
+                      className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-chocolate/40 via-transparent to-transparent"></div>
                   </div>
-                  <p className="font-inter text-gray-600 leading-relaxed mb-6">{service.description}</p>
-                  {service.title === "Makeup Classes" ? (
-                    <a
-                      href="https://forms.gle/rfW2a95NHFgN874XA"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center font-inter font-semibold text-green-600 group-hover:text-emerald-600 transition-colors duration-300"
-                    >
-                      Join Class
-                      <span className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300">→</span>
-                    </a>
-                  ) : (
-                    <Link
-                      to="/contact"
-                      className="inline-flex items-center font-inter font-semibold text-blush-600 group-hover:text-rose-600 transition-colors duration-300"
-                    >
-                      Learn More
-                      <span className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300">→</span>
-                    </Link>
-                  )}
+                  <div className="p-8">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sand text-cocoa">
+                        {service.icon}
+                      </div>
+                      <h3 className="font-playfair text-2xl font-medium text-chocolate">{service.title}</h3>
+                    </div>
+                    <p className="font-inter text-ink leading-relaxed mb-6">{service.description}</p>
+                    <div className="h-px w-full bg-sand/70 mb-5" />
+                    {isClass ? (
+                      <a href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                        {linkContent}
+                      </a>
+                    ) : (
+                      <Link to="/contact" className={linkClass}>
+                        {linkContent}
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blush-500 via-rose-500 to-blush-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="font-playfair text-4xl md:text-5xl font-bold mb-6">
-              Ready to Look Absolutely Stunning?
-            </h2>
-            <p className="font-inter text-xl mb-10 opacity-90 leading-relaxed">
-              Whether it's your special day or you want to master the art of makeup, 
-              let's create something beautiful together.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Link
-                to="/contact"
-                className="bg-white text-blush-600 px-8 py-4 rounded-full font-inter font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 inline-flex items-center justify-center space-x-2"
-              >
-                <Calendar className="w-5 h-5" />
-                <span>Book Appointment</span>
-              </Link>
-              <Link
-                to="/gallery"
-                className="border-2 border-white text-white px-8 py-4 rounded-full font-inter font-semibold text-lg hover:bg-white/10 hover:scale-105 transition-all duration-300 inline-flex items-center justify-center space-x-2"
-              >
-                <Award className="w-5 h-5" />
-                <span>View Portfolio</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <CtaBanner
+        title="Ready to Look Absolutely Stunning?"
+        text="Whether it's your special day or you want to master the art of makeup, let's create something beautiful together."
+      >
+        <Link to="/contact" className="btn-light">
+          <Calendar className="w-5 h-5" />
+          Book Appointment
+        </Link>
+        <Link to="/gallery" className="btn-ghost-light">
+          <Award className="w-5 h-5" />
+          View Portfolio
+        </Link>
+      </CtaBanner>
     </div>
   );
 };
