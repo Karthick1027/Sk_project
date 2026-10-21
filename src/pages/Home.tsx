@@ -4,6 +4,7 @@ import { Star, GraduationCap, Heart, Award, Calendar, ArrowRight, Sparkles } fro
 import classImage from '../../src/images/bridal_class.jpg';
 import bridalImage from '../../src/images/Bridal_pic.png';
 import eventImage from '../../src/images/event_makeup.png';
+import clientImage from '../../src/images/Client_bride.jpg';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
 import HeroBackdrop, { LotusFlower } from '../components/HeroBackdrop';
@@ -155,9 +156,9 @@ const Home: React.FC = () => {
             <div className="relative aspect-[4/5] rounded-t-full p-1.5 bg-gradient-to-b from-champagne via-mocha to-champagne shadow-luxe">
               <div className="relative h-full w-full overflow-hidden rounded-t-full bg-sand ring-1 ring-ivory/70">
                 <img
-                  src={bridalImage}
-                  alt="Bridal makeup by SK Bridal Studio"
-                  className="h-full w-full object-cover object-[50%_35%]"
+                  src={clientImage}
+                  alt="Our bridal client, makeup by SK Bridal Studio"
+                  className="h-full w-full object-cover object-[45%_30%]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-chocolate/30 via-transparent to-transparent" />
               </div>
@@ -168,8 +169,8 @@ const Home: React.FC = () => {
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-playfair text-lg text-chocolate leading-tight">Your Special Day</p>
-                <p className="font-inter text-xs uppercase tracking-[0.2em] text-mocha">Our Artistry</p>
+                <p className="font-playfair text-lg text-chocolate leading-tight">Our Client</p>
+                <p className="font-inter text-xs uppercase tracking-[0.2em] text-mocha">Real Bride · Real Glow</p>
               </div>
             </div>
           </div>

@@ -23,6 +23,67 @@ interface GalleryImage {
   description: string;
 }
 
+// Client shoot photos, web-optimised copies of the originals (src/images/IMG_*.jpeg / .CR3)
+const clientPhotos = import.meta.glob<string>('../images/gallery/*.jpg', { eager: true, import: 'default' });
+
+const clientShoots: [number, string, string, string][] = [
+  [2126, 'Bridal', 'Golden Kanjeevaram Bride', 'Classic temple-gold silk with a soft, luminous base that glows under stage lights'],
+  [2127, 'Bridal', 'Muhurtham Moments', 'Radiant, long-wear bridal glam that stays flawless through every wedding ritual'],
+  [2128, 'Bridal', 'Garden Profile', 'Softly sculpted features and a sleek bun finished with fresh jasmine'],
+  [2129, 'Bridal', 'Jasmine Jadai', 'Traditional braided hairstyle adorned with jasmine and a gold-tasselled kunjalam'],
+  [2130, 'Reception', 'Ruby Sequin Glow', 'Rosy eyes and dewy skin to match a shimmering red sequin saree'],
+  [2131, 'Reception', 'Scarlet Evening', 'Soft waves and a luminous finish paired with red sequins and pearls'],
+  [2132, 'Reception', 'Red Carpet Ready', 'A head-to-toe glam look built to shine at an evening celebration'],
+  [2133, 'Reception', 'Behind the Scenes', 'Precision lip work in progress, perfecting every detail before the big moment'],
+  [2134, 'Bridal', 'Blush Silk Bride', 'Soft pink tones and a braided updo for a fresh, romantic bridal look'],
+  [2135, 'Bridal', 'Rose Gold Radiance', 'Warm rose-gold eyes and a glowing base to complement a pink silk saree'],
+  [2142, 'Reception', 'Ivory Engagement Glam', 'Elegant ivory lehenga styled with emerald jewellery and a soft-glam finish'],
+  [2143, 'Reception', 'Family Blessings', 'Joyful moments with loved ones, with makeup that looks perfect up close'],
+  [2144, 'Reception', 'Emerald & Ivory', 'Defined eyes and a radiant smile framed by emerald statement jewellery'],
+  [2145, 'Reception', 'Floral Wall Elegance', 'A graceful full-length look against a wall of white roses'],
+  [2146, 'Reception', 'Regal Repose', 'Effortless elegance with a long-lasting, camera-ready finish'],
+  [2147, 'Reception', 'Graceful Gaze', 'Soft contour and luminous skin for a timeless engagement portrait'],
+  [2148, 'Events', 'Blush Lehenga Glam', 'Pastel pink lehenga paired with soft curls and a radiant, camera-ready base'],
+  [2149, 'Bridal', 'Maroon & Mustard Bride', 'Rich silk saree with a warm, glowing bridal base and temple jewellery'],
+  [2150, 'Events', 'Golden Hour Drama', 'Dramatic light and shadow showing off a luminous, sculpted finish'],
+  [2151, 'Bridal', 'Final Touches', 'Perfecting the bridal look moments before she steps out'],
+  [2152, 'Bridal', 'Timeless Silk Bride', 'Classic South Indian bridal glam with a confident, joyful finish'],
+  [2153, 'Bridal', 'Jasmine Bridal Braid', 'Intricate jasmine-woven braid complementing a richly embroidered blouse'],
+  [2154, 'Bridal', 'Morning Light Bride', 'Violet silk and antique gold jewellery with a fresh, natural glow'],
+  [2155, 'Bridal', 'Violet Temple Bride', 'Traditional matha patti and temple gold paired with flawless bridal skin'],
+  [2156, 'Bridal', 'Joyful Bride', 'A bright, happy bridal look that photographs beautifully in natural light'],
+  [2157, 'Bridal', 'Window-Light Glow', 'Luminous skin and defined eyes that shine in soft daylight'],
+  [2158, 'Reception', 'Golden Lehenga Reception', 'Champagne-gold lehenga with soft waves and a glamorous reception finish'],
+  [2159, 'Reception', 'Mehendi & Sparkle', 'Delicate details, from intricate mehendi to statement rings and bangles'],
+  [2160, 'Reception', 'Champagne Elegance', 'Soft glam with long, flowing waves for an elegant evening look'],
+  [2161, 'Reception', 'Reception Radiance', 'A warm, glowing base that holds up through hours of celebration'],
+  [2162, 'Reception', 'Golden Smile', 'Natural glam that lets the bride\'s joy take centre stage'],
+  [2163, 'Reception', 'Soft Waves & Shimmer', 'Shimmering eyes and voluminous waves to complete the reception look'],
+  [2164, 'Reception', 'Grand Entrance', 'A full-length reception look made for the big walk-in'],
+  [2165, 'Reception', 'Candlelight Glow', 'Luminous skin that catches every bit of warm candlelight'],
+  [2166, 'Reception', 'Spotlight Moment', 'A sculpted, radiant finish that shines under dramatic lighting'],
+  [2167, 'Bridal', 'Bridal Hair Artistry', 'Ornate bun adorned with jasmine strands and a jewelled hair brooch'],
+  [2168, 'Bridal', 'Purple Silk Bride', 'Classic matha patti and temple jewellery with a soft, luminous finish'],
+  [2169, 'Bridal', 'Matha Patti Close-Up', 'Fluttery lashes and soft rosy tones up close'],
+  [2170, 'Bridal', 'Mehendi & Smiles', 'Fresh, glowing bridal skin paired with intricate mehendi and bangles'],
+  [2171, 'Bridal', 'Garden Bloom', 'A soft, natural bridal look framed by blooming greenery'],
+  [2172, 'Bridal', 'Violet Garden Bride', 'Rich violet silk and gold jewellery with a timeless traditional finish'],
+  [2173, 'Party', 'Midnight Sequin Glam', 'Navy sequin lehenga paired with defined eyes and soft glam'],
+  [2174, 'Events', 'Traditional Elegance', 'Olive and purple silk with a classic braided hairstyle'],
+  [2175, 'Events', 'Mustard & Plum', 'Kundan jewellery and fresh, glowing skin for a traditional celebration'],
+  [2176, 'Events', 'Floral Braid Glam', 'A braided crown with fresh flowers and a soft, youthful glow'],
+  [2177, 'Events', 'Pink Silk Celebration', 'Vibrant pink silk saree with a fresh, radiant finish'],
+  [2178, 'Events', 'Scarlet Silk Smile', 'Bright red silk, pearls and a natural glow for a festive occasion'],
+];
+
+const clientImages: GalleryImage[] = clientShoots.map(([num, category, title, description]) => ({
+  id: num,
+  src: clientPhotos[`../images/gallery/client_${num}.jpg`],
+  category,
+  title,
+  description,
+}));
+
 const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
@@ -30,6 +91,7 @@ const Gallery: React.FC = () => {
   const categories = ['All', 'Bridal', 'Party', 'Reception', 'Events', 'Classes'];
 
   const images: GalleryImage[] = [
+    ...clientImages,
     {
       id: 1,
       src: Bridal_Look,
@@ -162,7 +224,9 @@ const Gallery: React.FC = () => {
                   <img
                     src={image.src}
                     alt={image.title}
-                    className="w-full aspect-[4/5] lg:aspect-auto lg:h-96 object-cover group-hover:scale-105 transition-transform duration-700"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full aspect-[4/5] lg:aspect-auto lg:h-96 object-cover object-[50%_30%] group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-chocolate/80 via-chocolate/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                     <div className="absolute bottom-5 left-5 right-5 text-ivory">

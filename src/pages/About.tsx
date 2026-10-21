@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Heart, Users, BookOpen, Star, Sparkles, Quote } from 'lucide-react';
+import { Award, Heart, Users, BookOpen, Sparkles } from 'lucide-react';
 import srinithiPic from '../../src/images/srinithi_pic.png';
 import Sheeba from '../../src/images/Sheeba.png';
 import Sabari from '../../src/images/Sabari.png';
@@ -7,6 +7,7 @@ import Ruby_Ganesh from '../../src/images/Ruby_Ganesh.png';
 import Janani from '../../src/images/Janani.png';
 import Chandru_pic from '../../src/images/Chandru_pic.png';
 import SectionHeading from '../components/SectionHeading';
+import TestimonialSlider from '../components/TestimonialSlider';
 import AboutBackdrop, { Mandala } from '../components/AboutBackdrop';
 
 const About: React.FC = () => {
@@ -223,41 +224,7 @@ const About: React.FC = () => {
             className="mb-10 md:mb-16"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.name} className="relative flex flex-col bg-beige rounded-2xl p-6 sm:p-8 border border-sand/60 hover:shadow-luxe hover:-translate-y-1 transition-all duration-500">
-                <Quote className="absolute top-6 right-6 w-10 h-10 text-champagne/70" />
-
-                <div className="flex mb-5">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-mocha fill-current" />
-                  ))}
-                </div>
-
-                <blockquote className="flex-1 font-inter text-ink leading-relaxed mb-8">
-                  "{testimonial.text}"
-                </blockquote>
-
-                <div className="flex items-center gap-4 pt-6 border-t border-sand">
-                  {testimonial.image ? (
-                    <img
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                      className="w-14 h-14 rounded-full object-cover ring-2 ring-ivory shadow-soft"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-chocolate ring-2 ring-ivory shadow-soft flex items-center justify-center font-playfair text-xl text-champagne">
-                      {testimonial.name.charAt(0)}
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-playfair text-lg font-medium text-chocolate">{testimonial.name}</h3>
-                    <p className="font-inter text-xs uppercase tracking-[0.2em] text-mocha mt-0.5">{testimonial.event}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TestimonialSlider testimonials={testimonials} />
         </div>
       </section>
     </div>
