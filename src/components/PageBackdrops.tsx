@@ -136,7 +136,7 @@ export const ContactBackdrop: React.FC = () => {
   );
 };
 
-/* ───────────────────────── Products: marigold strings + kolam dots ───────────────────────── */
+/* ───────────────────────── Packages: marigold strings + kolam dots ───────────────────────── */
 
 const Marigold: React.FC<{ cy: number; r: number }> = ({ cy, r }) => (
   <g transform={`translate(13 ${cy})`}>
@@ -184,7 +184,7 @@ const strandsLeft = [
   { count: 5, delay: '-5.6s' },
 ];
 
-export const ProductsBackdrop: React.FC = () => {
+export const PackagesBackdrop: React.FC = () => {
   const kolamId = `sk-kolam-${uid(useId())}`;
 
   return (

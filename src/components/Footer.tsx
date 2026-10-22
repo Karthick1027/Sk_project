@@ -43,7 +43,7 @@ const Footer: React.FC = () => {
                 { name: 'Home', path: '/' },
                 { name: 'About', path: '/about' },
                 { name: 'Gallery', path: '/gallery' },
-                { name: 'Products', path: '/products' },
+                { name: 'Packages', path: '/packages' },
                 { name: 'Contact', path: '/contact' },
               ].map((item) => (
                 <li key={item.name}>
