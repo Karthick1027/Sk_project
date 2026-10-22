@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, GraduationCap, Heart, Award, Calendar, ArrowRight, Sparkles } from 'lucide-react';
-import classImage from '../../src/images/bridal_class.jpg';
-import bridalImage from '../../src/images/Bridal_pic.png';
-import eventImage from '../../src/images/event_makeup.png';
+// Service card photos come from the client gallery
+import bridalImage from '../images/gallery/client_2169.jpg';
+import eventImage from '../images/Reception.jpeg';
+import classImage from '../images/gallery/client_2133.jpg';
 import clientImage from '../../src/images/Client_bride.jpg';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
@@ -73,18 +74,21 @@ const Home: React.FC = () => {
       title: 'Bridal Makeup',
       description: 'Your wedding day deserves perfection. Timeless, elegant looks that photograph beautifully.',
       image: bridalImage,
+      position: 'object-[50%_30%]',
       icon: <Heart className="w-5 h-5" />
     },
     {
       title: 'Event Makeup',
       description: 'Special occasions call for glamorous looks. From galas to parties, shine bright.',
       image: eventImage,
+      position: 'object-[50%_22%]',
       icon: <Star className="w-5 h-5" />
     },
     {
       title: 'Makeup Classes',
       description: 'Learn professional techniques in personalized sessions. Master the art of beauty.',
       image: classImage,
+      position: 'object-[50%_50%]',
       icon: <GraduationCap className="w-5 h-5" />
     }
   ];
@@ -131,7 +135,7 @@ const Home: React.FC = () => {
               </div>
               <span className="h-4 w-px bg-champagne" />
               <p className="font-inter text-sm">
-                Loved by <span className="font-semibold text-chocolate">220+ brides</span>
+                Loved by <span className="font-semibold text-chocolate">230+ brides</span>
               </p>
             </div>
           </div>
@@ -189,7 +193,7 @@ const Home: React.FC = () => {
 
           <div className="card grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-sand/70 max-w-5xl mx-auto">
             <Counter
-              end={220}
+              end={230}
               duration={2500}
               label="Happy Bridal Clients"
               icon={<Heart className="w-6 h-6" />}
@@ -201,7 +205,7 @@ const Home: React.FC = () => {
               icon={<Award className="w-6 h-6" />}
             />
             <Counter
-              end={3}
+              end={5}
               duration={1500}
               label="Students Trained"
               icon={<GraduationCap className="w-6 h-6" />}
@@ -238,7 +242,7 @@ const Home: React.FC = () => {
                     <img
                       src={service.image}
                       alt={service.title}
-                      className="w-full h-64 sm:h-72 object-cover group-hover:scale-105 transition-transform duration-700"
+                      className={`w-full h-64 sm:h-72 object-cover ${service.position} group-hover:scale-105 transition-transform duration-700`}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-chocolate/40 via-transparent to-transparent"></div>
                   </div>
