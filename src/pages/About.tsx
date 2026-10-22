@@ -1,6 +1,6 @@
 import React from 'react';
 import { Award, Heart, Users, BookOpen, Sparkles } from 'lucide-react';
-import srinithiPic from '../../src/images/srinithi_pic.png';
+import srinithiPic from '../../src/images/srinithi_portrait.jpg';
 import Sheeba from '../../src/images/Sheeba.png';
 import Sabari from '../../src/images/Sabari.png';
 import Ruby_Ganesh from '../../src/images/Ruby_Ganesh.png';
@@ -120,7 +120,7 @@ const About: React.FC = () => {
                 <img
                   src={srinithiPic}
                   alt="Srinithi - Professional Makeup Artist"
-                  className="w-full h-[24rem] sm:h-[28rem] lg:h-[620px] object-cover"
+                  className="w-full h-[24rem] sm:h-[28rem] lg:h-[620px] object-cover object-[50%_15%]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-chocolate/25 via-transparent to-transparent"></div>
               </div>
