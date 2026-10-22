@@ -9,7 +9,10 @@ export interface Testimonial {
   image: string;
 }
 
-const AUTOPLAY_MS = 6000;
+const AUTOPLAY_MS = 2000; // how long each card rests before the next one slides in
+const SLIDE_MS = 1200;    // duration of the slide itself, slower than the browser's built-in smooth scroll
+
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 const ArrowButton: React.FC<{ direction: 'prev' | 'next'; onClick: () => void; className?: string }> = ({
   direction, onClick, className = ''
@@ -29,7 +32,7 @@ const TestimonialSlider: React.FC<{ testimonials: Testimonial[] }> = ({ testimon
   const [index, setIndex] = useState(0);
   const [maxIndex, setMaxIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [userInteracted, setUserInteracted] = useState(false);
+  const frameRef = useRef(0);
 
   // Distance between the left edges of two neighbouring cards (card width + gap)
   const getStep = useCallback(() => {
@@ -53,26 +56,47 @@ const TestimonialSlider: React.FC<{ testimonials: Testimonial[] }> = ({ testimon
     return () => window.removeEventListener('resize', measure);
   }, [measure]);
 
+  const stopSliding = useCallback(() => {
+    cancelAnimationFrame(frameRef.current);
+    if (trackRef.current) trackRef.current.style.scrollSnapType = '';
+  }, []);
+
+  useEffect(() => stopSliding, [stopSliding]);
+
   const goTo = useCallback((target: number) => {
     const track = trackRef.current;
     if (!track) return;
     // Wrap around at either end so the arrows and autoplay loop
     const next = target > maxIndex ? 0 : target < 0 ? maxIndex : target;
-    track.scrollTo({ left: next * getStep(), behavior: 'smooth' });
-  }, [getStep, maxIndex]);
+    const from = track.scrollLeft;
+    const distance = next * getStep() - from;
+    stopSliding();
+    if (!distance) return;
+    // Visitors who ask for reduced motion get an instant change instead of a slide
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      track.scrollLeft = from + distance;
+      return;
+    }
+    // Animate by hand for a slow, eased glide; snapping is switched off meanwhile or it fights each frame
+    track.style.scrollSnapType = 'none';
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / SLIDE_MS);
+      track.scrollLeft = from + distance * easeInOutCubic(t);
+      if (t < 1) frameRef.current = requestAnimationFrame(tick);
+      else track.style.scrollSnapType = '';
+    };
+    frameRef.current = requestAnimationFrame(tick);
+  }, [getStep, maxIndex, stopSliding]);
 
-  // Autoplay until the visitor takes control; hold while hovered or focused
+  // Autoplay one card at a time; hold while hovered, focused or touched, then carry on
   useEffect(() => {
-    if (isPaused || userInteracted || maxIndex === 0) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (isPaused || maxIndex === 0) return;
     const timer = window.setTimeout(() => goTo(index + 1), AUTOPLAY_MS);
     return () => window.clearTimeout(timer);
-  }, [index, isPaused, userInteracted, maxIndex, goTo]);
+  }, [index, isPaused, maxIndex, goTo]);
 
-  const handleNav = (target: number) => {
-    setUserInteracted(true);
-    goTo(target);
-  };
+  const handleNav = (target: number) => goTo(target);
 
   return (
     <div
@@ -84,7 +108,8 @@ const TestimonialSlider: React.FC<{ testimonials: Testimonial[] }> = ({ testimon
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
-      onTouchStart={() => setUserInteracted(true)}
+      onTouchStart={() => { stopSliding(); setIsPaused(true); }}
+      onTouchEnd={() => setIsPaused(false)}
     >
       {/* Side arrows on wide screens, sitting in the page margin */}
       <ArrowButton direction="prev" onClick={() => handleNav(index - 1)} className="hidden xl:flex absolute -left-16 top-1/2 -translate-y-[calc(50%+1.875rem)] z-10" />
