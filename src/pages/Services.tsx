@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Brush, Flower2, Sparkles, Gift, Eye, Aperture, Feather, Gem, MessageCircle, ArrowRight,
@@ -7,6 +7,7 @@ import {
 import PageHero from '../components/PageHero';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
+import GiftCelebration from '../components/GiftCelebration';
 import makeupImage from '../images/gallery/client_2149.jpg';
 import hairImage from '../images/gallery/client_2167.jpg';
 import drapingImage from '../images/Garden_wedding.jpeg';
@@ -29,7 +30,7 @@ const services: Service[] = [
     accent: 'Makeup',
     icon: Brush,
     image: makeupImage,
-    position: 'object-[50%_30%]',
+    position: 'object-bottom',
     description:
       "Pick an HD or airbrush finish, blended to suit your skin's natural undertone. The result is smooth, smudge-proof and camera-ready, staying fresh from the morning muhurtham right through to the evening reception.",
     highlights: ['HD finish', 'Airbrush', 'Undertone matched', 'Smudge-proof'],
@@ -63,7 +64,10 @@ const compliments: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Gem, title: 'Javuri & Kunjalam', text: 'Traditional South Indian braid extensions and tassels.' },
 ];
 
-const brands = ['Make Up For Ever', 'Anastasia Beverly Hills', 'NYX', 'Urban Decay', 'Natasha Denona'];
+const brands = [
+  'Make Up For Ever', 'Anastasia Beverly Hills', 'NYX', 'Urban Decay', 'Natasha Denona',
+  'Charlotte Tilbury', 'Estée Lauder', 'Dior', 'Chanel',
+];
 
 // Each brand gets its own type style, echoing how the names look on their packaging
 const brandStyles = [
@@ -72,9 +76,16 @@ const brandStyles = [
   'font-inter text-3xl sm:text-4xl font-bold uppercase tracking-[0.3em]',
   'font-playfair text-2xl sm:text-3xl font-semibold uppercase tracking-[0.12em]',
   'font-cormorant text-3xl sm:text-4xl uppercase tracking-[0.2em]',
+  'font-playfair text-2xl sm:text-3xl uppercase tracking-[0.12em]',
+  'font-cormorant text-3xl sm:text-4xl font-medium uppercase tracking-[0.18em]',
+  'font-cormorant text-3xl sm:text-4xl uppercase tracking-[0.4em]',
+  'font-inter text-2xl sm:text-3xl font-bold uppercase tracking-[0.04em]',
 ];
 
 const Services: React.FC = () => {
+  const [giftOpen, setGiftOpen] = useState(false);
+  const closeGift = useCallback(() => setGiftOpen(false), []);
+
   useEffect(() => {
     const prevTitle = document.title;
     document.title = 'Bridal Makeup, Hair & Draping Services | SK Bridal Studio';
@@ -198,9 +209,18 @@ const Services: React.FC = () => {
               {/* Ribbons + knot */}
               <div aria-hidden="true" className="absolute inset-y-0 left-1/2 hidden w-4 -translate-x-1/2 bg-champagne/20 sm:block" />
               <div aria-hidden="true" className="absolute inset-x-0 top-1/2 hidden h-4 -translate-y-1/2 bg-champagne/20 sm:block" />
-              <span className="absolute left-1/2 top-1/2 hidden h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-champagne text-chocolate ring-8 ring-chocolate sm:flex">
-                <Gift className="h-7 w-7" />
-              </span>
+              <button
+                type="button"
+                onClick={() => setGiftOpen(true)}
+                aria-label="Open your bridal gift"
+                className="group absolute left-1/2 top-1/2 z-10 hidden h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-champagne text-chocolate ring-8 ring-chocolate transition-transform duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-champagne/60 sm:flex"
+              >
+                <span aria-hidden="true" className="absolute inset-0 rounded-full bg-champagne/60 animate-ping motion-reduce:hidden" />
+                <Gift className="relative h-7 w-7 transition-transform duration-300 group-hover:-rotate-12" />
+                <span className="absolute left-1/2 top-full mt-4 -translate-x-1/2 whitespace-nowrap rounded-full border border-champagne/40 bg-chocolate px-3 py-1 font-inter text-[10px] font-semibold uppercase tracking-[0.25em] text-champagne">
+                  Tap to open
+                </span>
+              </button>
 
               {compliments.map((c, i) => (
                 <div
@@ -219,9 +239,16 @@ const Services: React.FC = () => {
                 </div>
               ))}
             </div>
+            {/* The ribbon knot is hidden on phones, so offer the gift as a button instead */}
+            <button type="button" onClick={() => setGiftOpen(true)} className="btn-secondary mt-3 w-full sm:hidden">
+              <Gift className="h-4 w-4" />
+              Open Your Gift
+            </button>
           </div>
         </div>
       </section>
+
+      <GiftCelebration open={giftOpen} onClose={closeGift} items={compliments} whatsappUrl={WHATSAPP_URL} />
 
       {/* Brands marquee */}
       <section className="py-16 md:py-20 bg-ivory">

@@ -8,6 +8,7 @@ import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
 import Packages from './pages/Packages';
 import Services from './pages/Services';
+import Workshops from './pages/Workshops';
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
             <Route path="/services" element={<Services />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/packages" element={<Packages />} />
+            <Route path="/workshops" element={<Workshops />} />
             {/* Old Products page links now land on Packages */}
             <Route path="/products" element={<Navigate to="/packages" replace />} />
             <Route path="/contact" element={<Contact />} />

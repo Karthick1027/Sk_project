@@ -51,7 +51,7 @@ const enquiryLink = (pkg: BridalPackage, mode: BookingMode) => {
 
 /**
  * Ticket-style advance card in 3D: it tilts toward the pointer (or tap) with a moving glare,
- * the text floats at different depths, and a back layer gives it thickness.
+ * and a back layer gives it thickness. The text and button sit flat on the card face.
  * With no pointer on it, it sways gently so touch users still see the depth.
  */
 const DatePass: React.FC = () => {
@@ -59,7 +59,8 @@ const DatePass: React.FC = () => {
 
   const tilt = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = ref.current;
-    if (!el) return;
+    // Hold the card still while the pointer is on the button, so it doesn't move away mid-click
+    if (!el || (e.target as HTMLElement).closest('a')) return;
     const r = el.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width;
     const y = (e.clientY - r.top) / r.height;
@@ -89,10 +90,10 @@ const DatePass: React.FC = () => {
           style={{ transform: 'rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))' }}
         >
           {/* Back layer: the card's thickness, visible as it tilts */}
-          <div aria-hidden="true" className="absolute inset-0 rounded-3xl bg-[#1d120d] shadow-luxe [transform:translateZ(-18px)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-3xl bg-[#1d120d] shadow-luxe [transform:translateZ(-18px)]" />
 
           {/* Card face */}
-          <div aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-3xl bg-gradient-to-br from-[#5a3d30] via-chocolate to-[#241610] ring-1 ring-champagne/30">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl bg-gradient-to-br from-[#5a3d30] via-chocolate to-[#241610] ring-1 ring-champagne/30">
             <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-champagne/25 blur-2xl" />
             <div className="absolute inset-2 rounded-[1.25rem] border border-champagne/25" />
             <div
@@ -101,16 +102,16 @@ const DatePass: React.FC = () => {
             />
           </div>
 
-          {/* Content, layered at different depths */}
-          <div className="relative px-6 py-7 sm:px-8 [transform-style:preserve-3d]">
-            <div className="flex items-start justify-between gap-4 [transform:translateZ(30px)]">
+          {/* A hair in front of the face; sharing its plane makes the face swallow clicks and flicker over the text */}
+          <div className="relative px-6 py-7 sm:px-8 [transform:translateZ(1px)]">
+            <div className="flex items-start justify-between gap-4">
               <p className="font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-champagne">Advance per session</p>
               <CalendarCheck className="h-6 w-6 shrink-0 text-champagne" />
             </div>
-            <p className="mt-4 font-playfair text-5xl sm:text-6xl font-semibold leading-none [text-shadow:0_10px_24px_rgba(0,0,0,0.45)] [transform:translateZ(70px)]">
+            <p className="mt-4 font-playfair text-5xl sm:text-6xl font-semibold leading-none">
               {formatPrice(bookingAdvance)}
             </p>
-            <p className="mt-3 font-cormorant text-xl italic text-sand/90 [transform:translateZ(40px)]">
+            <p className="mt-3 font-cormorant text-xl italic text-sand/90">
               Secures your date · Non-refundable
             </p>
 
@@ -124,7 +125,7 @@ const DatePass: React.FC = () => {
               href={RESERVE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-light w-full shadow-[0_14px_30px_-12px_rgba(0,0,0,0.6)] [transform:translateZ(50px)]"
+              className="btn-light w-full"
             >
               <MessageCircle className="h-4 w-4" />
               Reserve on WhatsApp

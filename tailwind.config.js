@@ -43,8 +43,10 @@ export default {
         'float': 'float 4s ease-in-out infinite',
         'swing': 'swing 5s ease-in-out infinite',
         'petal': 'petal 15s linear infinite',
-        'marquee': 'marquee 30s linear infinite',
+        'marquee': 'marquee 55s linear infinite',
         'sway-3d': 'sway3d 7s ease-in-out infinite',
+        'gift-pop': 'giftPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'confetti': 'confetti 3s cubic-bezier(0.2, 0.7, 0.4, 1) both',
       },
       keyframes: {
         fadeIn: {
@@ -63,6 +65,16 @@ export default {
         marquee: {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' },
+        },
+        giftPop: {
+          '0%': { opacity: '0', transform: 'translateY(24px) scale(0.6)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        // Each piece sets --x/--y (burst offset) and --r (spin); it bursts out, then drifts down and fades
+        confetti: {
+          '0%': { opacity: '1', transform: 'translate(-50%, -50%) scale(0.3)' },
+          '30%': { opacity: '1', transform: 'translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(calc(var(--r) * 0.4)) scale(1)' },
+          '100%': { opacity: '0', transform: 'translate(calc(-50% + var(--x)), calc(-50% + var(--y) + 55vh)) rotate(var(--r)) scale(0.9)' },
         },
         sway3d: {
           '0%, 100%': { transform: 'rotateX(5deg) rotateY(-9deg)' },

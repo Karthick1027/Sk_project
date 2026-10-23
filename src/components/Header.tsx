@@ -22,6 +22,7 @@ const Header: React.FC = () => {
     { name: 'Services', path: '/services' },
     { name: 'Gallery', path: '/gallery' },
     { name: 'Packages', path: '/packages' },
+    { name: 'Workshops', path: '/workshops' },
     { name: 'Contact', path: '/contact' },
   ];
 
@@ -58,14 +59,14 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-6 xl:gap-7 2xl:gap-10">
+          <div className="hidden lg:flex items-center gap-4 xl:gap-5 2xl:gap-10">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`relative group py-1 font-inter text-[13px] font-medium uppercase tracking-[0.2em] transition-colors duration-300 ${
+                  className={`relative group py-1 font-inter text-[13px] font-medium uppercase tracking-[0.12em] xl:tracking-[0.15em] 2xl:tracking-[0.2em] transition-colors duration-300 ${
                     isActive ? 'text-chocolate' : 'text-cocoa/80 hover:text-chocolate'
                   }`}
                 >
