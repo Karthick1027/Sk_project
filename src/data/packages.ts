@@ -25,8 +25,8 @@ const sharedIncludes = [
 
 const perks = {
   travel: 'Complimentary travel within Tamil Nadu',
-  groom: '1 session groom makeup — free',
-  jewellery: '1 session rental full bridal jewellery set',
+  groom: '1 Session groom makeup',
+  jewellery: '1 Session rental full bridal jewellery set',
   touchUp: 'Touch-up kit provided',
 };
 
@@ -69,3 +69,22 @@ export const packageAddOns = [
   { label: 'Pre-pleating', value: '₹800 per saree' },
   { label: 'Outstation Travel', value: 'Charged additionally' },
 ];
+
+// Booking procedure: first come, first served
+export const bookingAdvance = 2000;
+
+export const bookingSteps = [
+  { title: 'Contact me', text: 'Call or WhatsApp +91 86680 38093 before paying the advance.' },
+  { title: 'Pay the advance', text: 'Required for each makeup session, across all packages.' },
+  { title: 'Date confirmed', text: 'Your date is confirmed once the advance is received.' },
+];
+
+export const bookingNotes = [
+  'All prices are exclusive of GST. 5% GST is added to the total service amount.',
+  'Travel charges are excluded from GST.',
+  'A proper bill will be provided.',
+  'Date changes are subject to availability at the time of request.',
+  'Prices are fixed and non-negotiable.',
+];
+
+export const paymentMethods = ['Google Pay', 'PhonePe', 'Paytm', 'UPI', 'Net banking', 'Cash'];

@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, GraduationCap, Heart, Award, Calendar, ArrowRight, Sparkles } from 'lucide-react';
 // Service card photos come from the client gallery
-import bridalImage from '../images/gallery/client_2169.jpg';
-import eventImage from '../images/Reception.jpeg';
+import bridalImage from '../images/gallery/client_2170.jpg';
+// Zoomed crop of gallery/4G4A3254.JPG.jpeg (client_3254)
+import eventImage from '../images/event_3254.jpg';
 import classImage from '../images/gallery/client_2133.jpg';
-import clientImage from '../../src/images/Client_bride.jpg';
+// Zoomed crop of IMG_2127 (same shoot as gallery/client_2127.jpg)
+import clientImage from '../images/hero_bride_2127.jpg';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
 import HeroBackdrop, { LotusFlower } from '../components/HeroBackdrop';
@@ -74,14 +76,14 @@ const Home: React.FC = () => {
       title: 'Bridal Makeup',
       description: 'Your wedding day deserves perfection. Timeless, elegant looks that photograph beautifully.',
       image: bridalImage,
-      position: 'object-[50%_30%]',
+      position: 'object-[50%_28%]',
       icon: <Heart className="w-5 h-5" />
     },
     {
       title: 'Event Makeup',
       description: 'Special occasions call for glamorous looks. From galas to parties, shine bright.',
       image: eventImage,
-      position: 'object-[50%_22%]',
+      position: 'object-[50%_20%]',
       icon: <Star className="w-5 h-5" />
     },
     {
@@ -162,7 +164,7 @@ const Home: React.FC = () => {
                 <img
                   src={clientImage}
                   alt="Our bridal client, makeup by SK Bridal Studio"
-                  className="h-full w-full object-cover object-[45%_30%]"
+                  className="h-full w-full object-cover object-center"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-chocolate/30 via-transparent to-transparent" />
               </div>

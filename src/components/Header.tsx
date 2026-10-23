@@ -19,6 +19,7 @@ const Header: React.FC = () => {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
+    { name: 'Services', path: '/services' },
     { name: 'Gallery', path: '/gallery' },
     { name: 'Packages', path: '/packages' },
     { name: 'Contact', path: '/contact' },
@@ -48,14 +49,16 @@ const Header: React.FC = () => {
               <span className="block font-playfair text-base sm:text-xl font-medium uppercase tracking-[0.15em] sm:tracking-[0.2em] text-chocolate whitespace-nowrap">
                 SK Bridal Studio
               </span>
-              <span className="mt-1.5 block font-inter text-[9px] sm:text-[10px] uppercase tracking-[0.25em] sm:tracking-[0.35em] text-mocha whitespace-nowrap">
-                Beauty · Bridals · Academy
+              <span className="mt-1.5 flex items-center gap-2 font-inter text-[9px] sm:text-[10px] uppercase tracking-[0.25em] sm:tracking-[0.35em] text-mocha whitespace-nowrap">
+                <span className="h-px w-3 sm:w-4 bg-mocha/60" aria-hidden="true" />
+                Srinithi Makeup Artist
+                <span className="h-px w-3 sm:w-4 bg-mocha/60" aria-hidden="true" />
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-7 xl:gap-10">
+          <div className="hidden lg:flex items-center gap-6 xl:gap-7 2xl:gap-10">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -73,10 +76,15 @@ const Header: React.FC = () => {
                 </Link>
               );
             })}
-            <Link to="/contact" className="btn-primary !px-5 !py-2.5 text-sm">
+            <a
+              href="https://wa.me/918668038093"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary !px-5 !py-2.5 text-sm"
+            >
               Book Now
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -108,14 +116,16 @@ const Header: React.FC = () => {
               </Link>
             ))}
             <div className="px-6 pt-3 pb-1">
-              <Link
-                to="/contact"
+              <a
+                href="https://wa.me/918668038093"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-primary w-full"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Book Your Makeup
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
             </div>
           </div>
         )}

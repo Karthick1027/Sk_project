@@ -43,6 +43,8 @@ export default {
         'float': 'float 4s ease-in-out infinite',
         'swing': 'swing 5s ease-in-out infinite',
         'petal': 'petal 15s linear infinite',
+        'marquee': 'marquee 30s linear infinite',
+        'sway-3d': 'sway3d 7s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -56,6 +58,15 @@ export default {
         swing: {
           '0%, 100%': { transform: 'rotate(-3deg)' },
           '50%': { transform: 'rotate(3deg)' },
+        },
+        // Content is rendered twice, so sliding by half loops seamlessly
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        sway3d: {
+          '0%, 100%': { transform: 'rotateX(5deg) rotateY(-9deg)' },
+          '50%': { transform: 'rotateX(-3deg) rotateY(9deg)' },
         },
         petal: {
           '0%': { transform: 'translate(0, 0) rotate(0deg)', opacity: '0' },

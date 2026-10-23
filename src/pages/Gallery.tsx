@@ -5,9 +5,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import classImage from '../../src/images/bridal_class.jpg';
 import studentSuccess from '../../src/images/studentSuccess.png';
-import birthdayGlam from '../../src/images/birthday_glam.png';
 import Garden_wedding from '../../src/images/Garden_wedding.jpeg';
 import Reception from '../../src/images/Reception.jpeg';
 import Special_Occasion from '../../src/images/Special_Occasion.jpeg';
@@ -42,7 +40,7 @@ const categories: Category[] = [
   { name: 'Engagement', tagline: 'Soft & Romantic Looks', icon: Heart, cover: clientPhoto(2144) },
   { name: 'Babyshower', tagline: 'Graceful & Comfortable', icon: Baby, cover: clientPhoto(2148) },
   { name: 'Events', tagline: 'For All Special Occasions', icon: PartyPopper, cover: clientPhoto(2175) },
-  { name: 'Bridal Class', tagline: 'Learn · Practice · Grow', icon: GraduationCap, cover: classImage },
+  { name: 'Bridal Class', tagline: 'Learn · Practice · Grow', icon: GraduationCap, cover: clientPhoto(2133) },
 ];
 
 const clientShoots: [number, string, string, string][] = [
@@ -93,6 +91,9 @@ const clientShoots: [number, string, string, string][] = [
   [2176, 'Events', 'Floral Braid Glam', 'A braided crown with fresh flowers and a soft, youthful glow'],
   [2177, 'Events', 'Pink Silk Celebration', 'Vibrant pink silk saree with a fresh, radiant finish'],
   [2178, 'Events', 'Scarlet Silk Smile', 'Bright red silk, pearls and a natural glow for a festive occasion'],
+  [3237, 'Reception', 'Emerald Serenity', 'Bronzed shimmer eyes and glossy nude lips paired with a diamond choker'],
+  [3254, 'Reception', 'Behind the Curtain', 'A radiant reception glow framed by rich velvet drapes and emerald embroidery'],
+  [3799, 'Reception', 'The Grand Twirl', 'An emerald lehenga in full swirl with a flawless finish built for the stage'],
 ];
 
 const images: GalleryImage[] = [
@@ -105,13 +106,11 @@ const images: GalleryImage[] = [
   })),
   { id: 1, src: Bridal_Look, category: 'Muhurtham', title: 'Bridal Look', description: 'Soft, romantic makeup with natural glowing skin and subtle rose tones' },
   { id: 2, src: Glamorous, category: 'Events', title: 'Glamorous Evening', description: 'Bold, dramatic eyes with perfect contouring for a night to remember' },
-  { id: 3, src: classImage, category: 'Bridal Class', title: 'Makeup Masterclass', description: 'Teaching advanced contouring techniques in our professional studio' },
-  { id: 4, src: Reception, category: 'Reception', title: 'Reception Ready', description: 'Long-lasting makeup perfect for dancing and celebrating all night' },
-  { id: 5, src: Classic_Bridal, category: 'Muhurtham', title: 'Classic Bridal Beauty', description: 'Timeless elegance with perfect winged liner and natural radiance' },
-  { id: 6, src: Special_Occasion, category: 'Events', title: 'Special Occasion', description: 'Sophisticated look for corporate events and milestone celebrations' },
-  { id: 7, src: birthdayGlam, category: 'Events', title: 'Birthday Glam', description: 'Sparkling eyes and glossy lips for an unforgettable birthday celebration' },
-  { id: 8, src: Garden_wedding, category: 'Muhurtham', title: 'Garden Wedding', description: 'Fresh, dewy makeup perfect for outdoor ceremonies and natural lighting' },
-  { id: 9, src: studentSuccess, category: 'Bridal Class', title: 'Student Success', description: 'Proud moment as students master professional makeup techniques' },
+  { id: 3, src: Reception, category: 'Reception', title: 'Reception Ready', description: 'Long-lasting makeup perfect for dancing and celebrating all night' },
+  { id: 4, src: Classic_Bridal, category: 'Muhurtham', title: 'Classic Bridal Beauty', description: 'Timeless elegance with perfect winged liner and natural radiance' },
+  { id: 5, src: Special_Occasion, category: 'Events', title: 'Special Occasion', description: 'Sophisticated look for corporate events and milestone celebrations' },
+  { id: 6, src: Garden_wedding, category: 'Muhurtham', title: 'Garden Wedding', description: 'Fresh, dewy makeup perfect for outdoor ceremonies and natural lighting' },
+  { id: 7, src: studentSuccess, category: 'Bridal Class', title: 'Student Success', description: 'Proud moment as students master professional makeup techniques' },
 ];
 
 // "All" view: take one photo from each category in turn, so every row shows a mix of looks
@@ -253,8 +252,10 @@ const Gallery: React.FC = () => {
                 <button
                   key={cat.name}
                   onClick={() => selectCategory(cat.name, true)}
-                  className={`group relative w-[62vw] max-w-[260px] shrink-0 snap-start overflow-hidden rounded-2xl bg-sand text-left shadow-soft transition-all duration-500 hover:-translate-y-1.5 hover:shadow-luxe md:w-auto md:max-w-none ${
-                    active ? 'ring-2 ring-chocolate ring-offset-2 ring-offset-ivory' : ''
+                  className={`group relative w-[62vw] max-w-[260px] shrink-0 snap-start overflow-hidden rounded-2xl bg-sand text-left transition-all duration-500 md:w-auto md:max-w-none ${
+                    active
+                      ? '-translate-y-1.5 ring-[3px] ring-champagne shadow-[0_28px_50px_-22px_rgba(59,38,30,0.6),0_0_28px_rgba(216,194,165,0.6)]'
+                      : 'shadow-soft hover:-translate-y-1.5 hover:shadow-luxe'
                   }`}
                 >
                   <img
