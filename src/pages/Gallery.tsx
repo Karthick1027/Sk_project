@@ -192,13 +192,14 @@ const Gallery: React.FC = () => {
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-beige via-beige/10 to-transparent lg:bg-gradient-to-r lg:via-beige/30 lg:via-25% lg:to-50%" />
-          <p className="hidden sm:block absolute right-6 bottom-8 lg:right-12 lg:bottom-12 font-script text-4xl lg:text-5xl leading-tight text-chocolate/80 -rotate-6 text-right drop-shadow-[0_1px_6px_rgba(255,252,246,0.9)]">
+          {/* Skipped at lg, where the narrower photo puts the bride right under it */}
+          <p className="hidden sm:block lg:hidden xl:block absolute right-6 bottom-8 xl:right-12 xl:bottom-12 font-script text-4xl lg:text-5xl leading-tight text-chocolate/80 -rotate-6 text-right drop-shadow-[0_1px_6px_rgba(255,252,246,0.9)]">
             Real People<br />
             <span className="pl-10">Real Stories</span>
           </p>
         </div>
 
-        <div className="relative container mx-auto px-4 md:max-w-[90%] -mt-20 pb-12 sm:pb-16 lg:mt-0 lg:py-28 xl:py-32">
+        <div className="relative container mx-auto px-4 md:max-w-[90%] -mt-10 sm:-mt-14 pb-12 sm:pb-16 lg:mt-0 lg:py-28 xl:py-32">
           <div className="max-w-xl animate-fade-in">
             <p className="eyebrow mb-4 sm:mb-5">Our Gallery</p>
             <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
@@ -267,7 +268,7 @@ const Gallery: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-chocolate/90 via-chocolate/25 to-transparent" />
                   <span className="absolute top-3 left-3 rounded-full bg-ivory/85 px-2.5 py-1 font-inter text-[11px] font-medium text-cocoa backdrop-blur-sm">
-                    {countFor(cat.name)} looks
+                    {countFor(cat.name)} {countFor(cat.name) === 1 ? 'look' : 'looks'}
                   </span>
                   <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
                     <h3 className="font-playfair text-2xl font-medium text-ivory">{cat.name}</h3>
@@ -384,7 +385,8 @@ const Gallery: React.FC = () => {
                 </g>
               ))}
             </svg>
-            <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            {/* Stacked until lg: on tablets the two buttons leave the heading too little room */}
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-xl">
                 <h2 className="font-playfair text-2xl sm:text-3xl font-medium text-chocolate">
                   Looking for a Customized Look?
@@ -393,7 +395,7 @@ const Gallery: React.FC = () => {
                   Let's create a look that's uniquely yours for your special day.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
                 <Link to="/contact" className="btn-primary">
                   Book a Consultation <ArrowRight className="w-4 h-4" />
                 </Link>

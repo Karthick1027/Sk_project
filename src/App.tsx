@@ -10,6 +10,7 @@ import Packages from './pages/Packages';
 import Services from './pages/Services';
 import Workshops from './pages/Workshops';
 import ScrollToTop from './components/ScrollToTop';
+import BackToTop from './components/BackToTop';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        <BackToTop />
       </div>
     </Router>
   );

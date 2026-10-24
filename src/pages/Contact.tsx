@@ -84,7 +84,7 @@ Sent from SK Bridal Studio Website
       icon: <Phone className="w-6 h-6" />,
       title: 'Call Me',
       value: '+91 8668038093',
-      note: 'Available Mon-Sun, 10AM-6PM',
+      note: 'Available Mon-Sun, 10AM-7PM',
       external: false
     },
     {
@@ -116,7 +116,7 @@ Sent from SK Bridal Studio Website
         subtitle="Ready to transform your look or learn professional makeup techniques? I'd love to hear from you. Let's discuss your vision and create something beautiful together."
       />
 
-      <div id="contact" className="py-16 md:py-24 bg-ivory scroll-mt-20">
+      <div id="contact" className="py-16 md:py-20 bg-ivory scroll-mt-20">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
             {/* Contact Information */}
@@ -165,8 +165,8 @@ Sent from SK Bridal Studio Website
                     <span className="font-medium text-chocolate whitespace-nowrap">9:00 AM - 7:00 PM</span>
                   </div>
                   <div className="flex justify-between gap-4 py-3 text-sm sm:text-base">
-                    <span>Saturday</span>
-                    <span className="font-medium text-chocolate whitespace-nowrap">9:00 AM - 2:00 PM</span>
+                    <span>Saturday - Sunday</span>
+                    <span className="font-medium text-chocolate whitespace-nowrap">9:00 AM - 4:00 PM</span>
                   </div>
                   <div className="flex justify-between gap-4 py-3 text-sm sm:text-base">
                     <span>Sunday</span>

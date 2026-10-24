@@ -51,9 +51,9 @@ const Header: React.FC = () => {
                 SK Bridal Studio
               </span>
               <span className="mt-1.5 flex items-center gap-2 font-inter text-[9px] sm:text-[10px] uppercase tracking-[0.25em] sm:tracking-[0.35em] text-mocha whitespace-nowrap">
-                <span className="h-px w-3 sm:w-4 bg-mocha/60" aria-hidden="true" />
-                Srinithi Makeup Artist
-                <span className="h-px w-3 sm:w-4 bg-mocha/60" aria-hidden="true" />
+                <span className="h-px w-2 sm:w-3 bg-mocha/60" aria-hidden="true" />
+                Beauty. Elegance. Grace.
+                <span className="h-px w-2 sm:w-3 bg-mocha/60" aria-hidden="true" />
               </span>
             </div>
           </Link>
@@ -66,7 +66,7 @@ const Header: React.FC = () => {
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`relative group py-1 font-inter text-[13px] font-medium uppercase tracking-[0.12em] xl:tracking-[0.15em] 2xl:tracking-[0.2em] transition-colors duration-300 ${
+                  className={`relative group rounded-sm py-1 font-inter text-[13px] font-medium uppercase tracking-[0.12em] xl:tracking-[0.15em] 2xl:tracking-[0.2em] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-4 focus-visible:ring-offset-ivory ${
                     isActive ? 'text-chocolate' : 'text-cocoa/80 hover:text-chocolate'
                   }`}
                 >

@@ -184,6 +184,90 @@ const strandsLeft = [
   { count: 5, delay: '-5.6s' },
 ];
 
+// Mango-leaf thoranam strung across the top: two leaves, then a marigold, repeating
+const Thoranam: React.FC = () => (
+  <div className="absolute top-0 left-4 right-4 xl:left-[19%] xl:right-[19%] flex justify-center overflow-hidden opacity-90 [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+    <div className="absolute top-[3px] inset-x-0 h-px bg-mocha/60" />
+    <div className="flex shrink-0 items-start gap-1.5">
+      {range(45).map((i) => (
+        <svg
+          key={i}
+          {...(i % 3 === 2
+            ? { width: 22, height: 26, viewBox: '0 0 26 30' }
+            : { width: 16, height: 42, viewBox: '0 0 16 42' })}
+          className="origin-top animate-leaf-sway motion-reduce:animate-none"
+          style={{ animationDelay: `${-((i * 0.37) % 4)}s` }}
+        >
+          {i % 3 === 2 ? (
+            <>
+              <line x1="13" y1="3" x2="13" y2="10" className="stroke-mocha" strokeWidth="0.8" />
+              <g className="fill-champagne stroke-mocha" strokeWidth="0.6">
+                <Marigold cy={18} r={9} />
+              </g>
+            </>
+          ) : (
+            <>
+              <line x1="8" y1="3" x2="8" y2="8" className="stroke-mocha" strokeWidth="0.8" />
+              <path d="M8 8 C 15 14, 15 30, 8 41 C 1 30, 1 14, 8 8 Z" className="fill-sage/60 stroke-cocoa/60" strokeWidth="0.6" />
+              <path d="M8 10 L8 38" className="stroke-cocoa/40" strokeWidth="0.5" />
+            </>
+          )}
+        </svg>
+      ))}
+    </div>
+  </div>
+);
+
+// Clay oil lamp with a flickering flame and a soft glow behind it
+const Diya: React.FC<{ className?: string; delay?: string }> = ({ className = '', delay = '0s' }) => {
+  const flameId = `sk-flame-${uid(useId())}`;
+
+  return (
+    <div className={`absolute ${className}`}>
+      <div className="relative animate-float motion-reduce:animate-none" style={{ animationDelay: delay }}>
+        <div className="absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 -translate-y-1/4 rounded-full bg-champagne/70 blur-2xl animate-pulse motion-reduce:animate-none" />
+        <svg viewBox="0 0 80 90" className="relative w-16 xl:w-20">
+          <defs>
+            <linearGradient id={flameId} x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stopColor="#C96B6B" />
+              <stop offset="0.55" stopColor="#E9B864" />
+              <stop offset="1" stopColor="#FBE7B5" />
+            </linearGradient>
+          </defs>
+          <g
+            className="origin-bottom [transform-box:fill-box] animate-flicker motion-reduce:animate-none"
+            style={{ animationDelay: delay }}
+          >
+            <path d="M40 10 C 49 25, 51 36, 40 47 C 29 36, 31 25, 40 10 Z" fill={`url(#${flameId})`} />
+            <path d="M40 29 C 44 35, 44 41, 40 46 C 36 41, 36 35, 40 29 Z" className="fill-ivory" opacity="0.85" />
+          </g>
+          <line x1="40" y1="46" x2="40" y2="51" className="stroke-chocolate" strokeWidth="1.4" />
+          <path
+            d="M6 51 C 10 72, 26 82, 40 82 C 54 82, 70 72, 74 51 Z"
+            className="fill-champagne stroke-mocha"
+            strokeWidth="1"
+          />
+          <ellipse cx="40" cy="51" rx="34" ry="4.5" className="fill-sand stroke-mocha" strokeWidth="1" />
+          <g className="fill-cocoa/70">
+            {[[20, 63], [30, 68], [40, 70], [50, 68], [60, 63]].map(([cx, cy]) => <circle key={cx} cx={cx} cy={cy} r="1.6" />)}
+          </g>
+          <path d="M30 81 L33 88 L47 88 L50 81" className="fill-sand stroke-mocha" strokeWidth="1" />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+const sparkles = [
+  { top: '22%', left: '27%', delay: '0s', size: 12 },
+  { top: '16%', left: '66%', delay: '-2.6s', size: 9 },
+  { top: '34%', left: '76%', delay: '-1.2s', size: 14 },
+  { top: '66%', left: '21%', delay: '-2s', size: 11 },
+  { top: '74%', left: '81%', delay: '-0.6s', size: 10 },
+  { top: '84%', left: '34%', delay: '-3.1s', size: 8 },
+  { top: '82%', left: '64%', delay: '-1.7s', size: 9 },
+];
+
 export const PackagesBackdrop: React.FC = () => {
   const kolamId = `sk-kolam-${uid(useId())}`;
 
@@ -200,13 +284,31 @@ export const PackagesBackdrop: React.FC = () => {
         <rect width="100%" height="100%" fill={`url(#${kolamId})`} />
       </svg>
 
-      {/* Marigold strings hanging on both sides */}
-      <div className="absolute top-0 left-4 xl:left-10 hidden lg:flex items-start gap-3 opacity-80">
+      {/* Marigold strings hanging on both sides; only from xl, below that they hang over the one-line title */}
+      <div className="absolute top-0 left-10 hidden xl:flex items-start gap-3 opacity-80">
         {strandsLeft.map((s) => <MarigoldStrand key={s.delay} count={s.count} delay={s.delay} />)}
       </div>
-      <div className="absolute top-0 right-4 xl:right-10 hidden lg:flex flex-row-reverse items-start gap-3 opacity-80">
+      <div className="absolute top-0 right-10 hidden xl:flex flex-row-reverse items-start gap-3 opacity-80">
         {strandsLeft.map((s) => <MarigoldStrand key={s.delay} count={s.count} delay={`${parseFloat(s.delay) - 1}s`} />)}
       </div>
+
+      <Thoranam />
+
+      {/* Diyas either side of the title, clear of the garlands */}
+      <Diya className="hidden lg:block top-[36%] left-[11%] xl:left-[18%]" />
+      <Diya className="hidden lg:block top-[36%] right-[11%] xl:right-[18%]" delay="-2s" />
+
+      {/* Twinkling sparkles */}
+      {sparkles.map((s) => (
+        <svg
+          key={s.top + s.left}
+          viewBox="-10 -10 20 20"
+          className="absolute hidden md:block text-mocha animate-twinkle motion-reduce:animate-none"
+          style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }}
+        >
+          <path d="M0 -10 C 1 -2, 2 -1, 10 0 C 2 1, 1 2, 0 10 C -1 2, -2 1, -10 0 C -2 -1, -1 -2, 0 -10 Z" fill="currentColor" />
+        </svg>
+      ))}
     </div>
   );
 };

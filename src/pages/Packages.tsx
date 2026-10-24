@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Check, Plus, Gift, Car, Sparkles, Gem, Brush, MessageCircle, ArrowRight, Instagram,
+  Check, Plus, Gift, Car, Sparkles, Gem, Brush, MessageCircle, ArrowRight, ArrowDown, Instagram,
   Wallet, CalendarCheck, CalendarClock, Percent, Receipt, Lock,
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
@@ -159,10 +159,11 @@ const PackageCard: React.FC<PackageCardProps> = ({
 
   return (
     <article
+      id={`package-${pkg.id}`}
       // Hover only for a real mouse; touch browsers fire a fake hover on tap that never clears
       onPointerEnter={(e) => e.pointerType === 'mouse' && onHover()}
       onClick={onSelect}
-      className={`color-fade relative flex flex-col cursor-pointer rounded-[1.75rem] border p-6 sm:p-8 xl:p-10 animate-fade-in transition-[background-color,border-color,box-shadow,margin] duration-300 ${
+      className={`color-fade relative flex flex-col scroll-mt-28 cursor-pointer rounded-[1.75rem] border p-6 sm:p-8 lg:p-6 xl:p-10 animate-fade-in transition-[background-color,border-color,box-shadow,margin] duration-300 ${
         dark
           ? 'bg-chocolate text-ivory border-chocolate shadow-luxe lg:-my-4'
           : 'bg-ivory text-ink border-sand shadow-soft'
@@ -196,25 +197,26 @@ const PackageCard: React.FC<PackageCardProps> = ({
         </div>
         <span
           aria-hidden="true"
-          className={`font-cormorant text-6xl sm:text-7xl italic leading-none ${dark ? 'text-champagne/30' : 'text-champagne/70'}`}
+          className={`font-cormorant text-6xl sm:text-7xl lg:text-6xl xl:text-7xl italic leading-none ${dark ? 'text-champagne/30' : 'text-champagne/70'}`}
         >
           {String(pkg.id).padStart(2, '0')}
         </span>
       </div>
 
       {/* Title + price */}
-      <h3 className="relative mt-4 font-playfair text-3xl sm:text-4xl font-medium leading-tight">
+      {/* Sizes step down at lg, where three cards share a laptop-width row */}
+      <h3 className="relative mt-4 font-playfair text-3xl sm:text-4xl lg:text-3xl xl:text-4xl font-medium leading-tight">
         <span className={dark ? 'text-ivory' : 'text-chocolate'}>{pkg.finish}</span>
         <span className={`block font-cormorant italic font-medium ${dark ? 'text-champagne' : 'text-cocoa'}`}>
           {pkg.finishAccent}
         </span>
       </h3>
 
-      <div className="relative mt-6 flex items-end gap-3">
-        <span className={`font-playfair text-4xl sm:text-5xl font-semibold leading-none ${dark ? 'text-ivory' : 'text-chocolate'}`}>
+      <div className="relative mt-6 flex flex-wrap items-end gap-x-3 gap-y-1">
+        <span className={`font-playfair text-4xl sm:text-5xl lg:text-4xl xl:text-5xl font-semibold leading-none ${dark ? 'text-ivory' : 'text-chocolate'}`}>
           {formatPrice(pkg.price)}
         </span>
-        <span className={`pb-1 font-inter text-xs uppercase tracking-[0.2em] ${dark ? 'text-sand/70' : 'text-mocha'}`}>
+        <span className={`pb-1 whitespace-nowrap font-inter text-xs uppercase tracking-[0.2em] ${dark ? 'text-sand/70' : 'text-mocha'}`}>
           / session
         </span>
       </div>
@@ -369,13 +371,41 @@ const Packages: React.FC = () => {
         title={
           <>
             Your Bridal Look,{' '}
-            <span className="font-cormorant italic text-cocoa">Thoughtfully Packaged</span>
+            {/* Own line, so the title stays clear of the hanging garlands on laptops */}
+            <span className="block font-cormorant italic text-cocoa">Thoughtfully Packaged</span>
           </>
         }
         subtitle="Three bridal makeup finishes, each complete with hairstyling, saree draping and the finishing touches, for weddings within Chennai."
-      />
+        padding="pt-16 pb-10 sm:pt-20 sm:pb-12 md:pt-20 md:pb-14"
+      >
+        {/* The three finishes at a glance; each jumps to (and highlights) its package card */}
+        <div className="mt-7 sm:mt-9 flex flex-wrap justify-center gap-2 sm:gap-3">
+          {bridalPackages.map((pkg, i) => (
+            <button
+              key={pkg.id}
+              type="button"
+              onClick={() => {
+                setSelectedId(pkg.id);
+                // No explicit behavior, so it follows the page's smooth scrolling
+                document.getElementById(`package-${pkg.id}`)?.scrollIntoView({ block: 'start' });
+              }}
+              className={`group inline-flex items-center gap-2 rounded-full border px-4 py-2 font-inter text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] shadow-soft backdrop-blur-sm animate-fade-in transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mocha/50 ${
+                selectedId === pkg.id
+                  ? 'border-chocolate bg-chocolate text-ivory'
+                  : 'border-sand bg-ivory/80 text-cocoa hover:border-mocha hover:text-chocolate'
+              }`}
+              style={{ animationDelay: `${0.3 + i * 0.15}s` }}
+            >
+              <Sparkles className={`h-3.5 w-3.5 ${selectedId === pkg.id ? 'text-champagne' : 'text-mocha'}`} />
+              {/* "Glossy" + "or Waterproof" reads as "Glossy / Waterproof"; other accents are descriptions, so dropped */}
+              {pkg.finishAccent.startsWith('or ') ? `${pkg.finish} / ${pkg.finishAccent.slice(3)}` : pkg.finish}
+              <ArrowDown className="h-3 w-3 opacity-60 transition-transform duration-300 group-hover:translate-y-0.5" />
+            </button>
+          ))}
+        </div>
+      </PageHero>
 
-      <section className="container mx-auto px-4 py-12 sm:py-16 md:py-20 md:max-w-[90%]">
+      <section className="container mx-auto px-4 pt-10 pb-12 sm:pt-12 sm:pb-16 md:pt-14 md:pb-20 md:max-w-[90%]">
         {/* Booking toggle */}
         <div className="flex flex-col items-center gap-4 text-center">
           <p className="eyebrow">I'm booking for</p>
