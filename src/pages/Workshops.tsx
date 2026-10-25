@@ -42,7 +42,7 @@ const days: WorkshopDay[] = [
     tagline: 'Timeless South Indian bridal, made skin-true.',
     image: muhurthamImage,
     description:
-      'The traditional muhurtham bride, taught in depth on a medium-fair skin makeover. Timeless elegance with balanced tones and authentic skin that looks real up close and in every photo.',
+      'The traditional muhurtham bride, taught in depth on a medium-fair skin makeover with an airbrush foundation base. Timeless elegance with balanced tones and authentic skin that looks real up close and in every photo.',
     highlights: [
       {
         label: 'The look',
@@ -55,10 +55,16 @@ const days: WorkshopDay[] = [
         text: 'A full makeover, matched precisely to the skin’s natural undertone.',
         swatches: ['#C99476', '#D9A98A', '#E8C1A4'],
       },
+      {
+        label: 'The technique',
+        title: 'Airbrush foundation',
+        text: 'A seamless, lightweight base that stays flawless from morning rituals to photos.',
+      },
     ],
     learn: [
       'Understanding skin types and undertones for flawless base creation',
       "Correcting skin tone to match the bride's natural complexion",
+      'Airbrush foundation technique for a seamless, long-wear base',
       'Bringing out the glow without heavy layering',
       'Complete vanity reveal and product knowledge',
     ],
@@ -101,7 +107,7 @@ const days: WorkshopDay[] = [
 ];
 
 const marqueeItems = [
-  'Muhurtham bridal', 'Reception glam', 'Undertone matching',
+  'Muhurtham bridal', 'Airbrush foundation', 'Reception glam', 'Undertone matching',
   'Complete vanity reveal', 'Curls with extensions', 'Extended live Q&A',
 ];
 
