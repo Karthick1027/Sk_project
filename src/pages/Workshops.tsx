@@ -68,10 +68,10 @@ const days: WorkshopDay[] = [
     num: '02',
     title: 'Reception',
     accent: 'Look',
-    tagline: 'Evening glam, and a blow dry that lasts all night.',
+    tagline: 'Evening glam, and curls with extensions that last all night.',
     image: receptionImage,
     description:
-      'The evening reception bride, taught on a deep-dusky skin makeover: glam designed to enhance depth, not hide it, with precise undertone matching and radiant evening luminosity. Finished with a blow dry that holds its volume all night.',
+      'The evening reception bride, taught on a deep-dusky skin makeover: glam designed to enhance depth, not hide it, with precise undertone matching and radiant evening luminosity. Finished with a curls hairstyle, styled with extensions, that holds all night.',
     highlights: [
       {
         label: 'The look',
@@ -86,14 +86,14 @@ const days: WorkshopDay[] = [
       },
       {
         label: 'The hair',
-        title: 'The perfect blow dry',
-        text: 'Long-lasting volume for open reception hair, without crimping.',
+        title: 'Curls with extensions',
+        text: 'Long-lasting curls with hair extensions for open reception hair.',
       },
     ],
     learn: [
       'Matching undertones precisely on deep-dusky skin',
       'Building evening luminosity that photographs beautifully',
-      'Long-lasting blow-dry volume without crimping',
+      'Curls hairstyle with extensions that lasts all night',
       'Time-saving hacks for real bridal bookings',
       'Makeup guidance from my real bridal experience',
     ],
@@ -102,7 +102,7 @@ const days: WorkshopDay[] = [
 
 const marqueeItems = [
   'Muhurtham bridal', 'Reception glam', 'Undertone matching',
-  'Complete vanity reveal', 'Long-lasting blow dry', 'Extended live Q&A',
+  'Complete vanity reveal', 'Curls with extensions', 'Extended live Q&A',
 ];
 
 const essentials: { icon: LucideIcon; title: string; text: string }[] = [
@@ -164,27 +164,27 @@ const Workshops: React.FC = () => {
                 <span className="absolute inset-0 rounded-full bg-clay animate-ping motion-reduce:hidden" />
                 <span className="relative h-2 w-2 rounded-full bg-clay" />
               </span>
-              Live Online Workshop
+              Live Virtual Masterclass
             </span>
 
             <h1 className="mt-7 font-playfair text-5xl sm:text-6xl xl:text-7xl font-medium leading-[1.05] text-chocolate">
-              Two days.
+              Two sessions.
               <br />
-              Two looks.
+              Two styles.
               <br />
-              <span className="font-cormorant italic text-cocoa">Learnt live.</span>
+              <span className="font-cormorant italic text-cocoa">Mastered live.</span>
             </h1>
 
             <p className="mx-auto mt-7 max-w-xl font-inter text-base sm:text-lg leading-relaxed text-ink lg:mx-0">
-              A 2-day live online workshop with Srinithi: the muhurtham look on day one, the reception look on day
-              two. Taught in real time, with every doubt cleared as we go.
+              A two-day interactive virtual masterclass with Srinithi: the muhurtham look on the first day, the
+              reception look on the second. Demonstrated as it happens, with all your questions answered along the way.
             </p>
 
             <dl className="mx-auto mt-9 grid max-w-md grid-cols-3 divide-x divide-sand rounded-2xl border border-sand bg-ivory/70 py-4 lg:mx-0">
               {[
                 ['02', 'Days'],
                 ['02', 'Bridal looks'],
-                ['01', 'Blow-dry demo'],
+                ['01', 'Curls Hairstyle'],
               ].map(([n, label]) => (
                 <div key={label} className="px-2 text-center">
                   <dt className="sr-only">{label}</dt>
