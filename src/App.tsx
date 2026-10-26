@@ -9,6 +9,7 @@ import Contact from './pages/Contact';
 import Packages from './pages/Packages';
 import Services from './pages/Services';
 import Workshops from './pages/Workshops';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import ScrollToTop from './components/ScrollToTop';
 import BackToTop from './components/BackToTop';
 
@@ -29,6 +30,7 @@ function App() {
             {/* Old Products page links now land on Packages */}
             <Route path="/products" element={<Navigate to="/packages" replace />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
         </main>
         <Footer />

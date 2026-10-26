@@ -108,6 +108,10 @@ const Footer: React.FC = () => {
         <div className="border-t border-champagne/20 mt-12 sm:mt-14 pt-8 flex flex-col lg:flex-row items-center justify-between gap-3 text-center">
           <p className="font-inter text-sm text-sand/60">
             © 2022 SK Bridal Studio. All rights reserved.
+            <span className="mx-2">·</span>
+            <Link to="/privacy-policy" className="hover:text-champagne transition-colors duration-300">
+              Privacy Policy
+            </Link>
           </p>
           <p className="font-inter text-xs uppercase tracking-[0.3em] text-sand/60">
             Crafted with love for beautiful moments
