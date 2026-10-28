@@ -163,7 +163,7 @@ const Workshops: React.FC = () => {
         <div aria-hidden="true" className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-blush/50 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-champagne/30 blur-3xl" />
 
-        <div className="relative container mx-auto grid items-center gap-16 px-4 py-14 sm:py-20 md:max-w-[90%] lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:py-24">
+        <div className="relative container mx-auto grid items-center gap-12 px-4 py-10 sm:py-14 md:max-w-[90%] lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:py-16">
           <div className="text-center lg:text-left animate-fade-in">
             <span className="inline-flex items-center gap-2.5 rounded-full border border-champagne bg-ivory/80 px-4 py-2 font-inter text-[11px] font-semibold uppercase tracking-[0.3em] text-cocoa">
               <span className="relative flex h-2 w-2">
@@ -254,7 +254,7 @@ const Workshops: React.FC = () => {
       </div>
 
       {/* Programme */}
-      <section id="programme" className="scroll-mt-24 py-16 md:py-24">
+      <section id="programme" className="scroll-mt-24 py-10 md:py-16">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="The Programme"
@@ -264,7 +264,7 @@ const Workshops: React.FC = () => {
               </>
             }
             subtitle="Both looks are taught in depth, using techniques refined through real bridal experience, to bridge the gap between model practice and a real bride. Pick a day to see what's covered."
-            className="mb-12 md:mb-14"
+            className="mb-8 md:mb-10"
           />
 
           {/* Day switcher */}
@@ -310,7 +310,7 @@ const Workshops: React.FC = () => {
             id="day-panel"
             role="tabpanel"
             aria-labelledby={`day-tab-${day.num}`}
-            className="mt-14 grid items-start gap-12 animate-fade-in lg:mt-20 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16"
+            className="mt-10 grid items-start gap-10 animate-fade-in lg:mt-14 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12"
           >
             <div className="relative mx-auto w-[calc(100%-2rem)] max-w-sm lg:sticky lg:top-28">
               <div aria-hidden="true" className="absolute -inset-4 rounded-t-full border border-champagne" />
@@ -386,14 +386,14 @@ const Workshops: React.FC = () => {
       </section>
 
       {/* Before you join */}
-      <section className="relative overflow-hidden bg-beige py-16 md:py-24">
+      <section className="relative overflow-hidden bg-beige py-10 md:py-16">
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
         <div className="relative container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="Before You Join"
             title="Good to Know"
             subtitle="How the live sessions run, so you can plan your day"
-            className="mb-12 md:mb-16"
+            className="mb-8 md:mb-10"
           />
           <div className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {essentials.map((e) => (
@@ -410,7 +410,7 @@ const Workshops: React.FC = () => {
       </section>
 
       {/* How to register */}
-      <section className="py-16 md:py-24 bg-ivory">
+      <section className="py-10 md:py-16 bg-ivory">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="How to Register"
@@ -419,7 +419,7 @@ const Workshops: React.FC = () => {
                 Three Steps to <span className="font-cormorant italic text-cocoa">Your Seat</span>
               </>
             }
-            className="mb-12 md:mb-16"
+            className="mb-8 md:mb-10"
           />
           <div className="relative mx-auto max-w-5xl">
             <div aria-hidden="true" className="absolute left-[16.67%] right-[16.67%] top-8 hidden border-t-2 border-dashed border-champagne md:block" />
@@ -435,7 +435,7 @@ const Workshops: React.FC = () => {
               ))}
             </ol>
           </div>
-          <div className="mt-12 text-center">
+          <div className="mt-8 text-center">
             <a href={DM_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
               <Instagram className="h-4 w-4" />
               DM to Register

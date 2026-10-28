@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   X, Heart, Calendar, ArrowRight, ChevronLeft, ChevronRight,
-  Gem, Crown, Baby, PartyPopper, GraduationCap, Sparkles, Star,
+  Gem, Crown, Baby, PartyPopper, GraduationCap, Sparkles, Star, Flower2, MessageCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -33,6 +33,10 @@ const clientPhotos = import.meta.glob<string>('../images/gallery/*.jpg', { eager
 const clientPhoto = (num: number) => clientPhotos[`../images/gallery/client_${num}.jpg`];
 
 const CLASS_FORM_URL = 'https://forms.gle/rfW2a95NHFgN874XA';
+const WHATSAPP_URL = 'https://wa.me/918668038093';
+
+const enquiryUrl = (img: GalleryImage) =>
+  `${WHATSAPP_URL}?text=${encodeURIComponent(`Hi SK Bridal Studio, I'd love a look like "${img.title}" (${img.category}) from your gallery.`)}`;
 
 const categories: Category[] = [
   { name: 'Muhurtham', tagline: 'Traditional & Timeless Looks', icon: Gem, cover: clientPhoto(2155) },
@@ -40,6 +44,7 @@ const categories: Category[] = [
   { name: 'Engagement', tagline: 'Soft & Romantic Looks', icon: Heart, cover: clientPhoto(2144) },
   { name: 'Babyshower', tagline: 'Graceful & Comfortable', icon: Baby, cover: clientPhoto(2148) },
   { name: 'Events', tagline: 'For All Special Occasions', icon: PartyPopper, cover: clientPhoto(2175) },
+  { name: 'Hairstyles', tagline: 'Braids · Buns · Waves', icon: Flower2, cover: clientPhoto(2167) },
   { name: 'Bridal Class', tagline: 'Learn · Practice · Grow', icon: GraduationCap, cover: clientPhoto(2133) },
 ];
 
@@ -113,18 +118,32 @@ const images: GalleryImage[] = [
   { id: 7, src: studentSuccess, category: 'Bridal Class', title: 'Student Success', description: 'Proud moment as students master professional makeup techniques' },
 ];
 
+// Shots where the hair is the hero; they also stay listed under their occasion
+const hairstyleShots = new Set([2129, 2167, 2153, 2128, 2176, 2163, 2134, 2174, 2160, 2148]);
+
+const inCategory = (img: GalleryImage, name: string) =>
+  img.category === name || (name === 'Hairstyles' && hairstyleShots.has(img.id));
+
+const imagesFor = (name: string) => images.filter((img) => inCategory(img, name));
+
 // "All" view: take one photo from each category in turn, so every row shows a mix of looks
 const featuredOrder: GalleryImage[] = (() => {
-  const groups = categories.map((c) => images.filter((img) => img.category === c.name));
+  const groups = categories.map((c) => imagesFor(c.name));
   const longest = Math.max(...groups.map((g) => g.length));
   const out: GalleryImage[] = [];
+  const seen = new Set<number>(); // Hairstyle shots belong to two groups; show each once
   for (let i = 0; i < longest; i++) {
-    groups.forEach((g) => g[i] && out.push(g[i]));
+    groups.forEach((g) => {
+      if (g[i] && !seen.has(g[i].id)) {
+        seen.add(g[i].id);
+        out.push(g[i]);
+      }
+    });
   }
   return out;
 })();
 
-const countFor = (name: string) => images.filter((img) => img.category === name).length;
+const countFor = (name: string) => imagesFor(name).length;
 
 const INITIAL_VISIBLE = 12;
 
@@ -134,9 +153,15 @@ const Gallery: React.FC = () => {
   const [showAll, setShowAll] = useState(false);
   const [likedImages, setLikedImages] = useState<{ [key: number]: boolean }>({});
   const gridRef = useRef<HTMLElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [canSlide, setCanSlide] = useState({ prev: false, next: false });
+  const thumbsRef = useRef<HTMLDivElement>(null);
+  const touchX = useRef<number | null>(null);
+
+  const toggleLike = (id: number) => setLikedImages((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const filteredImages = useMemo(
-    () => (selectedCategory === 'All' ? featuredOrder : images.filter((img) => img.category === selectedCategory)),
+    () => (selectedCategory === 'All' ? featuredOrder : imagesFor(selectedCategory)),
     [selectedCategory]
   );
   const visibleImages = showAll ? filteredImages : filteredImages.slice(0, INITIAL_VISIBLE);
@@ -154,12 +179,52 @@ const Gallery: React.FC = () => {
     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const updateSlider = useCallback(() => {
+    const el = sliderRef.current;
+    if (!el) return;
+    setCanSlide({ prev: el.scrollLeft > 4, next: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+  }, []);
+
+  // Move the category slider by one card
+  const slide = (dir: 1 | -1) => {
+    const el = sliderRef.current;
+    const card = el?.firstElementChild as HTMLElement | null;
+    if (!el || !card) return;
+    el.scrollBy({ left: dir * (card.offsetWidth + 16), behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    updateSlider();
+    window.addEventListener('resize', updateSlider);
+    return () => window.removeEventListener('resize', updateSlider);
+  }, [updateSlider]);
+
+  // Picking a category from the pills brings its card into view if it's off to one side
+  useEffect(() => {
+    const el = sliderRef.current;
+    const card = el?.querySelector<HTMLElement>(`[data-category="${selectedCategory}"]`);
+    if (!el || !card) return;
+    // The slider is the cards' offsetParent, so offsetLeft is measured from its scroll origin
+    const left = card.offsetLeft;
+    if (left < el.scrollLeft || left + card.offsetWidth > el.scrollLeft + el.clientWidth) {
+      el.scrollTo({ left: left - 16, behavior: 'smooth' });
+    }
+  }, [selectedCategory]);
+
   const step = useCallback(
     (dir: 1 | -1) =>
       setSelectedIndex((i) => (i === null ? i : (i + dir + filteredImages.length) % filteredImages.length)),
     [filteredImages.length]
   );
   const isOpen = selectedIndex !== null;
+
+  // Keep the current photo's thumbnail centred in the lightbox strip
+  useEffect(() => {
+    const el = thumbsRef.current;
+    const thumb = selectedIndex !== null ? (el?.children[selectedIndex] as HTMLElement | undefined) : undefined;
+    if (!el || !thumb) return;
+    el.scrollTo({ left: thumb.offsetLeft - el.clientWidth / 2 + thumb.offsetWidth / 2, behavior: 'smooth' });
+  }, [selectedIndex]);
 
   // While the lightbox is open, stop the page behind it from scrolling (important on touch devices); Escape closes, arrows navigate
   useEffect(() => {
@@ -199,7 +264,7 @@ const Gallery: React.FC = () => {
           </p>
         </div>
 
-        <div className="relative container mx-auto px-4 md:max-w-[90%] -mt-10 sm:-mt-14 pb-12 sm:pb-16 lg:mt-0 lg:py-28 xl:py-32">
+        <div className="relative container mx-auto px-4 md:max-w-[90%] -mt-10 sm:-mt-14 pb-5 sm:pb-12 lg:mt-0 lg:py-20 xl:py-24">
           <div className="max-w-xl animate-fade-in">
             <p className="eyebrow mb-4 sm:mb-5">Our Gallery</p>
             <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
@@ -208,10 +273,10 @@ const Gallery: React.FC = () => {
                 More Beautiful
               </span>
             </h1>
-            <p className="font-inter text-base sm:text-lg text-ink leading-relaxed mt-5 sm:mt-6 max-w-md">
+            <p className="font-inter text-base sm:text-lg text-ink leading-relaxed mt-4 sm:mt-6 max-w-md">
               Explore our real client looks for every special occasion. Get inspired and find the perfect style for your big day.
             </p>
-            <div className="mt-6 sm:mt-8 flex items-center gap-3 text-champagne">
+            <div className="mt-4 sm:mt-8 flex items-center gap-3 text-champagne">
               <span className="h-px w-12 bg-gradient-to-r from-transparent to-champagne" />
               <Sparkles className="w-4 h-4" />
               <span className="h-px w-12 bg-gradient-to-l from-transparent to-champagne" />
@@ -244,16 +309,38 @@ const Gallery: React.FC = () => {
       </section>
 
       {/* Category Cards */}
-      <section className="pt-8 sm:pt-12 bg-ivory">
-        <div className="container mx-auto px-4 md:max-w-[90%]">
-          <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 xl:grid-cols-6">
+      <section className="pt-3 sm:pt-10 bg-ivory">
+        <div className="relative container mx-auto px-4 md:max-w-[90%]">
+          {(['prev', 'next'] as const).map((dir) => {
+            const Icon = dir === 'prev' ? ChevronLeft : ChevronRight;
+            return (
+              <button
+                key={dir}
+                onClick={() => slide(dir === 'prev' ? -1 : 1)}
+                disabled={!canSlide[dir]}
+                aria-label={dir === 'prev' ? 'Previous categories' : 'More categories'}
+                className={`absolute top-1/2 z-10 hidden md:flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-sand bg-ivory text-chocolate shadow-soft transition-all duration-300 hover:border-champagne hover:bg-champagne disabled:pointer-events-none disabled:opacity-0 ${
+                  dir === 'prev' ? '-left-3 xl:-left-10' : '-right-3 xl:-right-10'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+              </button>
+            );
+          })}
+          {/* Padded so the active card's lift, ring and glow aren't clipped by the scroller */}
+          <div
+            ref={sliderRef}
+            onScroll={updateSlider}
+            className="no-scrollbar relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-2 pb-6 md:-mx-2 md:scroll-px-2 md:px-2"
+          >
             {categories.map((cat) => {
               const active = selectedCategory === cat.name;
               return (
                 <button
                   key={cat.name}
+                  data-category={cat.name}
                   onClick={() => selectCategory(cat.name, true)}
-                  className={`group relative w-[62vw] max-w-[260px] shrink-0 snap-start overflow-hidden rounded-2xl bg-sand text-left transition-all duration-500 md:w-auto md:max-w-none ${
+                  className={`group relative w-[42vw] max-w-[200px] sm:w-[30vw] sm:max-w-[220px] shrink-0 snap-start overflow-hidden rounded-2xl bg-sand text-left transition-all duration-500 md:w-[calc((100%-2rem)/3)] md:max-w-none lg:w-[calc((100%-3rem)/4)] xl:w-[calc((100%-5rem)/6)] ${
                     active
                       ? '-translate-y-1.5 ring-[3px] ring-champagne shadow-[0_28px_50px_-22px_rgba(59,38,30,0.6),0_0_28px_rgba(216,194,165,0.6)]'
                       : 'shadow-soft hover:-translate-y-1.5 hover:shadow-luxe'
@@ -261,19 +348,19 @@ const Gallery: React.FC = () => {
                 >
                   <img
                     src={cat.cover}
-                    alt={`${cat.name} makeup look`}
+                    alt={cat.name === 'Hairstyles' ? 'Bridal hairstyle' : `${cat.name} makeup look`}
                     loading="lazy"
                     decoding="async"
-                    className="aspect-[5/7] w-full object-cover object-[50%_20%] transition-transform duration-700 group-hover:scale-105"
+                    className="aspect-[4/5] w-full object-cover object-[50%_20%] transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-chocolate/90 via-chocolate/25 to-transparent" />
-                  <span className="absolute top-3 left-3 rounded-full bg-ivory/85 px-2.5 py-1 font-inter text-[11px] font-medium text-cocoa backdrop-blur-sm">
+                  <span className="absolute top-2 left-2 sm:top-3 sm:left-3 rounded-full bg-ivory/85 px-2 py-0.5 sm:px-2.5 sm:py-1 font-inter text-[10px] sm:text-[11px] font-medium text-cocoa backdrop-blur-sm">
                     {countFor(cat.name)} {countFor(cat.name) === 1 ? 'look' : 'looks'}
                   </span>
-                  <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-                    <h3 className="font-playfair text-2xl font-medium text-ivory">{cat.name}</h3>
-                    <p className="mt-1 font-inter text-xs text-sand/90">{cat.tagline}</p>
-                    <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-ivory px-4 py-2 font-inter text-xs font-medium text-chocolate transition-colors duration-300 group-hover:bg-champagne">
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-5 xl:p-4 2xl:p-5">
+                    <h3 className="font-playfair text-lg sm:text-2xl xl:text-xl 2xl:text-2xl font-medium text-ivory">{cat.name}</h3>
+                    <p className="mt-0.5 sm:mt-1 font-inter text-[10px] sm:text-xs text-sand/90">{cat.tagline}</p>
+                    <span className="mt-2 sm:mt-3 inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-ivory px-3 py-1.5 sm:px-4 sm:py-2 font-inter text-[11px] sm:text-xs font-medium text-chocolate transition-colors duration-300 group-hover:bg-champagne">
                       View Gallery <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                     </span>
                   </div>
@@ -285,7 +372,7 @@ const Gallery: React.FC = () => {
       </section>
 
       {/* Gallery Grid */}
-      <section ref={gridRef} className="scroll-mt-36 py-10 sm:py-14 bg-ivory">
+      <section ref={gridRef} className="scroll-mt-36 py-8 sm:py-10 bg-ivory">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <div className="mb-6 sm:mb-8 flex items-end justify-between gap-4">
             <div>
@@ -340,7 +427,7 @@ const Gallery: React.FC = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation(); // Don't open the lightbox
-                    setLikedImages((prev) => ({ ...prev, [image.id]: !prev[image.id] }));
+                    toggleLike(image.id);
                   }}
                   aria-label={likedImages[image.id] ? 'Unlike' : 'Like'}
                   className="absolute top-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-ivory/80 backdrop-blur-sm transition-colors duration-300 hover:bg-ivory"
@@ -366,7 +453,7 @@ const Gallery: React.FC = () => {
       </section>
 
       {/* Customized Look */}
-      <section className="pb-14 sm:pb-20 bg-ivory">
+      <section className="pb-10 sm:pb-14 bg-ivory">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-sand/70 bg-gradient-to-r from-beige via-sand/40 to-beige px-6 py-8 sm:px-10 sm:py-10 md:px-14">
             <svg
@@ -410,90 +497,182 @@ const Gallery: React.FC = () => {
       </section>
 
       {/* Lightbox Modal */}
-      {selectedImage && (
-        <div
-          className="fixed inset-0 bg-chocolate/90 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in"
-          onClick={() => setSelectedIndex(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedImage.title}
-        >
-          {filteredImages.length > 1 && (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); step(-1); }}
-                aria-label="Previous photo"
-                className="absolute left-2 sm:left-6 top-1/2 z-10 hidden sm:flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-ivory/15 text-ivory hover:bg-ivory/30 transition-colors duration-300"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); step(1); }}
-                aria-label="Next photo"
-                className="absolute right-2 sm:right-6 top-1/2 z-10 hidden sm:flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-ivory/15 text-ivory hover:bg-ivory/30 transition-colors duration-300"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </>
-          )}
-
+      {selectedImage && (() => {
+        const CategoryIcon = categories.find((c) => c.name === selectedImage.category)?.icon ?? Sparkles;
+        const position = (selectedIndex ?? 0) + 1;
+        const hasMany = filteredImages.length > 1;
+        const liked = !!likedImages[selectedImage.id];
+        const navBtn = 'flex items-center justify-center rounded-full transition-all duration-300';
+        return (
           <div
-            className="relative max-w-4xl w-full max-h-[90dvh] overflow-y-auto bg-ivory rounded-2xl shadow-luxe"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-chocolate/85 p-3 backdrop-blur-md animate-fade-in sm:p-6"
+            onClick={() => setSelectedIndex(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={selectedImage.title}
           >
-            <button
-              onClick={() => setSelectedIndex(null)}
-              aria-label="Close"
-              className="absolute top-4 right-4 z-10 w-11 h-11 bg-ivory/90 text-chocolate rounded-full flex items-center justify-center hover:bg-champagne transition-colors duration-300"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* Outside arrows only where there's room beside the panel */}
+            {hasMany && (['prev', 'next'] as const).map((dir) => {
+              const Icon = dir === 'prev' ? ChevronLeft : ChevronRight;
+              return (
+                <button
+                  key={dir}
+                  onClick={(e) => { e.stopPropagation(); step(dir === 'prev' ? -1 : 1); }}
+                  aria-label={dir === 'prev' ? 'Previous photo' : 'Next photo'}
+                  className={`${navBtn} absolute top-1/2 z-10 hidden xl:flex h-14 w-14 -translate-y-1/2 border border-ivory/25 bg-ivory/10 text-ivory hover:scale-105 hover:bg-ivory hover:text-chocolate ${
+                    dir === 'prev' ? 'left-8' : 'right-8'
+                  }`}
+                >
+                  <Icon className="w-6 h-6" />
+                </button>
+              );
+            })}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2">
-              <img
-                key={selectedImage.id}
-                src={selectedImage.src}
-                alt={selectedImage.title}
-                className="w-full h-72 sm:h-96 md:h-[28rem] lg:h-full lg:min-h-[32rem] object-cover bg-sand animate-fade-in"
-              />
-              <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
-                <p className="eyebrow mb-4">{selectedImage.category}</p>
-                <h2 className="font-playfair text-2xl sm:text-3xl lg:text-4xl font-medium text-chocolate mb-4">
-                  {selectedImage.title}
-                </h2>
-                <div className="ornament mb-6" />
-                <p className="font-inter text-ink text-base sm:text-lg leading-relaxed mb-6 sm:mb-8">
-                  {selectedImage.description}
-                </p>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {selectedImage.category === 'Bridal Class' ? (
-                    <a href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                      <Calendar className="w-5 h-5" />
-                      Join Class
+            <div
+              className="relative grid w-full max-w-5xl max-h-[92dvh] grid-cols-1 overflow-y-auto overflow-x-hidden rounded-2xl bg-ivory shadow-[0_40px_80px_-30px_rgba(0,0,0,0.6)] ring-1 ring-champagne/40 sm:rounded-3xl lg:h-[min(88dvh,42rem)] lg:grid-cols-[1.1fr_1fr] lg:grid-rows-1 lg:overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setSelectedIndex(null)}
+                aria-label="Close"
+                className={`${navBtn} absolute top-3 right-3 z-20 h-10 w-10 border border-sand bg-ivory/90 text-chocolate shadow-soft backdrop-blur-sm hover:rotate-90 hover:bg-chocolate hover:text-ivory sm:top-4 sm:right-4`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Photo: shown whole, over a blurred copy of itself so portrait and landscape shots both fill the frame */}
+              <div
+                className="relative h-[50dvh] overflow-hidden bg-chocolate sm:h-[60dvh] lg:h-full"
+                onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+                onTouchEnd={(e) => {
+                  if (touchX.current === null) return;
+                  const dx = e.changedTouches[0].clientX - touchX.current;
+                  if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+                  touchX.current = null;
+                }}
+              >
+                <img
+                  src={selectedImage.src}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl"
+                />
+                <img
+                  key={selectedImage.id}
+                  src={selectedImage.src}
+                  alt={selectedImage.title}
+                  className="relative h-full w-full object-contain animate-fade-in"
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-chocolate/60 to-transparent" />
+                {hasMany && (
+                  <>
+                    <span className="absolute bottom-4 left-4 rounded-full bg-chocolate/55 px-3 py-1 font-inter text-xs font-medium tracking-wider text-ivory backdrop-blur-sm">
+                      {String(position).padStart(2, '0')} / {String(filteredImages.length).padStart(2, '0')}
+                    </span>
+                    <div className="absolute bottom-3 right-3 flex gap-2 xl:hidden">
+                      {(['prev', 'next'] as const).map((dir) => {
+                        const Icon = dir === 'prev' ? ChevronLeft : ChevronRight;
+                        return (
+                          <button
+                            key={dir}
+                            onClick={() => step(dir === 'prev' ? -1 : 1)}
+                            aria-label={dir === 'prev' ? 'Previous photo' : 'Next photo'}
+                            className={`${navBtn} h-10 w-10 bg-ivory/90 text-chocolate shadow-soft hover:bg-ivory`}
+                          >
+                            <Icon className="w-5 h-5" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Details */}
+              <div className="relative flex min-h-0 flex-col bg-gradient-to-br from-ivory via-ivory to-beige p-6 sm:p-8 lg:overflow-y-auto lg:p-10">
+                <div key={selectedImage.id} className="my-auto animate-fade-in">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-sand bg-beige px-3.5 py-1.5 font-inter text-[11px] font-semibold uppercase tracking-[0.25em] text-cocoa">
+                    <CategoryIcon className="w-3.5 h-3.5 text-mocha" />
+                    {selectedImage.category}
+                  </span>
+                  <h2 className="mt-5 pr-10 font-playfair text-2xl sm:text-3xl lg:text-[2.5rem] font-medium leading-tight text-chocolate">
+                    {selectedImage.title}
+                  </h2>
+                  <div className="mt-4 flex items-center gap-2 text-champagne">
+                    <span className="h-px w-10 bg-champagne" />
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                  <p className="mt-4 font-inter text-base leading-relaxed text-ink sm:text-[17px]">
+                    {selectedImage.description}
+                  </p>
+
+                  <div className="mt-7 flex flex-wrap items-center gap-3">
+                    {selectedImage.category === 'Bridal Class' ? (
+                      <a href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
+                        <GraduationCap className="w-5 h-5" />
+                        Join Class
+                      </a>
+                    ) : (
+                      <Link to="/contact" className="btn-primary">
+                        <Calendar className="w-5 h-5" />
+                        Book Similar Look
+                      </Link>
+                    )}
+                    <a href={enquiryUrl(selectedImage)} target="_blank" rel="noopener noreferrer" className="btn-outline">
+                      <MessageCircle className="w-5 h-5" />
+                      Enquire
                     </a>
-                  ) : (
-                    <Link to="/contact" className="btn-primary">
-                      <Calendar className="w-5 h-5" />
-                      Book Similar Look
-                    </Link>
-                  )}
+                    <button
+                      onClick={() => toggleLike(selectedImage.id)}
+                      aria-label={liked ? 'Unlike' : 'Like'}
+                      aria-pressed={liked}
+                      className={`${navBtn} h-12 w-12 border ${
+                        liked ? 'border-clay/40 bg-blush/60' : 'border-sand bg-ivory hover:border-champagne hover:bg-beige'
+                      }`}
+                    >
+                      <Heart className={`w-5 h-5 transition-all duration-300 ${liked ? 'scale-110 fill-clay text-clay' : 'text-cocoa'}`} />
+                    </button>
+                  </div>
                 </div>
-                {filteredImages.length > 1 && (
-                  <div className="mt-8 flex items-center justify-between font-inter text-sm text-mocha">
-                    <button onClick={() => step(-1)} className="inline-flex items-center gap-1 hover:text-chocolate sm:hidden">
-                      <ChevronLeft className="w-4 h-4" /> Prev
-                    </button>
-                    <span>{(selectedIndex ?? 0) + 1} / {filteredImages.length}</span>
-                    <button onClick={() => step(1)} className="inline-flex items-center gap-1 hover:text-chocolate sm:hidden">
-                      Next <ChevronRight className="w-4 h-4" />
-                    </button>
+
+                {hasMany && (
+                  <div className="mt-8 border-t border-sand/70 pt-5">
+                    <div className="mb-3 flex items-center justify-between font-inter text-xs text-mocha">
+                      <span className="font-semibold uppercase tracking-[0.2em]">
+                        {activeCategory ? `More ${activeCategory.name}` : 'More Looks'}
+                      </span>
+                      <span className="hidden lg:inline">Use ← → keys</span>
+                    </div>
+                    <div ref={thumbsRef} className="no-scrollbar relative -mx-1 flex gap-2 overflow-x-auto px-1 py-1">
+                      {filteredImages.map((img, i) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setSelectedIndex(i)}
+                          aria-label={`View ${img.title}`}
+                          aria-current={i === selectedIndex}
+                          className={`h-16 w-12 shrink-0 overflow-hidden rounded-lg transition-all duration-300 ${
+                            i === selectedIndex
+                              ? 'ring-2 ring-chocolate ring-offset-2 ring-offset-ivory'
+                              : 'opacity-55 hover:opacity-100'
+                          }`}
+                        >
+                          <img src={img.src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-[50%_25%]" />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-4 h-0.5 overflow-hidden rounded-full bg-sand">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-mocha to-chocolate transition-all duration-500"
+                        style={{ width: `${(position / filteredImages.length) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

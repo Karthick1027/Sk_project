@@ -101,7 +101,7 @@ const Home: React.FC = () => {
       <section className="relative overflow-hidden bg-gradient-to-b from-beige via-ivory to-ivory">
         <HeroBackdrop />
 
-        <div className="relative container mx-auto md:max-w-[90%] px-4 py-12 sm:py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="relative container mx-auto md:max-w-[90%] px-4 py-10 sm:py-12 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="animate-fade-in text-center lg:text-left">
             <p className="eyebrow">Bridal Makeup · Events · Academy</p>
             <h1 className="mt-6 font-playfair text-4xl min-[400px]:text-5xl md:text-6xl xl:text-7xl font-medium text-chocolate leading-[1.08]">
@@ -129,7 +129,7 @@ const Home: React.FC = () => {
               </a>
             </div>
 
-            <div className="mt-10 sm:mt-12 flex items-center justify-center lg:justify-start gap-4 sm:gap-6 text-cocoa">
+            <div className="mt-8 sm:mt-10 flex items-center justify-center lg:justify-start gap-4 sm:gap-6 text-cocoa">
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 text-mocha fill-current" />
@@ -184,13 +184,13 @@ const Home: React.FC = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 md:py-24 bg-ivory">
+      <section className="py-10 md:py-16 bg-ivory">
         <div className="container mx-auto px-4">
           <SectionHeading
             eyebrow="Our Promise"
             title="Trusted by Beautiful People"
             subtitle="Every client is a testament to our commitment to excellence and artistry"
-            className="mb-10 md:mb-16"
+            className="mb-8 md:mb-10"
           />
 
           <div className="card grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-sand/70 max-w-5xl mx-auto">
@@ -201,7 +201,7 @@ const Home: React.FC = () => {
               icon={<Heart className="w-6 h-6" />}
             />
             <Counter
-              end={5}
+              end={4}
               duration={1500}
               label="Years of Artistry"
               icon={<Award className="w-6 h-6" />}
@@ -217,29 +217,23 @@ const Home: React.FC = () => {
       </section>
 
       {/* Services Section */}
-      <section className="py-16 md:py-24 bg-beige">
+      <section className="py-10 md:py-16 bg-beige">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="What We Offer"
             title="Signature Services"
             subtitle="From intimate celebrations to grand occasions, I bring your vision to life"
-            className="mb-10 md:mb-16"
+            className="mb-8 md:mb-10"
           />
 
           {/* Flex-wrap rather than grid so the odd card out centres on two-column tablet layouts */}
           <div className="flex flex-wrap justify-center gap-6 lg:gap-8">
             {services.map((service) => {
               const isClass = service.title === 'Makeup Classes';
-              const linkClass = 'inline-flex items-center gap-2 font-inter text-sm font-semibold uppercase tracking-[0.2em] text-cocoa hover:text-chocolate transition-colors duration-300';
-              const linkContent = (
+              // The whole card is the link
+              const cardClass = 'group block w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1.334rem)] bg-ivory rounded-2xl overflow-hidden border border-sand/60 shadow-soft hover:shadow-luxe transition-all duration-500 hover:-translate-y-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne';
+              const cardContent = (
                 <>
-                  {isClass ? 'Join Class' : 'Learn More'}
-                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" />
-                </>
-              );
-
-              return (
-                <div key={service.title} className="group w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1.334rem)] bg-ivory rounded-2xl overflow-hidden border border-sand/60 shadow-soft hover:shadow-luxe transition-all duration-500 hover:-translate-y-2">
                   <div className="relative overflow-hidden">
                     <img
                       src={service.image}
@@ -257,17 +251,22 @@ const Home: React.FC = () => {
                     </div>
                     <p className="font-inter text-ink leading-relaxed mb-6">{service.description}</p>
                     <div className="h-px w-full bg-sand/70 mb-5" />
-                    {isClass ? (
-                      <a href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
-                        {linkContent}
-                      </a>
-                    ) : (
-                      <Link to="/contact" className={linkClass}>
-                        {linkContent}
-                      </Link>
-                    )}
+                    <span className="inline-flex items-center gap-2 font-inter text-sm font-semibold uppercase tracking-[0.2em] text-cocoa group-hover:text-chocolate transition-colors duration-300">
+                      {isClass ? 'Join Class' : 'Learn More'}
+                      <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" />
+                    </span>
                   </div>
-                </div>
+                </>
+              );
+
+              return isClass ? (
+                <a key={service.title} href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className={cardClass}>
+                  {cardContent}
+                </a>
+              ) : (
+                <Link key={service.title} to="/contact" className={cardClass}>
+                  {cardContent}
+                </Link>
               );
             })}
           </div>

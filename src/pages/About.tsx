@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Heart, Users, BookOpen, Sparkles } from 'lucide-react';
+import { Award, Heart, Users, BookOpen, Sparkles, CalendarHeart } from 'lucide-react';
 import srinithiPic from '../../src/images/srinithi_portrait.jpg';
 import Sheeba from '../../src/images/Sheeba.png';
 import Sabari from '../../src/images/Sabari.png';
@@ -86,10 +86,10 @@ const About: React.FC = () => {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-14 sm:py-20 lg:py-24 bg-gradient-to-b from-beige to-ivory">
+      <section className="relative overflow-hidden py-10 sm:py-14 lg:py-16 bg-gradient-to-b from-beige to-ivory">
         <AboutBackdrop />
         <div className="relative container mx-auto px-4 md:max-w-[90%]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-14 items-center">
             <div className="animate-fade-in text-center lg:text-left">
               <p className="eyebrow mb-5">The Artist Behind SK Bridal Studio</p>
               <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
@@ -97,12 +97,12 @@ const About: React.FC = () => {
               </h1>
               <div className="ornament mt-6 sm:mt-8 mx-auto lg:mx-0" />
               <p className="font-inter text-base sm:text-lg md:text-xl text-ink mt-6 sm:mt-8 mb-8 sm:mb-10 leading-relaxed">
-                With over 5 years of experience in professional makeup artistry, I believe that beauty is not just about
+                Over 4 years into my professional makeup journey, which began in July 2022, I truly believe that beauty is not just about
                 looking good - it's about feeling confident, radiant, and authentically yourself.
               </p>
               <div className="grid w-full sm:inline-grid sm:w-auto grid-cols-3 divide-x divide-sand card">
                 {[
-                  { value: '5+', label: 'Years Experience' },
+                  { value: '4+', label: 'Years Experience' },
                   { value: '230+', label: 'Happy Brides' },
                   { value: '5+', label: 'Students Trained' },
                 ].map((stat) => (
@@ -137,26 +137,32 @@ const About: React.FC = () => {
       </section>
 
       {/* Story Section */}
-      <section className="py-16 md:py-24 bg-ivory">
+      <section className="py-10 md:py-16 bg-ivory">
         <div className="container mx-auto px-4">
-          <SectionHeading eyebrow="Our Story" title="My Beauty Journey" className="mb-12" />
+          <SectionHeading eyebrow="Our Story" title="My Beauty Journey" className="mb-6" />
+          <div className="mb-8 flex justify-center">
+            <span className="inline-flex items-center gap-2.5 rounded-full border border-champagne bg-beige px-5 py-2 font-inter text-xs sm:text-sm font-medium uppercase tracking-[0.2em] text-cocoa">
+              <CalendarHeart className="w-4 h-4 text-mocha" />
+              Makeup journey began · <span className="font-semibold text-chocolate">July 2022</span>
+            </span>
+          </div>
           <div className="max-w-3xl mx-auto space-y-6 font-inter text-base sm:text-lg text-ink leading-relaxed">
             <p className="first-letter:float-left first-letter:mr-3 first-letter:font-playfair first-letter:text-5xl sm:first-letter:text-6xl first-letter:leading-[0.85] first-letter:text-chocolate">
               My journey into the world of makeup began with a deep passion that grew within me from a young age. What started as a fascination soon became a dream to make people feel confident, beautiful, and special through my work.
             </p>
             <p>
-            After completing my studies, my husband, Karthikeyan, became my biggest support system. From the very beginning of our 10-year journey of love, he believed in my talent and encouraged me to pursue makeup as a profession. His constant motivation helped me take the first step toward becoming a certified professional makeup artist.
+            After completing my studies, my husband, Karthikeyan, became my biggest support system. From the very beginning of our 10-year journey of love, he believed in my talent and encouraged me to pursue makeup as a profession. His constant motivation helped me take the first step toward becoming a certified professional makeup artist, and in <span className='font-semibold text-chocolate'>July 2022</span>, my professional makeup journey officially began.
             </p>
             <p>
             Our journey together has not always been easy. We have faced many challenges, including financial struggles and medical difficulties. Despite everything, we stood strong, supporting each other through every situation. While I was working night shifts to support our financial needs, I also continued building my career in makeup with dedication and determination. At the same time, Karthikeyan, working in the IT field, managed both our responsibilities and supported my dreams without hesitation.
             </p>
             <blockquote className="my-8 sm:my-10 border-y border-sand py-6 sm:py-8 text-center">
               <p className="font-cormorant italic text-2xl sm:text-3xl md:text-4xl text-chocolate leading-snug">
-                "Makeup is not just my passion—it is my identity."
+                "Makeup is not just my passion it is my identity."
               </p>
             </blockquote>
             <p>
-            Makeup is not just my passion—it is my identity. And this business is not just mine, it is my husband’s dream too. Together, we have traveled across many places for events, gaining experience, meeting wonderful clients, and growing stronger both professionally and personally. Through love, fights, challenges, and happiness, we have always stood by each other.
+            Makeup is not just my passion it is my identity. And this business is not just mine, it is my husband’s dream too. Together, we have traveled across many places for events, gaining experience, meeting wonderful clients, and growing stronger both professionally and personally. Through love, fights, challenges, and happiness, we have always stood by each other.
             </p>
             <p>
             In 2026, we turned our long journey of love into a beautiful marriage. Today, I am proud to be a full-time professional makeup artist, while my husband continues to manage and support every aspect of our business.
@@ -172,7 +178,7 @@ const About: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14 md:mt-20 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 md:mt-14 max-w-6xl mx-auto">
             {values.map((value) => (
               <div key={value.title} className="text-center group card px-6 py-8 lg:px-8 lg:py-10 hover:-translate-y-1 transition-transform duration-500">
                 <div className="w-14 h-14 border border-champagne bg-beige text-cocoa rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500">
@@ -187,13 +193,13 @@ const About: React.FC = () => {
       </section>
 
       {/* Certifications Section */}
-      <section className="py-16 md:py-24 bg-beige">
+      <section className="py-10 md:py-16 bg-beige">
         <div className="container mx-auto px-4">
           <SectionHeading
             eyebrow="Certified Expertise"
             title="Professional Credentials"
             subtitle="Committed to excellence through continuous education and professional development"
-            className="mb-10 md:mb-16"
+            className="mb-8 md:mb-10"
           />
 
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 max-w-6xl mx-auto">
@@ -215,13 +221,13 @@ const About: React.FC = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-16 md:py-24 bg-ivory">
+      <section className="py-10 md:py-16 bg-ivory">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="Kind Words"
             title="What Clients Say"
             subtitle="The joy and confidence of my clients is the greatest testament to my work"
-            className="mb-10 md:mb-16"
+            className="mb-8 md:mb-10"
           />
 
           <TestimonialSlider testimonials={testimonials} />

@@ -12,7 +12,7 @@ interface PageHeroProps {
 }
 
 const PageHero: React.FC<PageHeroProps> = ({
-  eyebrow, title, subtitle, backdrop, padding = 'py-14 sm:py-20 md:py-28', children,
+  eyebrow, title, subtitle, backdrop, padding = 'py-10 sm:py-14 md:py-20', children,
 }) => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-beige to-ivory">

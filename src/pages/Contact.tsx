@@ -116,9 +116,9 @@ Sent from SK Bridal Studio Website
         subtitle="Ready to transform your look or learn professional makeup techniques? I'd love to hear from you. Let's discuss your vision and create something beautiful together."
       />
 
-      <div id="contact" className="py-16 md:py-20 bg-ivory scroll-mt-20">
+      <div id="contact" className="py-10 md:py-14 bg-ivory scroll-mt-20">
         <div className="container mx-auto px-4 md:max-w-[90%]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
             {/* Contact Information */}
             <div className="space-y-8">
               <div>
@@ -288,13 +288,13 @@ Sent from SK Bridal Studio Website
       </div>
 
       {/* Location Section */}
-      <section className="py-16 md:py-24 bg-beige">
+      <section className="py-10 md:py-16 bg-beige">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="Find Us"
             title="Visit My Studio"
             subtitle="Located in the Thiruninravur near Chennai, my studio provides a comfortable and professional environment for all your beauty needs."
-            className="mb-10 md:mb-16"
+            className="mb-8 md:mb-10"
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">

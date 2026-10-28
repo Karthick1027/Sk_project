@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="bg-chocolate text-ivory">
-      <div className="container mx-auto px-4 pt-16 pb-10 md:max-w-[90%]">
+      <div className="container mx-auto px-4 pt-12 pb-8 md:max-w-[90%]">
         {/* Connect gets the widest column (2 of 4 on tablets, 4 of 12 on desktops) so the email address fits on one line */}
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-12 gap-x-6 gap-y-10 sm:gap-x-10 sm:gap-y-12 xl:gap-x-8">
           {/* Brand */}
@@ -105,7 +105,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-champagne/20 mt-12 sm:mt-14 pt-8 flex flex-col lg:flex-row items-center justify-between gap-3 text-center">
+        <div className="border-t border-champagne/20 mt-10 pt-6 flex flex-col lg:flex-row items-center justify-between gap-3 text-center">
           <p className="font-inter text-sm text-sand/60">
             © 2022 SK Bridal Studio. All rights reserved.
             <span className="mx-2">·</span>

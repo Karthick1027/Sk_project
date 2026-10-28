@@ -376,7 +376,7 @@ const Packages: React.FC = () => {
           </>
         }
         subtitle="Three bridal makeup finishes, each complete with hairstyling, saree draping and the finishing touches, for weddings within Chennai."
-        padding="pt-16 pb-10 sm:pt-20 sm:pb-12 md:pt-20 md:pb-14"
+        padding="pt-16 pb-8 sm:pt-20 sm:pb-10 md:pt-20 md:pb-10"
       >
         {/* The three finishes at a glance; each jumps to (and highlights) its package card */}
         <div className="mt-7 sm:mt-9 flex flex-wrap justify-center gap-2 sm:gap-3">
@@ -405,7 +405,7 @@ const Packages: React.FC = () => {
         </div>
       </PageHero>
 
-      <section className="container mx-auto px-4 pt-10 pb-12 sm:pt-12 sm:pb-16 md:pt-14 md:pb-20 md:max-w-[90%]">
+      <section className="container mx-auto px-4 pt-8 pb-10 sm:pt-10 sm:pb-12 md:pt-10 md:pb-14 md:max-w-[90%]">
         {/* Booking toggle */}
         <div className="flex flex-col items-center gap-4 text-center">
           <p className="eyebrow">I'm booking for</p>
@@ -435,7 +435,7 @@ const Packages: React.FC = () => {
         {/* Package cards */}
         <div
           onPointerLeave={() => setHoveredId(null)}
-          className="mt-12 sm:mt-16 grid gap-6 lg:gap-6 xl:gap-8 lg:grid-cols-3 lg:items-stretch max-w-xl lg:max-w-none mx-auto"
+          className="mt-8 sm:mt-10 grid gap-6 lg:gap-6 xl:gap-8 lg:grid-cols-3 lg:items-stretch max-w-xl lg:max-w-none mx-auto"
         >
           {bridalPackages.map((pkg, i) => (
             <PackageCard
@@ -454,7 +454,7 @@ const Packages: React.FC = () => {
         </div>
 
         {/* Add-ons + jewellery */}
-        <div className="mt-16 sm:mt-20 grid gap-6 lg:grid-cols-5">
+        <div className="mt-10 sm:mt-14 grid gap-6 lg:grid-cols-5">
           <div className="card p-6 sm:p-8 lg:col-span-3">
             <p className="eyebrow">Good to know</p>
             <h3 className="mt-3 font-playfair text-2xl sm:text-3xl font-medium text-chocolate">
@@ -498,7 +498,7 @@ const Packages: React.FC = () => {
         </div>
 
         {/* Booking procedure */}
-        <div className="relative mt-16 sm:mt-20 overflow-hidden rounded-[2rem] border border-sand bg-beige p-6 sm:p-10 xl:p-14">
+        <div className="relative mt-10 sm:mt-14 overflow-hidden rounded-[2rem] border border-sand bg-beige p-6 sm:p-10 xl:p-14">
           <div aria-hidden="true" className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
           <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-champagne/40 blur-3xl" />
 
@@ -547,7 +547,7 @@ const Packages: React.FC = () => {
           </div>
 
           {/* Fine print + payment */}
-          <div className="relative mt-10 sm:mt-12 border-t border-sand pt-8 sm:pt-10">
+          <div className="relative mt-8 sm:mt-10 border-t border-sand pt-6 sm:pt-8">
             <p className="font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-mocha">Good to know</p>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {bookingNotes.map((note) => {

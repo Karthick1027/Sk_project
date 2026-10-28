@@ -96,7 +96,7 @@ const PrivacyPolicy: React.FC = () => {
         subtitle="How SK Bridal Studio collects, uses and protects the information you share with us."
       />
 
-      <section className="py-14 sm:py-20 bg-ivory">
+      <section className="py-10 sm:py-14 bg-ivory">
         <div className="container mx-auto px-4 max-w-3xl">
           <p className="font-inter text-sm uppercase tracking-[0.25em] text-mocha mb-10">
             Last updated: {LAST_UPDATED}

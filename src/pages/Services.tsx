@@ -121,21 +121,21 @@ const Services: React.FC = () => {
       </section>
 
       {/* Three crafts */}
-      <section className="py-16 md:py-24">
+      <section className="py-10 md:py-16">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="What I Do"
             title="Three Crafts, One Pair of Hands"
             subtitle="Everything your bridal look needs, done start to finish by the same artist"
-            className="mb-14 md:mb-20"
+            className="mb-10 md:mb-12"
           />
 
-          <div className="space-y-20 md:space-y-28">
+          <div className="space-y-12 md:space-y-16">
             {services.map((s, i) => {
               const flip = i % 2 === 1;
               const num = String(i + 1).padStart(2, '0');
               return (
-                <article key={s.accent} className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+                <article key={s.accent} className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
                   {/* Arched photo */}
                   <div className={`relative mx-auto w-[calc(100%-2rem)] max-w-sm sm:max-w-md ${flip ? 'lg:order-2' : ''}`}>
                     <div aria-hidden="true" className="absolute -inset-4 rounded-t-full border border-champagne" />
@@ -193,7 +193,7 @@ const Services: React.FC = () => {
       </section>
 
       {/* Complimentary extras, styled as a ribbon-tied gift box */}
-      <section className="relative overflow-hidden bg-beige py-16 md:py-24">
+      <section className="relative overflow-hidden bg-beige py-10 md:py-16">
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-champagne/40 blur-3xl" />
         <div className="relative container mx-auto px-4 md:max-w-[90%]">
@@ -201,7 +201,7 @@ const Services: React.FC = () => {
             eyebrow="Complimentary"
             title="My Gift to Every Bride"
             subtitle="Included with every bridal package, at no extra cost"
-            className="mb-12 md:mb-16"
+            className="mb-8 md:mb-10"
           />
 
           <div className="mx-auto max-w-4xl rounded-[2rem] bg-chocolate p-3 shadow-luxe">
@@ -251,13 +251,13 @@ const Services: React.FC = () => {
       <GiftCelebration open={giftOpen} onClose={closeGift} items={compliments} whatsappUrl={WHATSAPP_URL} />
 
       {/* Brands marquee */}
-      <section className="py-16 md:py-20 bg-ivory">
+      <section className="py-10 md:py-14 bg-ivory">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="In My Kit"
             title="Brands I Trust on Your Skin"
             subtitle="Only premium, long-wear products touch your skin on your big day"
-            className="mb-10 md:mb-12"
+            className="mb-8 md:mb-10"
           />
         </div>
         <div className="border-y border-sand bg-beige/50 py-8 sm:py-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
