@@ -12,6 +12,7 @@ import Workshops from './pages/Workshops';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import ScrollToTop from './components/ScrollToTop';
 import BackToTop from './components/BackToTop';
+import CanonicalUrl from './components/CanonicalUrl';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Header />
         <main>
             <ScrollToTop />
+            <CanonicalUrl />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />

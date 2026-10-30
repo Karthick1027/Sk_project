@@ -37,11 +37,11 @@ Sent from SK Bridal Studio Website
       `.trim();
 
       // Create mailto link for email
-      const mailtoLink = `mailto:skbridalstudioteam@gmail.com?subject=New Contact Form Submission from ${formData.name}&body=${encodeURIComponent(emailBody)}`;
+      const mailtoLink = `mailto:skbridalstudioteam@gmail.com?subject=${encodeURIComponent(`New Contact Form Submission from ${formData.name}`)}&body=${encodeURIComponent(emailBody)}`;
 
       // Create WhatsApp message
-      const whatsappMessage = `New website inquiry from ${formData.name}%0A%0AEmail: ${formData.email}%0APhone: ${formData.phone}%0A%0AMessage: ${formData.message}`;
-      const whatsappLink = `https://wa.me/918668038093?text=${whatsappMessage}`;
+      const whatsappMessage = `New website inquiry from ${formData.name}\n\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nMessage: ${formData.message}`;
+      const whatsappLink = `https://wa.me/918668038093?text=${encodeURIComponent(whatsappMessage)}`;
 
       // Open email client
       window.open(mailtoLink, '_blank');
