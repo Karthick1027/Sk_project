@@ -4,6 +4,8 @@ export interface BridalPackage {
   /** Second line of the title, shown in italics. */
   finishAccent: string;
   price: number;
+  /** How long the finish holds, shown under the description. */
+  wearTime: string;
   description: string;
   /** The featured package gets the "Signature" badge and is the dark card when none is hovered. */
   featured?: boolean;
@@ -33,34 +35,37 @@ const perks = {
 export const bridalPackages: BridalPackage[] = [
   {
     id: 1,
-    finish: 'Airbrush',
-    finishAccent: 'Skin-Finish Makeup',
-    price: 20000,
+    finish: 'HD',
+    finishAccent: 'or Matte',
+    price: 12000,
+    wearTime: 'Up to 8 hours',
     description:
-      'Featherlight airbrushed coverage that melts into the skin for a flawless, natural finish that photographs beautifully.',
-    featured: true,
-    includes: ['Airbrush Skin-Finish Makeup', ...sharedIncludes],
-    comboPerks: [perks.travel, perks.groom, perks.jewellery, perks.touchUp],
+      'Camera-ready HD or a soft, velvety matte finish with smooth, even coverage for a classic bridal look.',
+    includes: ['HD or Matte Finish Makeup', ...sharedIncludes],
+    comboPerks: [perks.travel, perks.touchUp],
   },
   {
     id: 2,
     finish: 'Glossy',
     finishAccent: 'or Waterproof',
     price: 15000,
+    wearTime: 'Up to 8 hours',
     description:
       'Choose a dewy, luminous glow or a waterproof finish made to stay put through long ceremonies and happy tears.',
     includes: ['Glossy (or) Waterproof Makeup', ...sharedIncludes],
-    comboPerks: [perks.travel, perks.groom, perks.jewellery],
+    comboPerks: [perks.travel, perks.groom, perks.touchUp],
   },
   {
     id: 3,
-    finish: 'HD',
-    finishAccent: 'or Matte',
-    price: 12000,
+    finish: 'Airbrush',
+    finishAccent: 'Skin-Finish Makeup',
+    price: 20000,
+    wearTime: '12 to 16 hours',
     description:
-      'Camera-ready HD or a soft, velvety matte finish with smooth, even coverage for a classic bridal look.',
-    includes: ['HD or Matte Finish Makeup', ...sharedIncludes],
-    comboPerks: [perks.travel, perks.jewellery],
+      'Featherlight airbrushed coverage that melts into the skin for a flawless, natural finish that photographs beautifully.',
+    featured: true,
+    includes: ['Airbrush Skin-Finish Makeup', ...sharedIncludes],
+    comboPerks: [perks.travel, perks.groom, perks.jewellery, perks.touchUp],
   },
 ];
 
@@ -68,6 +73,14 @@ export const packageAddOns = [
   { label: 'Extra Drape', value: '₹500 per saree' },
   { label: 'Pre-pleating', value: '₹800 per saree' },
   { label: 'Outstation Travel', value: 'Charged additionally' },
+];
+
+// Extra services by the studio team, bookable only alongside a bridal package
+export const addOnServices = [
+  { title: 'Saree draping', accent: 'in any style you choose', options: [] as string[] },
+  { title: 'Makeup for', accent: 'your bridesmaids', options: ['Simple', 'HD', 'Airbrush'] },
+  { title: 'Hair styling for', accent: 'your bridesmaids', options: ['Simple', 'Bridal'] },
+  { title: 'Stay-on-call', accent: 'touch-ups', options: ['Makeup refresh', 'Hair fix', 'Jewellery re-setting', 'Saree change'] },
 ];
 
 // Booking procedure: first come, first served

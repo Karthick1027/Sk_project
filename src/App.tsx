@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
 import Gallery from './pages/Gallery';
+import Reviews from './pages/Reviews';
 import Contact from './pages/Contact';
 import Packages from './pages/Packages';
 import Services from './pages/Services';
@@ -26,7 +27,10 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/services" element={<Services />} />
-            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/portfolio" element={<Gallery />} />
+            {/* Old Gallery links now land on Portfolio */}
+            <Route path="/gallery" element={<Navigate to="/portfolio" replace />} />
+            <Route path="/reviews" element={<Reviews />} />
             <Route path="/packages" element={<Packages />} />
             <Route path="/workshops" element={<Workshops />} />
             {/* Old Products page links now land on Packages */}

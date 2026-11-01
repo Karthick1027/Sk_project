@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 const SITE_URL = 'https://skbridalstudio.web.app';
 
 // Pages listed in sitemap.xml — keep in sync with the routes in src/App.tsx.
-const SITEMAP_ROUTES = ['/', '/about', '/services', '/gallery', '/packages', '/workshops', '/contact', '/privacy-policy'];
+const SITEMAP_ROUTES = ['/', '/about', '/services', '/portfolio', '/reviews', '/packages', '/workshops', '/contact', '/privacy-policy'];
 
 // Fills %SITE_URL% in index.html and writes sitemap.xml and robots.txt into the build.
 function siteFiles(): Plugin {

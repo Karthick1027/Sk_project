@@ -21,12 +21,12 @@ const PageHero: React.FC<PageHeroProps> = ({
       {backdrop}
 
       <div className={`relative container mx-auto px-4 ${padding} text-center animate-fade-in`}>
-        <p className="eyebrow mb-5">{eyebrow}</p>
+        <p className="eyebrow mb-3 sm:mb-5">{eyebrow}</p>
         <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.15] text-balance">
           {title}
         </h1>
-        <div className="ornament mx-auto mt-6 sm:mt-8" />
-        <p className="font-inter text-base sm:text-lg md:text-xl text-ink max-w-3xl mx-auto leading-relaxed mt-6 sm:mt-8">
+        <div className="ornament mx-auto mt-4 sm:mt-8" />
+        <p className="font-inter text-base sm:text-lg md:text-xl text-ink max-w-3xl mx-auto leading-relaxed mt-4 sm:mt-8">
           {subtitle}
         </p>
         {children}

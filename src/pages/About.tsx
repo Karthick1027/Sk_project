@@ -1,68 +1,14 @@
 import React from 'react';
 import { Award, Heart, Users, BookOpen, Sparkles, CalendarHeart } from 'lucide-react';
 import srinithiPic from '../../src/images/srinithi_portrait.jpg';
-import Sheeba from '../../src/images/Sheeba.png';
-import Sabari from '../../src/images/Sabari.png';
-import Ruby_Ganesh from '../../src/images/Ruby_Ganesh.png';
-import Janani from '../../src/images/Janani.png';
-import Chandru_pic from '../../src/images/Chandru_pic.png';
 import SectionHeading from '../components/SectionHeading';
-import TestimonialSlider from '../components/TestimonialSlider';
 import AboutBackdrop, { Mandala } from '../components/AboutBackdrop';
 
 const About: React.FC = () => {
   const certifications = [
     "Professional Makeup Artist",
-    "Advanced Mehendi",
     "Advanced Color Theory",
-    "Airbrush Makeup",
-    "Professional Nail Art"
-  ];
-
-  const testimonials = [
-    {
-      name: "Janani",
-      event: "Engagement",
-      text: "I booked for my engagement makeup I'm so happy and satisfied with her amazing work everyone complimented me once again thank you for the beautiful work and make my day so beautiful",
-      rating: 5,
-      image: Janani
-    },
-    {
-      name: "Chandra Prakash",
-      event: "Wedding 2025",
-      text: "We booked srinithimakeupartist for our wedding and reception. Make up was subtle, which we asked for. The output came out very well in the photoshoot as well. Overall it was very satisfying. Price is very reasonable. I would also recommend them for all your party events.",
-      rating: 5,
-      image: Chandru_pic
-    },
-    {
-      name: "Ruby Ganesh",
-      event: "Wedding & Reception",
-      text: "Worth for money. Loved the look on my big day. It was amazing no words can explain the joy I had... Thanks a lot ❤❤❤Wishing you to achieve the greatest heights..... ❤",
-      rating: 5,
-      image: Ruby_Ganesh
-    },
-    {
-      name: "Nivetha",
-      event: "Engagement, Wedding, Reception",
-      text: "Hi, I am nivetha. I booked makeup for my engagement, reception, marriage.. She done a great job. Makeup turn so good I like very much... Thank u for making my big day spl❤️😊.. All the best for your career srinithi 😊",
-      rating: 5,
-      image: ""
-    },
-    {
-      name: "Sheeba Fathima",
-      event: "Reception",
-      text: "I really love how you made my makeup look so natural and enhanced my features, I'm so glad the makeup lasted all day without any touch-ups! Thank you for making my wedding day look so perfect❤️",
-      rating: 5,
-      image: Sheeba
-    },
-    {
-      name: "Sabari Nathan",
-      event: "Wedding",
-      text: "Srinithi is absolutely amazing! She made my sister feel so confident and beautiful on her special day. The makeup was flawless, long-lasting, and looked stunning both in person and in photos. My sister received so many compliments! Thank you, Srinithi, for making my sister feel like the best version of herself. Highly recommended! 💖✨",
-      rating: 5,
-      image: Sabari
-    },
-
+    "Airbrush Makeup"
   ];
 
   const values = [
@@ -86,17 +32,18 @@ const About: React.FC = () => {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-10 sm:py-14 lg:py-16 bg-gradient-to-b from-beige to-ivory">
+      {/* Extra top padding on phones clears the 52px garland across the top of the backdrop */}
+      <section className="relative overflow-hidden pt-16 pb-10 sm:py-14 lg:py-16 bg-gradient-to-b from-beige to-ivory">
         <AboutBackdrop />
         <div className="relative container mx-auto px-4 md:max-w-[90%]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-14 items-center">
             <div className="animate-fade-in text-center lg:text-left">
-              <p className="eyebrow mb-5">The Artist Behind SK Bridal Studio</p>
+              <p className="eyebrow mb-2 sm:mb-5">The Artist Behind SK Bridal Studio</p>
               <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
                 Meet <span className="font-cormorant italic text-cocoa">Srinithi.A.K</span>
               </h1>
-              <div className="ornament mt-6 sm:mt-8 mx-auto lg:mx-0" />
-              <p className="font-inter text-base sm:text-lg md:text-xl text-ink mt-6 sm:mt-8 mb-8 sm:mb-10 leading-relaxed">
+              <div className="ornament mt-4 sm:mt-8 mx-auto lg:mx-0" />
+              <p className="font-inter text-base sm:text-lg md:text-xl text-ink mt-4 sm:mt-8 mb-8 sm:mb-10 leading-relaxed">
                 Over 4 years into my professional makeup journey, which began in July 2022, I truly believe that beauty is not just about
                 looking good - it's about feeling confident, radiant, and authentically yourself.
               </p>
@@ -141,9 +88,11 @@ const About: React.FC = () => {
         <div className="container mx-auto px-4">
           <SectionHeading eyebrow="Our Story" title="My Beauty Journey" className="mb-6" />
           <div className="mb-8 flex justify-center">
-            <span className="inline-flex items-center gap-2.5 rounded-full border border-champagne bg-beige px-5 py-2 font-inter text-xs sm:text-sm font-medium uppercase tracking-[0.2em] text-cocoa">
-              <CalendarHeart className="w-4 h-4 text-mocha" />
-              Makeup journey began · <span className="font-semibold text-chocolate">July 2022</span>
+            {/* Shorter label and tighter tracking on phones keep the pill on one line */}
+            <span className="inline-flex items-center gap-2 sm:gap-2.5 whitespace-nowrap rounded-full border border-champagne bg-beige px-4 sm:px-5 py-2 font-inter text-[11px] sm:text-sm font-medium uppercase tracking-[0.12em] sm:tracking-[0.2em] text-cocoa">
+              <CalendarHeart className="w-4 h-4 shrink-0 text-mocha" />
+              <span><span className="hidden sm:inline">Makeup </span>journey began ·</span>
+              <span className="font-semibold text-chocolate">July 2022</span>
             </span>
           </div>
           <div className="max-w-3xl mx-auto space-y-6 font-inter text-base sm:text-lg text-ink leading-relaxed">
@@ -178,14 +127,17 @@ const About: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 md:mt-14 max-w-6xl mx-auto">
+          {/* Compact rows (icon beside the text) until md, where the three sit side by side as centred cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mt-8 md:mt-14 max-w-6xl mx-auto">
             {values.map((value) => (
-              <div key={value.title} className="text-center group card px-6 py-8 lg:px-8 lg:py-10 hover:-translate-y-1 transition-transform duration-500">
-                <div className="w-14 h-14 border border-champagne bg-beige text-cocoa rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500">
+              <div key={value.title} className="group card flex items-center gap-4 p-4 text-left md:block md:px-6 md:py-8 md:text-center lg:px-8 lg:py-10 hover:-translate-y-1 transition-transform duration-500">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-champagne bg-beige text-cocoa md:mx-auto md:mb-5 md:h-14 md:w-14 group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500 [&>svg]:h-5 [&>svg]:w-5 md:[&>svg]:h-6 md:[&>svg]:w-6">
                   {value.icon}
                 </div>
-                <h3 className="font-playfair text-2xl font-medium text-chocolate mb-3">{value.title}</h3>
-                <p className="font-inter text-ink leading-relaxed">{value.text}</p>
+                <div>
+                  <h3 className="font-playfair text-lg md:text-2xl font-medium text-chocolate md:mb-3">{value.title}</h3>
+                  <p className="mt-0.5 md:mt-0 font-inter text-sm md:text-base text-ink leading-relaxed">{value.text}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -217,20 +169,6 @@ const About: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-10 md:py-16 bg-ivory">
-        <div className="container mx-auto px-4 md:max-w-[90%]">
-          <SectionHeading
-            eyebrow="Kind Words"
-            title="What Clients Say"
-            subtitle="The joy and confidence of my clients is the greatest testament to my work"
-            className="mb-8 md:mb-10"
-          />
-
-          <TestimonialSlider testimonials={testimonials} />
         </div>
       </section>
     </div>

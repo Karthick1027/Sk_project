@@ -36,7 +36,7 @@ const CLASS_FORM_URL = 'https://forms.gle/rfW2a95NHFgN874XA';
 const WHATSAPP_URL = 'https://wa.me/918668038093';
 
 const enquiryUrl = (img: GalleryImage) =>
-  `${WHATSAPP_URL}?text=${encodeURIComponent(`Hi SK Bridal Studio, I'd love a look like "${img.title}" (${img.category}) from your gallery.`)}`;
+  `${WHATSAPP_URL}?text=${encodeURIComponent(`Hi SK Bridal Studio, I'd love a look like "${img.title}" (${img.category}) from your portfolio.`)}`;
 
 const categories: Category[] = [
   { name: 'Muhurtham', tagline: 'Traditional & Timeless Looks', icon: Gem, cover: clientPhoto(2155) },
@@ -147,23 +147,64 @@ const countFor = (name: string) => imagesFor(name).length;
 
 const INITIAL_VISIBLE = 12;
 
+// Hearted photos are kept in this browser so the wishlist survives reloads and return visits
+const WISHLIST = 'Wishlist';
+const WISHLIST_KEY = 'sk-wishlist';
+
+const loadWishlist = (): number[] => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(WISHLIST_KEY) ?? '[]');
+    return Array.isArray(saved) ? saved.filter((id) => images.some((img) => img.id === id)) : [];
+  } catch {
+    return [];
+  }
+};
+
+const wishlistUrl = (saved: GalleryImage[]) =>
+  `${WHATSAPP_URL}?text=${encodeURIComponent(
+    `Hi SK Bridal Studio, these are the looks on my wishlist from your portfolio:\n${saved
+      .map((img) => `• ${img.title} (${img.category})`)
+      .join('\n')}`
+  )}`;
+
 const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [likedImages, setLikedImages] = useState<{ [key: number]: boolean }>({});
+  const [wishlist, setWishlist] = useState<number[]>(loadWishlist);
   const gridRef = useRef<HTMLElement>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
   const [canSlide, setCanSlide] = useState({ prev: false, next: false });
   const thumbsRef = useRef<HTMLDivElement>(null);
   const touchX = useRef<number | null>(null);
 
-  const toggleLike = (id: number) => setLikedImages((prev) => ({ ...prev, [id]: !prev[id] }));
+  const isSaved = (id: number) => wishlist.includes(id);
+  const toggleLike = (id: number) =>
+    setWishlist((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const filteredImages = useMemo(
-    () => (selectedCategory === 'All' ? featuredOrder : imagesFor(selectedCategory)),
-    [selectedCategory]
+  useEffect(() => {
+    try {
+      localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
+    } catch {
+      // Storage blocked (private mode etc.): the wishlist still works for this visit
+    }
+  }, [wishlist]);
+
+  const savedImages = useMemo(
+    () => wishlist.map((id) => images.find((img) => img.id === id)).filter((img): img is GalleryImage => !!img),
+    [wishlist]
   );
+
+  // While a photo is open, the wishlist view holds still, so un-hearting it doesn't swap the photo out
+  const shownSaved = useRef(savedImages);
+  if (selectedIndex === null) shownSaved.current = savedImages;
+
+  const filteredImages =
+    selectedCategory === 'All'
+      ? featuredOrder
+      : selectedCategory === WISHLIST
+        ? shownSaved.current
+        : imagesFor(selectedCategory);
   const visibleImages = showAll ? filteredImages : filteredImages.slice(0, INITIAL_VISIBLE);
   const selectedImage = selectedIndex !== null ? filteredImages[selectedIndex] : null;
   const activeCategory = categories.find((c) => c.name === selectedCategory);
@@ -266,7 +307,7 @@ const Gallery: React.FC = () => {
 
         <div className="relative container mx-auto px-4 md:max-w-[90%] -mt-10 sm:-mt-14 pb-5 sm:pb-12 lg:mt-0 lg:py-20 xl:py-24">
           <div className="max-w-xl animate-fade-in">
-            <p className="eyebrow mb-4 sm:mb-5">Our Gallery</p>
+            <p className="eyebrow mb-4 sm:mb-5">Our Portfolio</p>
             <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
               Moments Made
               <span className="block bg-gradient-to-r from-cocoa via-mocha to-cocoa bg-clip-text text-transparent pb-1">
@@ -288,22 +329,46 @@ const Gallery: React.FC = () => {
       {/* Category Filter */}
       <section className="sticky top-[72px] z-30 py-3 sm:py-4 bg-ivory/90 backdrop-blur-md border-b border-sand/60">
         <div className="container mx-auto px-4">
-          <div className="no-scrollbar -mx-4 flex gap-2 sm:gap-3 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:justify-center lg:overflow-visible lg:px-0">
-            {[{ name: 'All', icon: null as LucideIcon | null }, ...categories].map(({ name, icon: Icon }) => (
-              <button
-                key={name}
-                onClick={() => selectCategory(name)}
-                aria-pressed={selectedCategory === name}
-                className={`shrink-0 inline-flex items-center gap-2 px-5 py-2 sm:py-2.5 rounded-full font-inter text-sm font-medium tracking-wide transition-all duration-300 ${
-                  selectedCategory === name
-                    ? 'bg-chocolate text-ivory shadow-soft'
-                    : 'bg-beige text-cocoa border border-sand/70 hover:border-champagne hover:bg-sand/50'
+          {/* Below lg the categories scroll sideways while Wishlist stays pinned on the right, so it's always in view.
+              From lg the scroller dissolves (contents) and every pill wraps together in one centred row. */}
+          <div className="flex items-center gap-2 lg:flex-wrap lg:justify-center">
+            <div className="no-scrollbar -ml-4 flex min-w-0 flex-1 gap-2 sm:gap-3 overflow-x-auto pl-4 pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] lg:contents">
+              {[{ name: 'All', icon: null as LucideIcon | null }, ...categories].map(({ name, icon: Icon }) => (
+                <button
+                  key={name}
+                  onClick={() => selectCategory(name)}
+                  aria-pressed={selectedCategory === name}
+                  className={`shrink-0 inline-flex items-center gap-2 px-5 lg:px-4 py-2 sm:py-2.5 rounded-full font-inter text-sm font-medium tracking-wide transition-all duration-300 ${
+                    selectedCategory === name
+                      ? 'bg-chocolate text-ivory shadow-soft'
+                      : 'bg-beige text-cocoa border border-sand/70 hover:border-champagne hover:bg-sand/50'
+                  }`}
+                >
+                  {Icon && <Icon className="w-4 h-4" />}
+                  {name}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => selectCategory(WISHLIST, true)}
+              aria-pressed={selectedCategory === WISHLIST}
+              className={`shrink-0 inline-flex items-center gap-2 px-4 sm:px-5 lg:px-4 py-2 sm:py-2.5 rounded-full font-inter text-sm font-medium tracking-wide transition-all duration-300 ${
+                selectedCategory === WISHLIST
+                  ? 'bg-chocolate text-ivory shadow-soft'
+                  : 'bg-blush/60 text-cocoa border border-blush hover:border-champagne'
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${wishlist.length ? 'fill-clay text-clay' : ''}`} />
+              {WISHLIST}
+              <span
+                key={wishlist.length} // Re-mounts on change so the count pops in
+                className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-xs leading-5 animate-fade-in ${
+                  selectedCategory === WISHLIST ? 'bg-ivory/20' : 'bg-ivory'
                 }`}
               >
-                {Icon && <Icon className="w-4 h-4" />}
-                {name}
-              </button>
-            ))}
+                {wishlist.length}
+              </span>
+            </button>
           </div>
         </div>
       </section>
@@ -361,7 +426,7 @@ const Gallery: React.FC = () => {
                     <h3 className="font-playfair text-lg sm:text-2xl xl:text-xl 2xl:text-2xl font-medium text-ivory">{cat.name}</h3>
                     <p className="mt-0.5 sm:mt-1 font-inter text-[10px] sm:text-xs text-sand/90">{cat.tagline}</p>
                     <span className="mt-2 sm:mt-3 inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-ivory px-3 py-1.5 sm:px-4 sm:py-2 font-inter text-[11px] sm:text-xs font-medium text-chocolate transition-colors duration-300 group-hover:bg-champagne">
-                      View Gallery <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                      View Portfolio <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                     </span>
                   </div>
                 </button>
@@ -378,7 +443,9 @@ const Gallery: React.FC = () => {
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="font-playfair text-2xl sm:text-3xl md:text-4xl font-medium text-chocolate">
-                  {activeCategory ? `${activeCategory.name} Gallery` : 'Featured Gallery'}
+                  {selectedCategory === WISHLIST
+                    ? 'My Wishlist'
+                    : activeCategory ? `${activeCategory.name} Portfolio` : 'Featured Portfolio'}
                 </h2>
                 <span className="hidden sm:flex items-center gap-2 text-champagne">
                   <span className="h-px w-10 bg-champagne" />
@@ -386,9 +453,23 @@ const Gallery: React.FC = () => {
                 </span>
               </div>
               <p className="mt-1 font-inter text-sm text-mocha">
-                {activeCategory ? activeCategory.tagline : 'A handpicked mix from every occasion'} · {filteredImages.length} photos
+                {selectedCategory === WISHLIST
+                  ? 'Looks you have saved'
+                  : activeCategory ? activeCategory.tagline : 'A handpicked mix from every occasion'} · {filteredImages.length} photos
               </p>
             </div>
+            {selectedCategory === WISHLIST && savedImages.length > 0 && (
+              <a
+                href={wishlistUrl(savedImages)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary shrink-0 !px-5 !py-2.5 text-sm"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">Send my wishlist</span>
+                <span className="sm:hidden">Send</span>
+              </a>
+            )}
             {!showAll && filteredImages.length > INITIAL_VISIBLE && (
               <button
                 onClick={viewAll}
@@ -429,18 +510,32 @@ const Gallery: React.FC = () => {
                     e.stopPropagation(); // Don't open the lightbox
                     toggleLike(image.id);
                   }}
-                  aria-label={likedImages[image.id] ? 'Unlike' : 'Like'}
+                  aria-label={isSaved(image.id) ? 'Remove from wishlist' : 'Save to wishlist'}
+                  aria-pressed={isSaved(image.id)}
                   className="absolute top-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-ivory/80 backdrop-blur-sm transition-colors duration-300 hover:bg-ivory"
                 >
                   <Heart
                     className={`w-4 h-4 transition-all duration-300 ${
-                      likedImages[image.id] ? 'fill-clay text-clay drop-shadow-glow' : 'text-cocoa'
+                      isSaved(image.id) ? 'fill-clay text-clay drop-shadow-glow' : 'text-cocoa'
                     }`}
                   />
                 </button>
               </div>
             ))}
           </div>
+
+          {selectedCategory === WISHLIST && savedImages.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-champagne bg-beige/50 px-6 py-12 text-center">
+              <Heart className="mx-auto h-8 w-8 text-clay" />
+              <p className="mt-4 font-playfair text-xl text-chocolate">Your wishlist is empty</p>
+              <p className="mt-2 font-inter text-sm text-mocha">
+                Tap the heart on any look you love and it will be saved here.
+              </p>
+              <button onClick={() => selectCategory('All')} className="btn-outline mt-6">
+                Browse all looks
+              </button>
+            </div>
+          )}
 
           {!showAll && filteredImages.length > INITIAL_VISIBLE && (
             <div className="mt-8 sm:mt-10 text-center">
@@ -501,7 +596,7 @@ const Gallery: React.FC = () => {
         const CategoryIcon = categories.find((c) => c.name === selectedImage.category)?.icon ?? Sparkles;
         const position = (selectedIndex ?? 0) + 1;
         const hasMany = filteredImages.length > 1;
-        const liked = !!likedImages[selectedImage.id];
+        const liked = isSaved(selectedImage.id);
         const navBtn = 'flex items-center justify-center rounded-full transition-all duration-300';
         return (
           <div
@@ -624,7 +719,7 @@ const Gallery: React.FC = () => {
                     </a>
                     <button
                       onClick={() => toggleLike(selectedImage.id)}
-                      aria-label={liked ? 'Unlike' : 'Like'}
+                      aria-label={liked ? 'Remove from wishlist' : 'Save to wishlist'}
                       aria-pressed={liked}
                       className={`${navBtn} h-12 w-12 border ${
                         liked ? 'border-clay/40 bg-blush/60' : 'border-sand bg-ivory hover:border-champagne hover:bg-beige'

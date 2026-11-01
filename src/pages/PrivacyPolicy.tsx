@@ -55,7 +55,7 @@ const sections: PolicySection[] = [
   {
     title: 'Photos of Your Look',
     paragraphs: [
-      'We love sharing our work, but we will only post photos or videos of you in our gallery or on social media with your permission. You can ask us to remove any image of you at any time.',
+      'We love sharing our work, but we will only post photos or videos of you in our portfolio or on social media with your permission. You can ask us to remove any image of you at any time.',
     ],
   },
   {

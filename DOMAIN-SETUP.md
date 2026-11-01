@@ -50,8 +50,8 @@ Do **not** do step 5 before step 4 is finished, or visitors will be sent to a do
 
 ## 6. After it's live
 - [ ] Open https://skbridalstudio.com, https://www.skbridalstudio.com and https://skbridalstudio.web.app — all should end on `skbridalstudio.com`.
-- [ ] Refresh on an inner page (e.g. `/gallery`) — it should load, not 404.
-- [ ] Test on a phone (Android and iPhone): menu, gallery, Book Now, WhatsApp, Call, Instagram, Contact form.
+- [ ] Refresh on an inner page (e.g. `/portfolio`) — it should load, not 404.
+- [ ] Test on a phone (Android and iPhone): menu, portfolio, Book Now, WhatsApp, Call, Instagram, Contact form.
 - [ ] Firebase Console → Authentication → Settings → **Authorized domains**: add `skbridalstudio.com` (only needed if Firebase login is added later).
 - [ ] Google Analytics → Admin → Data streams → web stream: update the website URL to `https://skbridalstudio.com`.
 - [ ] Google Search Console (https://search.google.com/search-console): add `skbridalstudio.com` as a **Domain** property, verify with the TXT record it gives, then submit `https://skbridalstudio.com/sitemap.xml`.

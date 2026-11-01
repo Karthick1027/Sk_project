@@ -312,3 +312,267 @@ export const PackagesBackdrop: React.FC = () => {
     </div>
   );
 };
+
+/* ───────────────────────── Reviews: laurel seal + floating review cards ───────────────────────── */
+
+// Leaf pairs along one side of the wreath, from the bottom up; the right side mirrors it.
+// Each pair sprouts from the stem (r = 78), one leaning out and one leaning in.
+const laurelLeaves = range(9).flatMap((i) => {
+  const deg = 120 + i * 16;
+  const a = (deg * Math.PI) / 180;
+  return [
+    { x: 100 + 87 * Math.cos(a), y: 100 + 87 * Math.sin(a), rot: deg - 30 },
+    { x: 100 + 69 * Math.cos(a), y: 100 + 69 * Math.sin(a), rot: deg + 30 },
+  ];
+});
+
+const LaurelSeal: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`absolute h-48 w-48 ${className}`}>
+    <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full text-mocha" fill="none" stroke="currentColor" strokeWidth="1.1">
+      {[1, -1].map((side) => (
+        <g key={side} transform={side === -1 ? 'translate(200 0) scale(-1 1)' : undefined}>
+          <path d="M86.5 176.8 A 78 78 0 0 1 79.8 24.7" />
+          {laurelLeaves.map((l) => (
+            <ellipse
+              key={l.rot}
+              cx={l.x.toFixed(1)}
+              cy={l.y.toFixed(1)}
+              rx="4"
+              ry="10"
+              transform={`rotate(${l.rot} ${l.x.toFixed(1)} ${l.y.toFixed(1)})`}
+              fill="currentColor"
+              fillOpacity="0.18"
+            />
+          ))}
+        </g>
+      ))}
+      <circle cx="100" cy="100" r="58" strokeDasharray="2 5" strokeOpacity="0.7" />
+    </svg>
+    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+      <span className="flex gap-0.5 text-mocha">
+        {range(5).map((i) => (
+          <svg key={i} viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor">
+            <path d="M12 2l3 6.9 7.5.6-5.7 4.9 1.8 7.3L12 17.8 5.4 21.7l1.8-7.3L1.5 9.5 9 8.9z" />
+          </svg>
+        ))}
+      </span>
+      <span className="mt-1.5 font-script text-3xl leading-none text-cocoa">Loved by</span>
+      <span className="mt-1 font-inter text-[10px] font-semibold uppercase tracking-[0.35em] text-mocha">Brides</span>
+    </div>
+  </div>
+);
+
+// Abstract review card: stars, text lines and an avatar, no real words
+const MiniReviewCard: React.FC<{ lines: string[] }> = ({ lines }) => (
+  <div className="w-52 rounded-2xl bg-ivory/90 p-4 shadow-soft ring-1 ring-sand backdrop-blur-sm">
+    <span className="flex gap-0.5 text-mocha">
+      {range(5).map((i) => (
+        <svg key={i} viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="currentColor">
+          <path d="M12 2l3 6.9 7.5.6-5.7 4.9 1.8 7.3L12 17.8 5.4 21.7l1.8-7.3L1.5 9.5 9 8.9z" />
+        </svg>
+      ))}
+    </span>
+    <div className="mt-3 space-y-1.5">
+      {lines.map((w, i) => <span key={i} className="block h-1.5 rounded-full bg-sand" style={{ width: w }} />)}
+    </div>
+    <div className="mt-4 flex items-center gap-2 border-t border-sand/70 pt-3">
+      <span className="h-6 w-6 rounded-full bg-champagne/70" />
+      <span className="h-1.5 w-16 rounded-full bg-champagne/60" />
+    </div>
+  </div>
+);
+
+const HeartBubble: React.FC<{ className?: string; delay?: string }> = ({ className = '', delay = '0s' }) => (
+  <div className={`absolute animate-float motion-reduce:animate-none ${className}`} style={{ animationDelay: delay }}>
+    <div className="flex h-10 w-10 items-center justify-center rounded-full rounded-bl-sm bg-blush shadow-soft">
+      <svg viewBox="0 0 24 24" className="h-4 w-4 text-clay" fill="currentColor">
+        <path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.1 0 3.6 1.2 5.2 3 1.6-1.8 3.1-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z" />
+      </svg>
+    </div>
+  </div>
+);
+
+const reviewSparkles = [
+  { top: '14%', left: '30%', delay: '0s', size: 10 },
+  { top: '72%', left: '27%', delay: '-1.4s', size: 12 },
+  { top: '20%', left: '70%', delay: '-2.3s', size: 9 },
+  { top: '78%', left: '72%', delay: '-0.7s', size: 11 },
+  { top: '46%', left: '4%', delay: '-2.9s', size: 8 },
+  { top: '40%', left: '96%', delay: '-1.9s', size: 9 },
+];
+
+export const ReviewsBackdrop: React.FC = () => (
+  <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+    {/* Oversized quote marks, barely there */}
+    <span className="absolute -top-10 left-[3%] font-playfair text-[16rem] leading-none text-champagne/25 select-none">&ldquo;</span>
+    <span className="absolute -bottom-40 right-[3%] font-playfair text-[16rem] leading-none text-champagne/25 select-none">&rdquo;</span>
+
+    {/* Side pieces only from xl, where the title leaves room either side */}
+    <div className="hidden xl:block">
+      <LaurelSeal className="top-[18%] left-[5%] 2xl:left-[9%]" />
+      <HeartBubble className="top-[64%] left-[17%] 2xl:left-[21%]" delay="-1.5s" />
+
+      <div className="absolute top-[14%] right-[4%] 2xl:right-[8%]">
+        <div className="rotate-6 animate-float motion-reduce:animate-none" style={{ animationDelay: '-2s' }}>
+          <MiniReviewCard lines={['100%', '90%', '55%']} />
+        </div>
+      </div>
+      <div className="absolute top-[44%] right-[10%] 2xl:right-[14%]">
+        <div className="-rotate-6">
+          <div className="animate-float motion-reduce:animate-none">
+            <MiniReviewCard lines={['100%', '75%']} />
+          </div>
+        </div>
+      </div>
+      <HeartBubble className="top-[40%] right-[4%] 2xl:right-[8%]" />
+    </div>
+
+    {/* Twinkling sparkles */}
+    {reviewSparkles.map((s) => (
+      <svg
+        key={s.top + s.left}
+        viewBox="-10 -10 20 20"
+        className="absolute hidden md:block text-mocha animate-twinkle motion-reduce:animate-none"
+        style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }}
+      >
+        <path d="M0 -10 C 1 -2, 2 -1, 10 0 C 2 1, 1 2, 0 10 C -1 2, -2 1, -10 0 C -2 -1, -1 -2, 0 -10 Z" fill="currentColor" />
+      </svg>
+    ))}
+  </div>
+);
+
+/* ───────────────────────── Services: makeup, hair and draping line art ───────────────────────── */
+
+const MakeupBrush: React.FC<{ className?: string; full?: boolean }> = ({ className = '', full = false }) => (
+  <svg viewBox="0 0 40 200" className={className} fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+    <path
+      d={full ? 'M20 2 C 36 10, 38 40, 28 54 L12 54 C 2 40, 4 10, 20 2 Z' : 'M20 6 C 29 16, 31 38, 26 54 L14 54 C 9 38, 11 16, 20 6 Z'}
+      fill="currentColor"
+      fillOpacity="0.22"
+    />
+    <rect x="13" y="54" width="14" height="22" rx="2" />
+    <path d="M13 61 H27 M13 69 H27" strokeOpacity="0.6" />
+    <path d="M14 76 L17 190 Q20 197 23 190 L26 76" />
+  </svg>
+);
+
+const PowderCompact: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg viewBox="0 0 120 136" className={className} fill="none" stroke="currentColor" strokeWidth="1.3">
+    {/* Mirror lid */}
+    <circle cx="60" cy="36" r="33" />
+    <circle cx="60" cy="36" r="26" fill="currentColor" fillOpacity="0.08" />
+    <path d="M44 26 Q 50 16, 62 14" strokeLinecap="round" strokeOpacity="0.7" />
+    <rect x="52" y="66" width="16" height="6" rx="2" />
+    {/* Powder base */}
+    <circle cx="60" cy="102" r="33" />
+    <circle cx="60" cy="102" r="24" fill="currentColor" fillOpacity="0.2" />
+    {range(6).map((i) => {
+      const a = (i * 60 * Math.PI) / 180;
+      return <circle key={i} cx={(60 + 12 * Math.cos(a)).toFixed(1)} cy={(102 + 12 * Math.sin(a)).toFixed(1)} r="2.5" strokeOpacity="0.6" />;
+    })}
+  </svg>
+);
+
+const Lipstick: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg viewBox="0 0 50 140" className={className} fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+    <path d="M15 62 V28 L35 12 V62 Z" fill="currentColor" fillOpacity="0.3" />
+    <rect x="12" y="62" width="26" height="18" rx="2" />
+    <rect x="9" y="80" width="32" height="56" rx="3" />
+    <path d="M9 92 H41" strokeOpacity="0.6" />
+  </svg>
+);
+
+// A strand of jasmine buds and blossoms, as worn in bridal hair
+const JasmineStrand: React.FC<{ count: number; className?: string; delay?: string }> = ({ count, className = '', delay = '0s' }) => {
+  const h = count * 26 + 20;
+  return (
+    <svg
+      viewBox={`0 0 40 ${h}`}
+      className={`origin-top animate-swing motion-reduce:animate-none ${className}`}
+      style={{ animationDelay: delay, height: h, width: 40 }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.1"
+    >
+      <path d={`M20 0 V${h - 8}`} strokeOpacity="0.6" />
+      {range(count).map((i) => {
+        const cy = 18 + i * 26;
+        return (
+          <g key={i} transform={`translate(20 ${cy})`}>
+            {range(5).map((p) => (
+              <ellipse key={p} cx="0" cy="-6" rx="3.2" ry="6" transform={`rotate(${p * 72})`} fill="currentColor" fillOpacity="0.14" />
+            ))}
+            <circle r="1.8" fill="currentColor" />
+          </g>
+        );
+      })}
+      <path d={`M20 ${h - 8} l-4 8 M20 ${h - 8} l4 8 M20 ${h - 8} v8`} strokeOpacity="0.7" />
+    </svg>
+  );
+};
+
+// Saree pleats fanned out, with a dotted zari border along the hem
+const SareePleats: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const hem = range(9).map((i) => 12 + i * 17);
+  return (
+    <svg viewBox="0 0 160 130" className={className} fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round">
+      <path d="M80 8 L12 104 Q 80 124, 148 104 Z" fill="currentColor" fillOpacity="0.08" />
+      {hem.map((x) => <path key={x} d={`M80 8 L${x} ${104 + Math.sin(((x - 12) / 136) * Math.PI) * 10}`} strokeOpacity="0.55" />)}
+      <path d="M12 104 Q 80 124, 148 104" />
+      <path d="M14 112 Q 80 132, 146 112" />
+      {range(12).map((i) => {
+        const t = (i + 0.5) / 12;
+        const x = 14 + t * 132;
+        const y = 108 + Math.sin(t * Math.PI) * 10;
+        return <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="1.4" fill="currentColor" />;
+      })}
+      <circle cx="80" cy="8" r="3" fill="currentColor" />
+    </svg>
+  );
+};
+
+const serviceSparkles = [
+  { top: '18%', left: '22%', delay: '0s', size: 10 },
+  { top: '70%', left: '25%', delay: '-1.6s', size: 12 },
+  { top: '26%', left: '76%', delay: '-2.4s', size: 9 },
+  { top: '74%', left: '74%', delay: '-0.8s', size: 11 },
+];
+
+export const ServicesBackdrop: React.FC = () => (
+  <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+    {/* Side illustrations only from 2xl: the one-line title is too wide to clear them on smaller laptops */}
+    <div className="hidden 2xl:block text-mocha">
+      {/* Makeup: crossed brushes, an open compact and a lipstick */}
+      <div className="absolute top-[12%] left-[8%] opacity-80">
+        <MakeupBrush full className="absolute h-44 w-9 -rotate-[22deg]" />
+        <MakeupBrush className="absolute left-10 h-40 w-8 rotate-[18deg]" />
+      </div>
+      <div className="absolute bottom-[10%] left-[15%] animate-float motion-reduce:animate-none" style={{ animationDelay: '-1s' }}>
+        <PowderCompact className="h-28 w-24 opacity-80" />
+      </div>
+      <div className="absolute bottom-[12%] left-[6%] rotate-12 opacity-80">
+        <Lipstick className="h-24 w-9" />
+      </div>
+
+      {/* Hair and draping: jasmine strands and a fan of saree pleats */}
+      <div className="absolute top-0 right-[4%] min-[1800px]:right-[8%] flex items-start gap-5 opacity-80">
+        <JasmineStrand count={7} />
+        <JasmineStrand count={5} delay="-1.8s" />
+        <JasmineStrand count={8} delay="-0.9s" />
+      </div>
+      <SareePleats className="absolute bottom-[8%] right-[8%] min-[1800px]:right-[16%] h-28 w-36 opacity-80" />
+    </div>
+
+    {/* Twinkling sparkles */}
+    {serviceSparkles.map((s) => (
+      <svg
+        key={s.top + s.left}
+        viewBox="-10 -10 20 20"
+        className="absolute hidden md:block text-mocha animate-twinkle motion-reduce:animate-none"
+        style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }}
+      >
+        <path d="M0 -10 C 1 -2, 2 -1, 10 0 C 2 1, 1 2, 0 10 C -1 2, -2 1, -10 0 C -2 -1, -1 -2, 0 -10 Z" fill="currentColor" />
+      </svg>
+    ))}
+  </div>
+);

@@ -2,18 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Check, Plus, Gift, Car, Sparkles, Gem, Brush, MessageCircle, ArrowRight, ArrowDown, Instagram,
-  Wallet, CalendarCheck, CalendarClock, Percent, Receipt, Lock,
+  Wallet, CalendarCheck, CalendarClock, Percent, Receipt, Lock, Clock,
+  Smartphone, SmartphoneNfc, QrCode, Landmark, Banknote, type LucideIcon,
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
 import CtaBanner from '../components/CtaBanner';
 import { PackagesBackdrop } from '../components/PageBackdrops';
 import {
-  bridalPackages, packageAddOns, bookingAdvance, bookingSteps, bookingNotes, paymentMethods, BridalPackage,
+  bridalPackages, packageAddOns, addOnServices, bookingAdvance, bookingSteps, bookingNotes, paymentMethods, BridalPackage,
 } from '../data/packages';
 
 const SEO_TITLE = 'Bridal Makeup Packages | SK Bridal Studio';
 const SEO_DESCRIPTION =
-  'Bridal makeup packages in Chennai by SK Bridal Studio: Airbrush, Glossy / Waterproof and HD / Matte finishes with hairstyling, saree draping and more.';
+  'Bridal makeup packages in Chennai by SK Bridal Studio: HD / Matte, Glossy / Waterproof and Airbrush finishes with hairstyling, saree draping and more.';
 
 const WHATSAPP_URL = 'https://wa.me/918668038093';
 const JEWELLERY_URL = 'https://instagram.com/sk_bridal.collections';
@@ -30,6 +31,16 @@ const perkIcon = (perk: string) => {
 };
 
 const stepIcons = [MessageCircle, Wallet, CalendarCheck];
+
+// Generic icons per payment method (the icon set has no brand logos)
+const paymentIcons: Record<string, LucideIcon> = {
+  'Google Pay': Smartphone,
+  PhonePe: SmartphoneNfc,
+  Paytm: Wallet,
+  UPI: QrCode,
+  'Net banking': Landmark,
+  Cash: Banknote,
+};
 
 const noteIcon = (note: string) => {
   if (note.startsWith('All prices')) return Percent;
@@ -225,6 +236,15 @@ const PackageCard: React.FC<PackageCardProps> = ({
         {pkg.description}
       </p>
 
+      {/* Wear time */}
+      <p className={`relative mt-4 flex items-start gap-2.5 font-inter text-sm leading-snug ${dark ? 'text-sand/90' : 'text-ink'}`}>
+        <Clock className={`mt-0.5 h-4 w-4 shrink-0 ${dark ? 'text-champagne' : 'text-mocha'}`} />
+        <span>
+          <span className={`font-semibold ${dark ? 'text-ivory' : 'text-chocolate'}`}>Stays fresh for {pkg.wearTime.charAt(0).toLowerCase() + pkg.wearTime.slice(1)}</span>{' '}
+          in air-conditioned venues, and even longer with gentle aftercare
+        </span>
+      </p>
+
       <div className={`relative my-7 h-px ${dark ? 'bg-champagne/25' : 'bg-sand'}`} />
 
       {/* Inclusions */}
@@ -314,7 +334,8 @@ const PackageCard: React.FC<PackageCardProps> = ({
           href={enquiryLink(pkg, mode)}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${dark ? 'btn-light' : 'btn-primary'} mt-6 w-full`}
+          // Compact and centred on phones, full card width from sm up
+          className={`${dark ? 'btn-light' : 'btn-primary'} mx-auto mt-6 flex w-fit !px-6 !py-3 text-sm sm:w-full sm:!py-3.5 sm:text-[15px]`}
         >
           <MessageCircle className="h-4 w-4" />
           Enquire on WhatsApp
@@ -358,9 +379,10 @@ const Packages: React.FC = () => {
     };
   }, []);
 
-  const modes: { key: BookingMode; label: string }[] = [
-    { key: 'single', label: 'Single Session' },
-    { key: 'combo', label: 'Muhurtham + Reception' },
+  // Phones show the short label with a caption under it; wider screens show the full label on one line
+  const modes: { key: BookingMode; label: string; short: string; caption: string }[] = [
+    { key: 'single', label: 'Single Session', short: 'Single Session', caption: 'One ceremony' },
+    { key: 'combo', label: 'Muhurtham + Reception', short: 'Both Sessions', caption: 'Muhurtham + Reception' },
   ];
 
   return (
@@ -376,10 +398,11 @@ const Packages: React.FC = () => {
           </>
         }
         subtitle="Three bridal makeup finishes, each complete with hairstyling, saree draping and the finishing touches, for weddings within Chennai."
-        padding="pt-16 pb-8 sm:pt-20 sm:pb-10 md:pt-20 md:pb-10"
+        padding="pt-16 pb-6 sm:pt-20 sm:pb-10 md:pt-20 md:pb-10"
       >
         {/* The three finishes at a glance; each jumps to (and highlights) its package card */}
-        <div className="mt-7 sm:mt-9 flex flex-wrap justify-center gap-2 sm:gap-3">
+        {/* Compact on phones so all three fit on one row */}
+        <div className="mt-5 sm:mt-9 flex flex-wrap justify-center gap-1.5 sm:gap-3">
           {bridalPackages.map((pkg, i) => (
             <button
               key={pkg.id}
@@ -389,41 +412,54 @@ const Packages: React.FC = () => {
                 // No explicit behavior, so it follows the page's smooth scrolling
                 document.getElementById(`package-${pkg.id}`)?.scrollIntoView({ block: 'start' });
               }}
-              className={`group inline-flex items-center gap-2 rounded-full border px-4 py-2 font-inter text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] shadow-soft backdrop-blur-sm animate-fade-in transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mocha/50 ${
+              className={`group inline-flex items-center gap-1.5 sm:gap-2 rounded-full border px-3 sm:px-4 py-2 font-inter text-[10px] sm:text-xs font-semibold uppercase tracking-[0.06em] sm:tracking-[0.18em] shadow-soft backdrop-blur-sm animate-fade-in transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mocha/50 ${
                 selectedId === pkg.id
                   ? 'border-chocolate bg-chocolate text-ivory'
                   : 'border-sand bg-ivory/80 text-cocoa hover:border-mocha hover:text-chocolate'
               }`}
               style={{ animationDelay: `${0.3 + i * 0.15}s` }}
             >
-              <Sparkles className={`h-3.5 w-3.5 ${selectedId === pkg.id ? 'text-champagne' : 'text-mocha'}`} />
+              <Sparkles className={`hidden sm:block h-3.5 w-3.5 ${selectedId === pkg.id ? 'text-champagne' : 'text-mocha'}`} />
               {/* "Glossy" + "or Waterproof" reads as "Glossy / Waterproof"; other accents are descriptions, so dropped */}
               {pkg.finishAccent.startsWith('or ') ? `${pkg.finish} / ${pkg.finishAccent.slice(3)}` : pkg.finish}
-              <ArrowDown className="h-3 w-3 opacity-60 transition-transform duration-300 group-hover:translate-y-0.5" />
+              <ArrowDown className="hidden sm:block h-3 w-3 opacity-60 transition-transform duration-300 group-hover:translate-y-0.5" />
             </button>
           ))}
         </div>
       </PageHero>
 
-      <section className="container mx-auto px-4 pt-8 pb-10 sm:pt-10 sm:pb-12 md:pt-10 md:pb-14 md:max-w-[90%]">
+      <section className="container mx-auto px-4 pt-6 pb-10 sm:pt-10 sm:pb-12 md:pt-10 md:pb-14 md:max-w-[90%]">
         {/* Booking toggle */}
-        <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 text-center">
           <p className="eyebrow">I'm booking for</p>
-          <div role="group" aria-label="Booking type" className="inline-flex max-w-full rounded-full border border-sand bg-beige/70 p-1.5 shadow-soft">
-            {modes.map((m) => (
-              <button
-                key={m.key}
-                type="button"
-                onClick={() => setMode(m.key)}
-                aria-pressed={mode === m.key}
-                className={`flex items-center gap-2 rounded-full px-4 sm:px-6 py-2.5 font-inter text-[11px] sm:text-xs font-semibold uppercase tracking-[0.15em] sm:tracking-[0.2em] transition-all duration-300 ${
-                  mode === m.key ? 'bg-chocolate text-ivory shadow-soft' : 'text-cocoa hover:text-chocolate'
-                }`}
-              >
-                {m.key === 'combo' && <Gift className="h-3.5 w-3.5 shrink-0" />}
-                {m.label}
-              </button>
-            ))}
+          <div
+            role="group"
+            aria-label="Booking type"
+            className="grid w-full max-w-sm grid-cols-2 gap-1 rounded-[1.4rem] border border-sand bg-beige/70 p-1.5 shadow-soft sm:inline-flex sm:w-auto sm:max-w-full sm:gap-0 sm:rounded-full"
+          >
+            {modes.map((m) => {
+              const active = mode === m.key;
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setMode(m.key)}
+                  aria-pressed={active}
+                  className={`flex flex-col items-center justify-center rounded-2xl px-3 py-2.5 transition-all duration-300 sm:flex-row sm:gap-2 sm:rounded-full sm:px-6 [-webkit-tap-highlight-color:transparent] ${
+                    active ? 'bg-chocolate text-ivory shadow-soft' : 'text-cocoa hover:text-chocolate'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5 whitespace-nowrap font-inter text-[11px] sm:text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.2em]">
+                    {m.key === 'combo' && <Gift className="h-3.5 w-3.5 shrink-0" />}
+                    <span className="sm:hidden">{m.short}</span>
+                    <span className="hidden sm:inline">{m.label}</span>
+                  </span>
+                  <span className={`mt-0.5 whitespace-nowrap font-inter text-[11px] sm:hidden ${active ? 'text-sand/80' : 'text-mocha'}`}>
+                    {m.caption}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <p className="font-inter text-sm text-mocha max-w-md">
             {mode === 'combo'
@@ -481,7 +517,7 @@ const Packages: React.FC = () => {
               </span>
               <h3 className="mt-5 font-playfair text-2xl font-medium text-chocolate">Bridal Jewellery</h3>
               <p className="mt-3 font-inter text-[15px] leading-relaxed text-ink">
-                Book both Muhurtham &amp; Reception and one session's rental of a full bridal jewellery set is included.
+                Book the Airbrush package for both Muhurtham &amp; Reception and one session's rental of a full bridal jewellery set is included.
                 Pick your favourite set from our jewellery collection.
               </p>
               <a
@@ -495,6 +531,37 @@ const Packages: React.FC = () => {
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Add-on services by the team */}
+        <div className="mt-10 sm:mt-14 grid gap-8 lg:grid-cols-5 lg:gap-14">
+          <div className="lg:col-span-2">
+            <p className="eyebrow">Add-on services</p>
+            <h3 className="mt-3 font-playfair text-3xl sm:text-4xl xl:text-5xl font-medium leading-tight text-chocolate">
+              Extra hands <span className="font-cormorant italic text-cocoa">on the day</span>
+            </h3>
+            <p className="mt-4 max-w-sm font-inter text-[15px] leading-relaxed text-ink">
+              My trained team takes care of these extras. They can be added only to a bridal package booking.
+            </p>
+          </div>
+          <ul className="lg:col-span-3 divide-y divide-sand border-y border-sand">
+            {addOnServices.map((s) => (
+              <li key={s.title} className="flex flex-col gap-2 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                <h4 className="font-playfair text-xl sm:text-2xl font-medium text-chocolate">
+                  {s.title} <span className="font-cormorant italic text-cocoa">{s.accent}</span>
+                </h4>
+                {s.options.length > 0 && (
+                  <ul className="flex flex-wrap gap-2 sm:justify-end">
+                    {s.options.map((o) => (
+                      <li key={o} className="rounded-full bg-beige px-3 py-1 font-inter text-[11px] font-medium uppercase tracking-[0.15em] text-cocoa ring-1 ring-sand">
+                        {o}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Booking procedure */}
@@ -565,11 +632,15 @@ const Packages: React.FC = () => {
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <span className="mr-1 font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-mocha">We accept</span>
-              {paymentMethods.map((m) => (
-                <span key={m} className="rounded-full bg-chocolate px-4 py-1.5 font-inter text-xs font-medium tracking-wide text-ivory shadow-soft">
-                  {m}
-                </span>
-              ))}
+              {paymentMethods.map((m) => {
+                const Icon = paymentIcons[m] ?? Wallet;
+                return (
+                  <span key={m} className="inline-flex items-center gap-1.5 rounded-full bg-chocolate px-4 py-1.5 font-inter text-xs font-medium tracking-wide text-ivory shadow-soft">
+                    <Icon className="h-3.5 w-3.5 text-champagne" />
+                    {m}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>

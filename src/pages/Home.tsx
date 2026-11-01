@@ -56,16 +56,16 @@ const Counter: React.FC<{ end: number; duration: number; label: string; icon: Re
   }, [isVisible, end, duration]);
 
   return (
-    <div ref={ref} className="text-center group px-4 py-6 md:px-6 md:py-8">
-      <div className="flex justify-center mb-4 md:mb-5">
-        <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-champagne bg-beige text-cocoa group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500">
+    <div ref={ref} className="text-center group px-2 py-5 sm:px-4 sm:py-6 md:px-6 md:py-8">
+      <div className="flex justify-center mb-3 md:mb-5">
+        <div className="flex h-9 w-9 sm:h-12 sm:w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-champagne bg-beige text-cocoa group-hover:bg-chocolate group-hover:text-ivory transition-colors duration-500 [&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-6 sm:[&>svg]:w-6">
           {icon}
         </div>
       </div>
-      <div className="font-playfair leading-tight text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate mb-3">
+      <div className="font-playfair leading-tight text-3xl sm:text-5xl md:text-6xl font-medium text-chocolate mb-1.5 sm:mb-3">
         {count}+
       </div>
-      <p className="font-inter text-xs md:text-sm uppercase tracking-[0.15em] md:tracking-[0.25em] text-cocoa">{label}</p>
+      <p className="font-inter text-[10px] sm:text-xs md:text-sm uppercase leading-snug tracking-[0.1em] sm:tracking-[0.15em] md:tracking-[0.25em] text-cocoa">{label}</p>
     </div>
   );
 };
@@ -193,7 +193,8 @@ const Home: React.FC = () => {
             className="mb-8 md:mb-10"
           />
 
-          <div className="card grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-sand/70 max-w-5xl mx-auto">
+          {/* Three across at every size; on phones the counters shrink to fit one compact row */}
+          <div className="card grid grid-cols-3 divide-x divide-sand/70 max-w-5xl mx-auto">
             <Counter
               end={230}
               duration={2500}
@@ -282,7 +283,7 @@ const Home: React.FC = () => {
           <Calendar className="w-5 h-5" />
           Book Appointment
         </Link>
-        <Link to="/gallery" className="btn-ghost-light">
+        <Link to="/portfolio" className="btn-ghost-light">
           <Award className="w-5 h-5" />
           View Portfolio
         </Link>

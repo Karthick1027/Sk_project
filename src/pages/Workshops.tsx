@@ -163,7 +163,7 @@ const Workshops: React.FC = () => {
         <div aria-hidden="true" className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-blush/50 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-champagne/30 blur-3xl" />
 
-        <div className="relative container mx-auto grid items-center gap-12 px-4 py-10 sm:py-14 md:max-w-[90%] lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:py-16">
+        <div className="relative container mx-auto grid items-center gap-12 px-4 pt-6 pb-8 sm:py-14 md:max-w-[90%] lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:py-16">
           <div className="text-center lg:text-left animate-fade-in">
             <span className="inline-flex items-center gap-2.5 rounded-full border border-champagne bg-ivory/80 px-4 py-2 font-inter text-[11px] font-semibold uppercase tracking-[0.3em] text-cocoa">
               <span className="relative flex h-2 w-2">
@@ -173,7 +173,7 @@ const Workshops: React.FC = () => {
               Live Virtual Masterclass
             </span>
 
-            <h1 className="mt-7 font-playfair text-5xl sm:text-6xl xl:text-7xl font-medium leading-[1.05] text-chocolate">
+            <h1 className="mt-5 sm:mt-7 font-playfair text-5xl sm:text-6xl xl:text-7xl font-medium leading-[1.05] text-chocolate">
               Two sessions.
               <br />
               Two styles.
@@ -181,12 +181,12 @@ const Workshops: React.FC = () => {
               <span className="font-cormorant italic text-cocoa">Mastered live.</span>
             </h1>
 
-            <p className="mx-auto mt-7 max-w-xl font-inter text-base sm:text-lg leading-relaxed text-ink lg:mx-0">
+            <p className="mx-auto mt-4 sm:mt-7 max-w-xl font-inter text-base sm:text-lg leading-relaxed text-ink lg:mx-0">
               A two-day interactive virtual masterclass with Srinithi: the muhurtham look on the first day, the
               reception look on the second. Demonstrated as it happens, with all your questions answered along the way.
             </p>
 
-            <dl className="mx-auto mt-9 grid max-w-md grid-cols-3 divide-x divide-sand rounded-2xl border border-sand bg-ivory/70 py-4 lg:mx-0">
+            <dl className="mx-auto mt-5 sm:mt-9 grid max-w-md grid-cols-3 divide-x divide-sand rounded-2xl border border-sand bg-ivory/70 py-3 sm:py-4 lg:mx-0">
               {[
                 ['02', 'Days'],
                 ['02', 'Bridal looks'],
@@ -194,23 +194,23 @@ const Workshops: React.FC = () => {
               ].map(([n, label]) => (
                 <div key={label} className="px-2 text-center">
                   <dt className="sr-only">{label}</dt>
-                  <dd className="font-cormorant text-4xl italic leading-none text-chocolate">{n}</dd>
-                  <dd className="mt-1.5 font-inter text-[10px] font-semibold uppercase tracking-[0.2em] text-mocha">{label}</dd>
+                  <dd className="font-cormorant text-3xl sm:text-4xl italic leading-none text-chocolate">{n}</dd>
+                  <dd className="mt-1 sm:mt-1.5 font-inter text-[10px] font-semibold uppercase leading-snug tracking-[0.1em] sm:tracking-[0.2em] text-mocha">{label}</dd>
                 </div>
               ))}
             </dl>
 
-            <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
-              <a href={DM_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
+            <div className="mt-6 sm:mt-9 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-center lg:justify-start">
+              <a href={DM_URL} target="_blank" rel="noopener noreferrer" className="btn-primary !py-3 sm:!py-3.5">
                 <Instagram className="h-4 w-4" />
                 DM to Register
               </a>
-              <a href="#programme" className="btn-outline">
+              <a href="#programme" className="btn-outline !py-3 sm:!py-3.5">
                 Explore the 2 Days
                 <ArrowDown className="h-4 w-4" />
               </a>
             </div>
-            <p className="mt-4 font-inter text-sm text-mocha">Registration by Instagram DM only. No calls, please.</p>
+            <p className="mt-3 sm:mt-4 font-inter text-sm text-mocha">Registration by Instagram DM only. No calls, please.</p>
           </div>
 
           {/* Photo collage */}
@@ -280,14 +280,14 @@ const Workshops: React.FC = () => {
                   aria-selected={selected}
                   aria-controls="day-panel"
                   onClick={() => setActive(i)}
-                  className={`group relative flex items-center gap-5 overflow-hidden rounded-[1.75rem] border p-5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-2 focus-visible:ring-offset-ivory sm:p-6 ${
+                  className={`group relative flex items-center gap-4 sm:gap-5 overflow-hidden rounded-3xl sm:rounded-[1.75rem] border px-5 py-3.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-2 focus-visible:ring-offset-ivory sm:p-6 ${
                     selected
                       ? 'border-chocolate bg-chocolate text-ivory shadow-luxe'
                       : 'border-sand bg-ivory text-chocolate shadow-soft hover:-translate-y-0.5 hover:border-champagne'
                   }`}
                 >
                   <span
-                    className={`font-cormorant text-6xl italic leading-none sm:text-7xl ${selected ? 'text-champagne' : 'text-champagne/80'}`}
+                    className={`font-cormorant text-5xl italic leading-none sm:text-7xl ${selected ? 'text-champagne' : 'text-champagne/80'}`}
                   >
                     {d.num}
                   </span>
@@ -295,7 +295,7 @@ const Workshops: React.FC = () => {
                     <span className={`block font-inter text-[11px] font-semibold uppercase tracking-[0.3em] ${selected ? 'text-champagne' : 'text-mocha'}`}>
                       Day {d.num}
                     </span>
-                    <span className="mt-1.5 block font-playfair text-xl font-medium leading-snug sm:text-2xl">
+                    <span className="mt-1 sm:mt-1.5 block font-playfair text-lg font-medium leading-snug sm:text-2xl">
                       {d.title} {d.accent}
                     </span>
                   </span>
@@ -395,14 +395,17 @@ const Workshops: React.FC = () => {
             subtitle="How the live sessions run, so you can plan your day"
             className="mb-8 md:mb-10"
           />
-          <div className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Compact rows on phones (icon beside the text); centred cards from sm up */}
+          <div className="mx-auto grid max-w-5xl gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {essentials.map((e) => (
-              <div key={e.title} className="group card p-6 text-center transition-transform duration-300 hover:-translate-y-1">
-                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-beige text-cocoa ring-1 ring-champagne transition-colors duration-300 group-hover:bg-chocolate group-hover:text-champagne">
-                  <e.icon className="h-6 w-6" />
+              <div key={e.title} className="group card flex items-center gap-4 p-4 text-left transition-transform duration-300 hover:-translate-y-1 sm:block sm:p-6 sm:text-center">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-beige text-cocoa ring-1 ring-champagne transition-colors duration-300 group-hover:bg-chocolate group-hover:text-champagne sm:mx-auto sm:h-14 sm:w-14">
+                  <e.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </span>
-                <h3 className="mt-5 font-playfair text-xl font-medium text-chocolate">{e.title}</h3>
-                <p className="mt-2 font-inter text-sm leading-relaxed text-ink">{e.text}</p>
+                <div>
+                  <h3 className="font-playfair text-lg font-medium text-chocolate sm:mt-5 sm:text-xl">{e.title}</h3>
+                  <p className="mt-0.5 font-inter text-sm leading-relaxed text-ink sm:mt-2">{e.text}</p>
+                </div>
               </div>
             ))}
           </div>

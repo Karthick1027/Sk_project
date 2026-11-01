@@ -20,7 +20,8 @@ const Header: React.FC = () => {
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
     { name: 'Services', path: '/services' },
-    { name: 'Gallery', path: '/gallery' },
+    { name: 'Portfolio', path: '/portfolio' },
+    { name: 'Reviews', path: '/reviews' },
     { name: 'Packages', path: '/packages' },
     { name: 'Workshops', path: '/workshops' },
     { name: 'Contact', path: '/contact' },
@@ -35,7 +36,7 @@ const Header: React.FC = () => {
         : 'bg-ivory/40 backdrop-blur-sm border-transparent'
     }`}>
       <nav className="container mx-auto px-4 py-3 md:max-w-[90%]">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-6">
           {/* Logo */}
           <Link to="/" className="flex min-w-0 items-center gap-3 group">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-chocolate ring-1 ring-champagne ring-offset-2 ring-offset-ivory transition-transform duration-500 group-hover:scale-105">
@@ -45,8 +46,8 @@ const Header: React.FC = () => {
                 className="w-11"
               />
             </div>
-            {/* Brand text is hidden on the narrowest phones and at lg, where the full nav needs the room */}
-            <div className="hidden min-[360px]:block lg:hidden xl:block leading-none">
+            {/* Brand text is hidden on the narrowest phones and on laptops below 1440px, where the full nav needs the room */}
+            <div className="hidden min-[360px]:block lg:hidden min-[1440px]:block leading-none">
               <span className="block font-playfair text-base sm:text-xl font-medium uppercase tracking-[0.15em] sm:tracking-[0.2em] text-chocolate whitespace-nowrap">
                 SK Bridal Studio
               </span>
@@ -59,14 +60,14 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-4 xl:gap-5 2xl:gap-10">
+          <div className="hidden lg:flex items-center gap-3 xl:gap-5 2xl:gap-6">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`relative group rounded-sm py-1 font-inter text-[13px] font-medium uppercase tracking-[0.12em] xl:tracking-[0.15em] 2xl:tracking-[0.2em] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-4 focus-visible:ring-offset-ivory ${
+                  className={`relative group rounded-sm py-1 font-inter text-[13px] font-medium uppercase tracking-[0.1em] xl:tracking-[0.15em] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-4 focus-visible:ring-offset-ivory ${
                     isActive ? 'text-chocolate' : 'text-cocoa/80 hover:text-chocolate'
                   }`}
                 >

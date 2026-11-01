@@ -5,6 +5,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
+import { ServicesBackdrop } from '../components/PageBackdrops';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
 import GiftCelebration from '../components/GiftCelebration';
@@ -64,22 +65,25 @@ const compliments: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Gem, title: 'Javuri & Kunjalam', text: 'Traditional South Indian braid extensions and tassels.' },
 ];
 
-const brands = [
-  'Make Up For Ever', 'Anastasia Beverly Hills', 'NYX', 'Urban Decay', 'Natasha Denona',
-  'Charlotte Tilbury', 'Estée Lauder', 'Dior', 'Chanel',
-];
-
 // Each brand gets its own type style, echoing how the names look on their packaging
-const brandStyles = [
-  'font-inter text-2xl sm:text-3xl font-medium uppercase tracking-[0.2em]',
-  'font-cormorant text-3xl sm:text-4xl italic',
-  'font-inter text-3xl sm:text-4xl font-bold uppercase tracking-[0.3em]',
-  'font-playfair text-2xl sm:text-3xl font-semibold uppercase tracking-[0.12em]',
-  'font-cormorant text-3xl sm:text-4xl uppercase tracking-[0.2em]',
-  'font-playfair text-2xl sm:text-3xl uppercase tracking-[0.12em]',
-  'font-cormorant text-3xl sm:text-4xl font-medium uppercase tracking-[0.18em]',
-  'font-cormorant text-3xl sm:text-4xl uppercase tracking-[0.4em]',
-  'font-inter text-2xl sm:text-3xl font-bold uppercase tracking-[0.04em]',
+const brands = [
+  { name: 'Hourglass', style: 'font-playfair text-2xl sm:text-3xl uppercase tracking-[0.3em]' },
+  { name: 'Charlotte Tilbury', style: 'font-playfair text-2xl sm:text-3xl uppercase tracking-[0.12em]' },
+  { name: 'Estée Lauder', style: 'font-cormorant text-3xl sm:text-4xl font-medium uppercase tracking-[0.18em]' },
+  { name: 'Dior', style: 'font-cormorant text-3xl sm:text-4xl uppercase tracking-[0.4em]' },
+  { name: 'Chanel', style: 'font-inter text-2xl sm:text-3xl font-bold uppercase tracking-[0.04em]' },
+  { name: 'Giorgio Armani', style: 'font-cormorant text-3xl sm:text-4xl uppercase tracking-[0.3em]' },
+  { name: 'Tarte', style: 'font-cormorant text-3xl sm:text-4xl font-semibold lowercase' },
+  { name: 'Fenty Beauty', style: 'font-inter text-2xl sm:text-3xl font-bold uppercase tracking-[0.15em]' },
+  { name: 'Haus Labs', style: 'font-inter text-2xl sm:text-3xl font-light uppercase tracking-[0.25em]' },
+  { name: 'NARS', style: 'font-inter text-3xl sm:text-4xl font-bold uppercase tracking-[0.12em]' },
+  { name: 'MAC', style: 'font-inter text-3xl sm:text-4xl font-bold uppercase tracking-[0.08em]' },
+  { name: 'Too Faced', style: 'font-playfair text-2xl sm:text-3xl italic' },
+  { name: 'Make Up For Ever', style: 'font-inter text-2xl sm:text-3xl font-medium uppercase tracking-[0.2em]' },
+  { name: 'Anastasia Beverly Hills', style: 'font-cormorant text-3xl sm:text-4xl italic' },
+  { name: 'NYX', style: 'font-inter text-3xl sm:text-4xl font-bold uppercase tracking-[0.3em]' },
+  { name: 'Urban Decay', style: 'font-playfair text-2xl sm:text-3xl font-semibold uppercase tracking-[0.12em]' },
+  { name: 'Natasha Denona', style: 'font-cormorant text-3xl sm:text-4xl uppercase tracking-[0.2em]' },
 ];
 
 const Services: React.FC = () => {
@@ -98,6 +102,7 @@ const Services: React.FC = () => {
     <div className="pt-20 min-h-screen bg-ivory">
       <PageHero
         eyebrow="Our Services"
+        backdrop={<ServicesBackdrop />}
         title={
           <>
             Your Bridal Look,{' '}
@@ -240,7 +245,7 @@ const Services: React.FC = () => {
               ))}
             </div>
             {/* The ribbon knot is hidden on phones, so offer the gift as a button instead */}
-            <button type="button" onClick={() => setGiftOpen(true)} className="btn-secondary mt-3 w-full sm:hidden">
+            <button type="button" onClick={() => setGiftOpen(true)} className="btn-secondary mx-auto mt-3 flex w-fit !px-5 !py-2.5 text-sm sm:hidden">
               <Gift className="h-4 w-4" />
               Open Your Gift
             </button>
@@ -261,15 +266,19 @@ const Services: React.FC = () => {
           />
         </div>
         <div className="border-y border-sand bg-beige/50 py-8 sm:py-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-          <ul className="flex w-max animate-marquee items-center hover:[animation-play-state:paused] motion-reduce:animate-none">
+          {/* Longer list than the shared 55s marquee was tuned for, so slow it to keep the same pace */}
+          <ul
+            className="flex w-max animate-marquee items-center hover:[animation-play-state:paused] motion-reduce:animate-none"
+            style={{ animationDuration: '80s' }}
+          >
             {[...brands, ...brands].map((b, i) => (
               <li
-                key={`${b}-${i}`}
+                key={`${b.name}-${i}`}
                 aria-hidden={i >= brands.length}
-                className="flex items-center whitespace-nowrap px-8 sm:px-12 text-chocolate"
+                className="flex items-center whitespace-nowrap px-6 sm:px-8 text-chocolate"
               >
-                <span className={brandStyles[i % brands.length]}>{b}</span>
-                <Sparkles className="ml-16 sm:ml-24 h-4 w-4 text-champagne" />
+                <span className={b.style}>{b.name}</span>
+                <Sparkles className="ml-12 sm:ml-16 h-4 w-4 text-champagne" />
               </li>
             ))}
           </ul>
