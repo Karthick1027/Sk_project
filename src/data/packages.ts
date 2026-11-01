@@ -9,6 +9,8 @@ export interface BridalPackage {
   description: string;
   /** The featured package gets the "Signature" badge and is the dark card when none is hovered. */
   featured?: boolean;
+  /** Shows a "Recommended" badge. */
+  recommended?: boolean;
   includes: string[];
   /** Complimentary when both Muhurtham & Reception are booked. */
   comboPerks: string[];
@@ -52,6 +54,7 @@ export const bridalPackages: BridalPackage[] = [
     wearTime: 'Up to 8 hours',
     description:
       'Choose a dewy, luminous glow or a waterproof finish made to stay put through long ceremonies and happy tears.',
+    recommended: true,
     includes: ['Glossy (or) Waterproof Makeup', ...sharedIncludes],
     comboPerks: [perks.travel, perks.groom, perks.touchUp],
   },
@@ -70,8 +73,9 @@ export const bridalPackages: BridalPackage[] = [
 ];
 
 export const packageAddOns = [
-  { label: 'Extra Drape', value: '₹500 per saree' },
+  { label: 'Separate Saree Draping (Bride)', value: '₹500 per saree' },
   { label: 'Pre-pleating', value: '₹800 per saree' },
+  { label: 'Saree Draping Only (Non-bridal)', value: '₹2,000 incl. travel' },
   { label: 'Outstation Travel', value: 'Charged additionally' },
 ];
 

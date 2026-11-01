@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Check, Plus, Gift, Car, Sparkles, Gem, Brush, MessageCircle, ArrowRight, ArrowDown, Instagram,
+  Check, Plus, Gift, Car, Sparkles, Gem, Award, Brush, MessageCircle, ArrowRight, ArrowDown, Instagram,
   Wallet, CalendarCheck, CalendarClock, Percent, Receipt, Lock, Clock,
   Smartphone, SmartphoneNfc, QrCode, Landmark, Banknote, type LucideIcon,
 } from 'lucide-react';
@@ -189,6 +189,18 @@ const PackageCard: React.FC<PackageCardProps> = ({
         }`}
       />
 
+      {/* Recommended tag, sitting on the card's top edge */}
+      {pkg.recommended && (
+        <span
+          className={`absolute -top-3.5 right-6 sm:right-8 z-10 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-inter text-[10px] font-semibold uppercase tracking-[0.25em] shadow-soft ring-1 transition-colors duration-300 ${
+            dark ? 'bg-champagne text-chocolate ring-ivory/60' : 'bg-chocolate text-ivory ring-champagne'
+          }`}
+        >
+          <Award className="h-3.5 w-3.5" />
+          Recommended
+        </span>
+      )}
+
       {/* Header row */}
       <div className="relative flex items-start justify-between gap-4">
         <div>
@@ -344,6 +356,74 @@ const PackageCard: React.FC<PackageCardProps> = ({
     </article>
   );
 };
+
+// Point on a quadratic curve from (x0,y0) via control (cx,cy) to (x1,y1), used to string beads along a necklace
+const onCurve = (t: number, x0: number, y0: number, cx: number, cy: number, x1: number, y1: number) => ({
+  x: (1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t ** 2 * x1,
+  y: (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t ** 2 * y1,
+});
+
+// Gold beads on the outer strand (the gap in the middle is where the pendant hangs), pearls on the inner one
+const goldBeads = Array.from({ length: 19 }, (_, i) => onCurve(0.05 + i * 0.05, 12, 6, 120, 196, 228, 6)).filter(
+  (_, i) => i < 8 || i > 10
+);
+const pearls = Array.from({ length: 15 }, (_, i) => onCurve(0.06 + i * 0.0629, 44, 6, 120, 128, 196, 6));
+
+// Temple-style haaram: pearl strand, gold bead strand and a ruby pendant with pearl drops
+const Necklace: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg viewBox="0 0 240 200" aria-hidden="true" className={className}>
+    <path d="M12 6 Q120 196 228 6" fill="none" className="stroke-mocha/60" strokeWidth="1.2" />
+    <path d="M44 6 Q120 128 196 6" fill="none" className="stroke-champagne" strokeWidth="1" />
+    {pearls.map((p, i) => (
+      <circle key={`p${i}`} cx={p.x} cy={p.y} r="3.2" className="fill-ivory stroke-champagne" strokeWidth="1" />
+    ))}
+    {goldBeads.map((b, i) => (
+      <g key={`g${i}`}>
+        <circle cx={b.x} cy={b.y} r={i % 2 ? 3.4 : 5} className="fill-champagne stroke-mocha" strokeWidth="1" />
+        {i % 2 === 0 && <circle cx={b.x} cy={b.y} r="1.8" className="fill-clay/60" />}
+      </g>
+    ))}
+    {/* Pendant */}
+    <g transform="translate(120 104)">
+      <path d="M-14 0 Q0 -10 14 0" fill="none" className="stroke-mocha" strokeWidth="1.2" />
+      <path d="M0 2 C 18 10 18 34 0 50 C -18 34 -18 10 0 2 Z" className="fill-champagne stroke-mocha" strokeWidth="1.2" />
+      <path d="M0 10 C 10 16 10 30 0 40 C -10 30 -10 16 0 10 Z" className="fill-ivory/70 stroke-mocha/70" strokeWidth="0.8" />
+      <ellipse cx="0" cy="25" rx="4.5" ry="7" className="fill-clay/70" />
+      <circle cx="-1.5" cy="22" r="1.2" className="fill-ivory/80" />
+      {[-12, 0, 12].map((x) => (
+        <g key={x}>
+          <line x1={x * 0.6} y1={x ? 44 : 50} x2={x} y2={x ? 58 : 62} className="stroke-mocha/70" strokeWidth="0.8" />
+          <circle cx={x} cy={x ? 61 : 66} r={x ? 3 : 4} className="fill-ivory stroke-champagne" strokeWidth="1" />
+        </g>
+      ))}
+    </g>
+  </svg>
+);
+
+// Jhumka earring on a thread, swinging gently from the top of the card
+const Jhumka: React.FC<{ className?: string; thread: number; delay?: string }> = ({ className = '', thread, delay }) => (
+  <div
+    aria-hidden="true"
+    style={{ animationDelay: delay }}
+    className={`origin-top animate-swing motion-reduce:animate-none ${className}`}
+  >
+    <svg viewBox={`0 0 40 ${thread + 66}`} className="w-full h-auto">
+      <line x1="20" y1="0" x2="20" y2={thread} className="stroke-champagne" strokeWidth="1" />
+      <g transform={`translate(0 ${thread})`}>
+        <circle cx="20" cy="6" r="6" className="fill-champagne stroke-mocha" strokeWidth="1" />
+        <circle cx="20" cy="6" r="2.4" className="fill-clay/60" />
+        <circle cx="20" cy="16" r="2.4" className="fill-ivory stroke-champagne" strokeWidth="1" />
+        <path d="M7 42 Q7 22 20 22 Q33 22 33 42 Z" className="fill-champagne stroke-mocha" strokeWidth="1" />
+        <path d="M11 34 Q20 28 29 34" fill="none" className="stroke-mocha/70" strokeWidth="0.8" />
+        <line x1="6" y1="42" x2="34" y2="42" className="stroke-mocha" strokeWidth="1.4" />
+        {[8, 14, 20, 26, 32].map((x) => (
+          <circle key={x} cx={x} cy="47" r="2.3" className="fill-ivory stroke-champagne" strokeWidth="0.9" />
+        ))}
+        <circle cx="20" cy="55" r="2.8" className="fill-ivory stroke-champagne" strokeWidth="0.9" />
+      </g>
+    </svg>
+  </div>
+);
 
 const Packages: React.FC = () => {
   const [mode, setMode] = useState<BookingMode>('single');
@@ -509,8 +589,18 @@ const Packages: React.FC = () => {
             </p>
           </div>
 
-          <div className="relative overflow-hidden rounded-2xl bg-beige p-6 sm:p-8 border border-sand lg:col-span-2">
+          {/* Bottom padding leaves room for the necklace wherever the card isn't stretched taller than its text */}
+          <div className="relative overflow-hidden rounded-2xl bg-beige p-6 pb-44 sm:p-8 sm:pb-48 xl:pb-8 border border-sand lg:col-span-2">
             <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-champagne/40 blur-3xl" />
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 -right-6 h-56 w-56 rounded-full bg-champagne/30 blur-3xl" />
+
+            {/* Jewellery illustrations */}
+            <Jhumka thread={18} className="pointer-events-none absolute top-0 right-8 w-7 sm:right-12 sm:w-8" />
+            <Jhumka thread={46} delay="-2.5s" className="pointer-events-none absolute top-0 right-20 w-6 sm:right-24 sm:w-7" />
+            <Necklace className="pointer-events-none absolute -bottom-4 right-2 w-52 sm:w-60 sm:right-6 drop-shadow-[0_8px_14px_rgba(59,38,30,0.12)]" />
+            <Sparkles aria-hidden="true" className="pointer-events-none absolute bottom-36 right-56 h-4 w-4 text-mocha/60 animate-twinkle motion-reduce:animate-none hidden sm:block" />
+            <Sparkles aria-hidden="true" className="pointer-events-none absolute bottom-10 right-64 h-3 w-3 text-mocha/50 animate-twinkle motion-reduce:animate-none [animation-delay:-1.5s] hidden sm:block" />
+
             <div className="relative">
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-ivory text-cocoa ring-1 ring-champagne">
                 <Gem className="h-5 w-5" />

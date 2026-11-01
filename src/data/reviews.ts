@@ -8,6 +8,10 @@ import type { Testimonial } from '../components/TestimonialSlider';
 // All reviews on Google, linked from the Reviews page
 export const GOOGLE_REVIEWS_URL = 'https://share.google/UqzgMHz52OgdWWalR';
 
+// Shown until the live figures load from Google (or when no Places API key is set)
+export const GOOGLE_RATING = 5.0;
+export const GOOGLE_REVIEW_COUNT = 52;
+
 // Newest first. Reviews without a photo show the person's initial instead.
 export const reviews: Testimonial[] = [
   {

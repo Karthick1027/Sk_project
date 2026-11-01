@@ -5,7 +5,8 @@ import PageHero from '../components/PageHero';
 import CtaBanner from '../components/CtaBanner';
 import TestimonialSlider from '../components/TestimonialSlider';
 import { ReviewsBackdrop } from '../components/PageBackdrops';
-import { reviews, GOOGLE_REVIEWS_URL } from '../data/reviews';
+import { GOOGLE_REVIEWS_URL } from '../data/reviews';
+import { useGoogleReviews } from '../hooks/useGoogleReviews';
 
 const SEO_TITLE = 'Client Reviews | SK Bridal Studio';
 const SEO_DESCRIPTION =
@@ -13,9 +14,10 @@ const SEO_DESCRIPTION =
 
 const WHATSAPP_URL = 'https://wa.me/918668038093';
 
-const average = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-
 const Reviews: React.FC = () => {
+  // Live rating, count and latest reviews from Google, falling back to data/reviews.ts
+  const { rating, count, testimonials } = useGoogleReviews();
+
   useEffect(() => {
     const prevTitle = document.title;
     let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
@@ -59,16 +61,16 @@ const Reviews: React.FC = () => {
               <Star key={i} className="h-4 w-4 text-mocha fill-current" />
             ))}
           </span>
-          <span className="font-playfair text-lg font-semibold text-chocolate">{average.toFixed(1)}</span>
+          <span className="font-playfair text-lg font-semibold text-chocolate">{rating.toFixed(1)}</span>
           <span className="font-inter text-xs uppercase tracking-[0.2em] text-mocha">
-            {reviews.length} reviews
+            {count} Google reviews
           </span>
         </div>
       </PageHero>
 
-      {/* Reviews slider: add new reviews in data/reviews.ts */}
+      {/* Reviews slider: new Google reviews appear automatically; older ones live in data/reviews.ts */}
       <section className="container mx-auto px-4 pt-8 pb-8 sm:pt-10 md:pb-12 md:max-w-[90%]">
-        <TestimonialSlider testimonials={reviews} rows={2} />
+        <TestimonialSlider testimonials={testimonials} rows={2} />
         <div className="mt-2 text-center">
           <a href={GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer" className="btn-outline">
             <Star className="h-4 w-4" />

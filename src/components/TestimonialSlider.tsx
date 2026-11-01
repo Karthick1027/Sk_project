@@ -195,6 +195,8 @@ const TestimonialSlider: React.FC<{ testimonials: Testimonial[]; rows?: number }
                     <img
                       src={testimonial.image}
                       alt={testimonial.name}
+                      // Google profile photos refuse requests that carry a referrer
+                      referrerPolicy="no-referrer"
                       className="w-14 h-14 shrink-0 rounded-full object-cover ring-2 ring-ivory shadow-soft"
                     />
                   ) : (

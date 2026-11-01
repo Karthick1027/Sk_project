@@ -209,8 +209,8 @@ const Services: React.FC = () => {
             className="mb-8 md:mb-10"
           />
 
-          <div className="mx-auto max-w-4xl rounded-[2rem] bg-chocolate p-3 shadow-luxe">
-            <div className="relative grid overflow-hidden rounded-[1.5rem] border border-champagne/25 sm:grid-cols-2">
+          <div className="mx-auto max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] bg-chocolate p-2 sm:p-3 shadow-luxe">
+            <div className="relative grid overflow-hidden rounded-[1.1rem] sm:rounded-[1.5rem] border border-champagne/25 sm:grid-cols-2">
               {/* Ribbons + knot */}
               <div aria-hidden="true" className="absolute inset-y-0 left-1/2 hidden w-4 -translate-x-1/2 bg-champagne/20 sm:block" />
               <div aria-hidden="true" className="absolute inset-x-0 top-1/2 hidden h-4 -translate-y-1/2 bg-champagne/20 sm:block" />
@@ -230,22 +230,22 @@ const Services: React.FC = () => {
               {compliments.map((c, i) => (
                 <div
                   key={c.title}
-                  className={`group relative flex items-start gap-4 border-b border-champagne/15 p-6 last:border-b-0 sm:border-b-0 sm:p-10 ${
+                  className={`group relative flex items-start gap-3 border-b border-champagne/15 px-4 py-4 last:border-b-0 sm:gap-4 sm:border-b-0 sm:p-10 ${
                     i % 2 === 0 ? 'sm:pr-14' : 'sm:pl-14'
                   } ${i < 2 ? 'sm:pb-14' : 'sm:pt-14'}`}
                 >
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ivory/10 text-champagne ring-1 ring-champagne/30 transition-colors duration-500 group-hover:bg-champagne group-hover:text-chocolate">
+                  <span className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-ivory/10 text-champagne ring-1 ring-champagne/30 transition-colors duration-500 group-hover:bg-champagne group-hover:text-chocolate">
                     <c.icon className="h-5 w-5" />
                   </span>
                   <div>
-                    <h3 className="font-playfair text-2xl font-medium text-ivory">{c.title}</h3>
-                    <p className="mt-1.5 font-inter text-sm leading-relaxed text-sand/80">{c.text}</p>
+                    <h3 className="font-playfair text-xl sm:text-2xl font-medium text-ivory">{c.title}</h3>
+                    <p className="mt-1 sm:mt-1.5 font-inter text-sm leading-relaxed text-sand/80">{c.text}</p>
                   </div>
                 </div>
               ))}
             </div>
             {/* The ribbon knot is hidden on phones, so offer the gift as a button instead */}
-            <button type="button" onClick={() => setGiftOpen(true)} className="btn-secondary mx-auto mt-3 flex w-fit !px-5 !py-2.5 text-sm sm:hidden">
+            <button type="button" onClick={() => setGiftOpen(true)} className="btn-secondary mx-auto mt-2 mb-1 flex w-fit !px-5 !py-2 text-sm sm:hidden">
               <Gift className="h-4 w-4" />
               Open Your Gift
             </button>

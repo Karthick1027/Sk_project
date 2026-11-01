@@ -61,9 +61,11 @@ const Footer: React.FC = () => {
           <div className="space-y-5 xl:col-span-2">
             <h4 className="font-inter text-xs font-semibold uppercase tracking-[0.3em] text-champagne">Services</h4>
             <ul className="font-inter space-y-3 text-sand/80">
-              <li>Bridal Makeup</li>
-              <li>Event Makeup</li>
-              <li>Party Makeup</li>
+              {['Bridal Makeup', 'Event Makeup', 'Party Makeup'].map((name) => (
+                <li key={name}>
+                  <Link to="/services" className={linkClass}>{name}</Link>
+                </li>
+              ))}
               <li>
                 <a
                   href="https://forms.gle/rfW2a95NHFgN874XA"
@@ -98,10 +100,16 @@ const Footer: React.FC = () => {
                 <Instagram className="w-4 h-4 text-champagne" />
                 <span>@srinithimakeupartist</span>
               </a>
-              <p className="flex items-start gap-3 text-sand/80">
+              <a
+                href="https://maps.app.goo.gl/3iLmA85LitEpHVCa6"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open studio location in Google Maps"
+                className={`flex items-start gap-3 group ${linkClass}`}
+              >
                 <MapPin className="w-4 h-4 mt-1 shrink-0 text-champagne" />
                 <span>Thiruninravur, Chennai 602024</span>
-              </p>
+              </a>
             </div>
           </div>
         </div>
