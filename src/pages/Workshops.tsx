@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useState } from 'react';
 import {
-  Instagram, ArrowDown, Sparkles, Check, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare,
+  Instagram, ArrowDown, Sparkles, Check, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award,
   type LucideIcon,
 } from 'lucide-react';
 import SectionHeading from '../components/SectionHeading';
@@ -108,7 +108,7 @@ const days: WorkshopDay[] = [
 
 const marqueeItems = [
   'Muhurtham bridal', 'Airbrush foundation', 'Reception glam', 'Undertone matching',
-  'Complete vanity reveal', 'Curls with extensions', 'Extended live Q&A',
+  'Complete vanity reveal', 'Curls with extensions', 'Extended live Q&A', 'Digital completion certificate',
 ];
 
 const essentials: { icon: LucideIcon; title: string; text: string }[] = [
@@ -143,6 +143,65 @@ const SpinBadge: React.FC = () => {
     </div>
   );
 };
+
+/** Illustrated preview of the digital completion certificate */
+const CertificatePreview: React.FC = () => (
+  <div
+    role="img"
+    aria-label="Sample digital certificate of completion from SK Bridal Studio, signed by Srinithi"
+    className="relative mx-auto w-full max-w-md rotate-[-2deg] transition-transform duration-500 hover:rotate-0"
+  >
+    <div className="relative aspect-[1.414/1] rounded-md bg-ivory p-2 shadow-luxe sm:p-2.5">
+      {/* Double frame */}
+      <div className="flex h-full flex-col items-center justify-between rounded-sm border-2 border-champagne px-4 py-3 text-center outline outline-1 outline-offset-[-7px] outline-champagne/60 sm:px-6 sm:py-5">
+        {/* Corner flourishes */}
+        {['left-2 top-2', 'right-2 top-2 rotate-90', 'bottom-2 right-2 rotate-180', 'bottom-2 left-2 -rotate-90'].map((pos) => (
+          <span key={pos} aria-hidden="true" className={`absolute h-4 w-4 border-l-2 border-t-2 border-mocha/50 sm:h-5 sm:w-5 ${pos}`} />
+        ))}
+
+        <div>
+          <p className="font-inter text-[7px] font-semibold uppercase tracking-[0.35em] text-mocha sm:text-[9px]">SK Bridal Studio</p>
+          <p className="mt-1 font-playfair text-base font-medium uppercase leading-none tracking-[0.12em] text-chocolate sm:mt-1.5 sm:text-xl">
+            Certificate
+          </p>
+          <p className="mt-0.5 font-cormorant text-xs italic text-cocoa sm:text-base">of Completion</p>
+        </div>
+
+        <div className="w-full">
+          <p className="font-inter text-[6px] uppercase tracking-[0.25em] text-mocha sm:text-[8px]">Proudly presented to</p>
+          <p className="mx-auto mt-0.5 w-3/4 border-b border-champagne pb-0.5 font-script text-xl leading-tight text-chocolate sm:text-3xl">
+            Your Name
+          </p>
+          <p className="mt-1 font-inter text-[6px] leading-snug text-ink sm:mt-1.5 sm:text-[8.5px]">
+            for completing the 2-Day Live Bridal Makeup &amp; Hair Masterclass
+          </p>
+        </div>
+
+        <div className="flex w-full items-end justify-between gap-2">
+          <div className="w-1/3 text-center">
+            <p className="font-script text-base leading-none text-cocoa sm:text-2xl">Srinithi</p>
+            <p className="mt-0.5 border-t border-champagne pt-0.5 font-inter text-[5.5px] uppercase tracking-[0.2em] text-mocha sm:text-[7px]">Makeup Artist</p>
+          </div>
+          <div className="w-1/3 text-center">
+            <p className="font-cormorant text-xs italic leading-none text-cocoa sm:text-base">Live · Online</p>
+            <p className="mt-0.5 border-t border-champagne pt-0.5 font-inter text-[5.5px] uppercase tracking-[0.2em] text-mocha sm:text-[7px]">Workshop</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Seal with ribbon tails */}
+      <div aria-hidden="true" className="absolute -bottom-5 left-1/2 -translate-x-1/2 sm:-bottom-6">
+        <span className="absolute left-1/2 top-6 h-8 w-3 -translate-x-[110%] rotate-[18deg] bg-cocoa [clip-path:polygon(0_0,100%_0,100%_100%,50%_80%,0_100%)] sm:top-8 sm:h-10 sm:w-4" />
+        <span className="absolute left-1/2 top-6 h-8 w-3 translate-x-[10%] -rotate-[18deg] bg-cocoa [clip-path:polygon(0_0,100%_0,100%_100%,50%_80%,0_100%)] sm:top-8 sm:h-10 sm:w-4" />
+        <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-champagne to-mocha text-chocolate shadow-soft ring-4 ring-ivory sm:h-14 sm:w-14">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-chocolate/50 sm:h-10 sm:w-10">
+            <Award className="h-4 w-4 sm:h-5 sm:w-5" />
+          </span>
+        </span>
+      </div>
+    </div>
+  </div>
+);
 
 const Workshops: React.FC = () => {
   const [active, setActive] = useState(0);
@@ -408,6 +467,23 @@ const Workshops: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Certificate callout */}
+          <div className="mx-auto mt-6 grid max-w-5xl items-center gap-10 overflow-hidden rounded-[1.75rem] bg-chocolate px-6 pb-12 pt-8 text-center shadow-luxe sm:mt-8 sm:px-10 sm:pb-14 md:grid-cols-[1fr_1.1fr] md:py-12 md:text-left">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-champagne/50 px-3.5 py-1.5 font-inter text-[11px] font-semibold uppercase tracking-[0.3em] text-champagne">
+                <Award className="h-3.5 w-3.5" />
+                Included
+              </span>
+              <h3 className="mt-4 font-playfair text-2xl font-medium leading-tight text-ivory sm:text-3xl">
+                Digital <span className="font-cormorant italic text-champagne">Completion Certificate</span>
+              </h3>
+              <p className="mx-auto mt-3 max-w-md font-inter text-sm leading-relaxed text-sand sm:text-base md:mx-0">
+                Every participant receives a digital certificate of completion at the end of the workshop.
+              </p>
+            </div>
+            <CertificatePreview />
           </div>
         </div>
       </section>
