@@ -5,13 +5,13 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import studentSuccess from '../../src/images/studentSuccess.png';
-import Garden_wedding from '../../src/images/Garden_wedding.jpeg';
-import Reception from '../../src/images/Reception.jpeg';
-import Special_Occasion from '../../src/images/Special_Occasion.jpeg';
-import Classic_Bridal from '../../src/images/Classic_Bridal.jpeg';
-import Glamorous from '../../src/images/Glamorous.jpg';
-import Bridal_Look from '../../src/images/Bridal_Look.jpeg';
+import studentSuccess from "../images/studentSuccess.png";
+import Garden_wedding from "../images/Garden_wedding.jpeg";
+import Reception from "../images/Reception.jpeg";
+import Special_Occasion from "../images/Special_Occasion.JPEG";
+import Classic_Bridal from "../images/Classic_Bridal.jpeg";
+import Glamorous from "../images/Glamorous.jpg";
+import Bridal_Look from "../images/Bridal_Look.jpeg";
 
 interface GalleryImage {
   id: number;

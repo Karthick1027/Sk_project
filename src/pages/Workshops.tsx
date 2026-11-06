@@ -42,7 +42,7 @@ const days: WorkshopDay[] = [
     tagline: 'Timeless South Indian bridal, made skin-true.',
     image: muhurthamImage,
     description:
-      'The traditional muhurtham bride, taught in depth on a medium-fair skin makeover with an airbrush foundation base. Timeless elegance with balanced tones and authentic skin that looks real up close and in every photo.',
+      'The traditional muhurtham bride, taught in depth on a medium-fair skin makeover with a classic South Indian bridal hairstyle. Timeless elegance with balanced tones and authentic skin that looks real up close and in every photo.',
     highlights: [
       {
         label: 'The look',
@@ -56,28 +56,27 @@ const days: WorkshopDay[] = [
         swatches: ['#C99476', '#D9A98A', '#E8C1A4'],
       },
       {
-        label: 'The technique',
-        title: 'Airbrush foundation',
-        text: 'A seamless, lightweight base that stays flawless from morning rituals to photos.',
+        label: 'The hair',
+        title: 'Traditional bridal hairstyle',
+        text: 'A classic South Indian bridal hairstyle to complete the timeless muhurtham look.',
       },
     ],
     learn: [
       'Understanding skin types and undertones for flawless base creation',
       "Correcting skin tone to match the bride's natural complexion",
-      'Airbrush foundation technique for a seamless, long-wear base',
+      'Creating a classic South Indian bridal hairstyle',
       'Bringing out the glow without heavy layering',
       'Complete vanity reveal and product knowledge',
     ],
-    note: 'Hairstyling is not covered in this session.',
   },
   {
     num: '02',
     title: 'Reception',
     accent: 'Look',
-    tagline: 'Evening glam, and curls with extensions that last all night.',
+    tagline: 'Evening glam with a seamless, skin-true airbrush foundation base.',
     image: receptionImage,
     description:
-      'The evening reception bride, taught on a deep-dusky skin makeover: glam designed to enhance depth, not hide it, with precise undertone matching and radiant evening luminosity. Finished with a curls hairstyle, styled with extensions, that holds all night.',
+      'The evening reception bride, taught on a deep-dusky skin makeover: glam designed to enhance depth, not hide it, with precise undertone matching and radiant evening luminosity. Finished with a seamless, lightweight airbrush foundation base.',
     highlights: [
       {
         label: 'The look',
@@ -91,15 +90,15 @@ const days: WorkshopDay[] = [
         swatches: ['#6E4430', '#83543B', '#9A6646'],
       },
       {
-        label: 'The hair',
-        title: 'Curls with extensions',
-        text: 'Long-lasting curls with hair extensions for open reception hair.',
+        label: 'The technique',
+        title: 'Airbrush foundation',
+        text: 'A seamless, lightweight base that enhances deep-dusky skin and lasts through the evening.',
       },
     ],
     learn: [
       'Matching undertones precisely on deep-dusky skin',
       'Building evening luminosity that photographs beautifully',
-      'Curls hairstyle with extensions that lasts all night',
+      'Airbrush foundation technique for a seamless, long-wear base',
       'Time-saving hacks for real bridal bookings',
       'Makeup guidance from my real bridal experience',
     ],
@@ -108,7 +107,7 @@ const days: WorkshopDay[] = [
 
 const marqueeItems = [
   'Muhurtham bridal', 'Airbrush foundation', 'Reception glam', 'Undertone matching',
-  'Complete vanity reveal', 'Curls with extensions', 'Extended live Q&A', 'Digital completion certificate',
+  'Complete vanity reveal', 'Muhurtham hairstyle', 'Extended live Q&A', 'Digital completion certificate',
 ];
 
 const essentials: { icon: LucideIcon; title: string; text: string }[] = [
@@ -250,7 +249,7 @@ const Workshops: React.FC = () => {
               {[
                 ['02', 'Days'],
                 ['02', 'Bridal looks'],
-                ['01', 'Curls Hairstyle'],
+                ['01', 'Bridal hairstyle'],
               ].map(([n, label]) => (
                 <div key={label} className="px-2 text-center">
                   <dt className="sr-only">{label}</dt>
