@@ -103,6 +103,7 @@ const days: WorkshopDay[] = [
       'Time-saving hacks for real bridal bookings',
       'Makeup guidance from my real bridal experience',
     ],
+    note: 'Hairstyling and saree draping are not included in the Day 2 session.',
   },
 ];
 
@@ -234,9 +235,9 @@ const Workshops: React.FC = () => {
             </span>
 
             <h1 className="mt-5 sm:mt-7 font-playfair text-5xl sm:text-6xl xl:text-7xl font-medium leading-[1.05] text-chocolate">
-              Two sessions.
+              2 Sessions.
               <br />
-              Two styles.
+              Two Styles.
               <br />
               <span className="font-cormorant italic text-cocoa">Mastered live.</span>
             </h1>
