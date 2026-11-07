@@ -68,6 +68,7 @@ const days: WorkshopDay[] = [
       'Bringing out the glow without heavy layering',
       'Complete vanity reveal and product knowledge',
     ],
+    note: 'Saree draping is not included in the Day 1 session.',
   },
   {
     num: '02',
