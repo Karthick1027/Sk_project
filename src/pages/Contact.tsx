@@ -217,22 +217,6 @@ Sent from SK Bridal Studio Website
                       disabled={isSubmitting}
                     />
                   </div>
-                  <div>
-                    <label htmlFor="email" className={labelClass}>
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      required
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="field"
-                      placeholder="your@email.com"
-                      disabled={isSubmitting}
-                    />
-                  </div>
                 </div>
 
                 <div>
