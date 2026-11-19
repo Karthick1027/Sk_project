@@ -1,0 +1,130 @@
+// Exercises the built Workshop page with mocked payment/network responses.
+// No requests are sent to Apps Script or Razorpay.
+const { createServer } = require('node:http');
+const { readFileSync, mkdtempSync, existsSync } = require('node:fs');
+const { join, resolve, extname } = require('node:path');
+const { tmpdir } = require('node:os');
+const { spawn } = require('node:child_process');
+const browser = process.argv[2];
+if (!browser) throw new Error('Pass an installed Edge/Chrome executable path.');
+const root = resolve(__dirname, '../dist');
+const setup = `<style>[role="option"] { transition: none !important; }</style><script>
+window.qa = { orders: 0, verifications: 0, checkouts: 0, mode: 'validation', payloads: [] };
+window.fetch = async (url, options = {}) => {
+  const qa = window.qa;
+  if (!String(url).includes('script.google.com')) return new Response('{}');
+  const payload = JSON.parse(options.body);
+  qa.payloads.push(payload);
+  let response;
+  if (payload.action === 'create_order') {
+    qa.orders++;
+    response = qa.mode === 'validation' ? { ok: false, code: 'VALIDATION_ERROR', fields: { email: 'Please check your email.' }, error: 'Check your fields.' }
+      : { ok: true, orderId: 'order_123', keyId: 'rzp_test_123', amount: Math.round(Number(payload.amount) * 100), currency: 'INR' };
+    qa.amount = Math.round(Number(payload.amount) * 100);
+  } else {
+    qa.verifications++;
+    response = qa.mode === 'saving' ? { ok: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Registration could not be saved.' } : { ok: true, verified: true, saved: true, amount: qa.amount, currency: 'INR' };
+  }
+  return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' } });
+};
+window.Razorpay = class {
+  constructor(options) { this.options = options; this.events = {}; }
+  on(name, callback) { this.events[name] = callback; }
+  close() { this.options.modal.ondismiss(); }
+  open() {
+    window.qa.checkouts++;
+    setTimeout(() => window.qa.mode === 'failure' ? this.events['payment.failed']() : this.options.handler({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'a'.repeat(64) }), 10);
+  }
+};
+</script>`;
+const checks = `<script>
+const delay = () => new Promise(resolve => setTimeout(resolve, 60));
+const results = [];
+const assert = (condition, message) => { if (!condition) throw new Error(message); results.push(message); };
+const setField = async (name, value) => {
+  const field = document.querySelector('[name="' + name + '"]');
+  if (field.getAttribute('role') === 'combobox') {
+    field.click(); await delay();
+    [...document.querySelectorAll('[role="option"]')].find(option => option.dataset.value === value).click();
+    await delay(); return;
+  }
+  const prototype = field.tagName === 'SELECT' ? HTMLSelectElement.prototype : field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  Object.getOwnPropertyDescriptor(prototype, 'value').set.call(field, value);
+  field.dispatchEvent(new Event(field.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+  await delay();
+};
+const submit = async () => { document.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await delay(); await delay(); };
+(async () => {
+  for (let count = 0; !document.querySelector('[name="email"]') && count < 80; count++) await delay();
+  try {
+    assert(document.querySelector('[name="email"]').required, 'Required Email Address input is rendered');
+    const course = document.querySelector('[name="course"]');
+    course.click(); await delay();
+    const hovered = [...document.querySelectorAll('[role="option"]')].find(option => option.dataset.value === 'Reception Look (Day 2)');
+    hovered.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); await delay();
+    assert(getComputedStyle(hovered).backgroundColor === 'rgb(216, 194, 165)' && getComputedStyle(hovered).color === 'rgb(59, 38, 30)', 'Dropdown hover uses light brown background and dark brown text (' + getComputedStyle(hovered).backgroundColor + ', ' + getComputedStyle(hovered).color + ')');
+    course.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await delay();
+    assert(course.getAttribute('aria-expanded') === 'false' && !document.querySelector('[role="listbox"]'), 'Escape closes the dropdown');
+    course.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); await delay();
+    course.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })); await delay();
+    course.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await delay();
+    assert(course.value === 'Reception Look (Day 2)' && document.activeElement === course, 'Dropdown supports keyboard selection and retains focus');
+    await setField('course', 'Full 2-day masterclass');
+    await submit();
+    assert(document.getElementById('workshop-email-error') && !document.querySelector('dialog[open]') && qa.orders === 0 && qa.checkouts === 0, 'Empty fields show inline errors without order or checkout');
+    for (const [name, value] of Object.entries({ name: 'Test Student', email: 'bad-email', phone: '9876543210', gender: 'Female', experience: 'Beginner', mainGoal: 'Learn bridal makeup', city: 'Chennai', question: 'Please keep these details' })) await setField(name, value);
+    await submit();
+    assert(document.getElementById('workshop-email-error') && qa.orders === 0, 'Invalid email prevents order creation');
+    await setField('amount', '250');
+    await setField('email', 'Student@Example.com');
+    await setField('amount', '250.50'); await submit();
+    assert(document.getElementById('workshop-amount-error') && qa.orders === 0, 'Fractional rupee amounts are rejected before order creation');
+    await setField('amount', '250');
+    await submit();
+    assert(document.getElementById('workshop-email-error')?.textContent === 'Please check your email.' && !document.querySelector('dialog[open]') && qa.orders === 1 && qa.checkouts === 0, 'Backend field error stays inline and does not show payment failure');
+    assert(qa.payloads[0].registration.email === 'student@example.com' && qa.payloads[0].registration.phone === '919876543210' && qa.payloads[0].registration.goal === 'Learn bridal makeup', 'Payload maps email, phone and goal correctly');
+    assert(qa.payloads[0].amount === 250, 'Edited amount below INR 500 is sent to Apps Script');
+    qa.mode = 'failure';
+    await setField('email', 'student@example.com');
+    await submit();
+    assert(document.getElementById('payment-result-title')?.textContent === 'Payment Not Completed', 'Razorpay failure retains animated payment dialog');
+    document.querySelector('[aria-label="Close payment message"]').click(); await delay();
+    assert(document.querySelector('[name="question"]').value === 'Please keep these details', 'Payment failure preserves form details');
+    qa.mode = 'saving'; await submit();
+    assert(document.getElementById('payment-result-title')?.textContent === 'Registration Not Saved', 'Google Sheets saving error has a separate result');
+    assert(document.querySelector('dialog[open] #payment-result-title')?.textContent !== 'Registration Successful!', 'Unconfirmed save never shows success');
+    const orderCount = qa.orders;
+    qa.mode = 'success';
+    [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Try Again').click(); await delay(); await delay();
+    assert(qa.orders === orderCount && document.getElementById('payment-result-title')?.textContent === 'Registration Successful!', 'Retry verifies existing payment without another order or charge');
+    assert(document.querySelector('dialog').textContent.includes('250'), 'Success displays the actual verified amount');
+    assert(document.querySelector('[name="name"]').value === 'Test Student', 'Confirmed registration retains details until popup is dismissed');
+    [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Continue to Workshop').click(); await delay();
+    assert(document.querySelector('[name="email"]').value === '' && document.querySelector('[name="name"]').value === '' && document.querySelector('[name="amount"]').value === '500', 'Form resets only after confirmed success is dismissed');
+    document.body.dataset.qa = 'passed';
+  } catch (error) { results.push('FAILED: ' + error.message); document.body.dataset.qa = 'failed'; }
+  const output = document.createElement('pre'); output.id = 'qa-result'; output.textContent = JSON.stringify(results); document.body.appendChild(output);
+})();
+</script>`;
+const html = readFileSync(join(root, 'index.html'), 'utf8').replace('<head>', `<head>${setup}`).replace('</body>', `${checks}</body>`);
+const server = createServer((request, response) => {
+  const path = resolve(root, '.' + new URL(request.url, 'http://localhost').pathname);
+  if (path.startsWith(root + require('node:path').sep) && existsSync(path) && extname(path)) {
+    const types = { '.js': 'application/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg' };
+    response.setHeader('Content-Type', types[extname(path)] || 'application/octet-stream');
+    response.end(readFileSync(path));
+  } else { response.setHeader('Content-Type', 'text/html'); response.end(html); }
+});
+server.listen(0, '127.0.0.1', () => {
+  const child = spawn(browser, ['--headless', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--window-size=375,812', `--user-data-dir=${mkdtempSync(join(tmpdir(), 'sk-workshop-form-'))}`, '--dump-dom', '--virtual-time-budget=15000', `http://127.0.0.1:${server.address().port}/workshops`], { windowsHide: true });
+  let output = '';
+  child.stdout.on('data', chunk => { output += chunk; });
+  child.stderr.resume();
+  const timer = setTimeout(() => child.kill(), 45000);
+  child.on('error', error => { console.error(error); server.close(); clearTimeout(timer); process.exitCode = 1; });
+  child.on('close', () => {
+    server.close(); clearTimeout(timer);
+    console.log(output.match(/<pre id="qa-result">(.*?)<\/pre>/s)?.[1] || 'Browser checks did not complete.');
+    process.exitCode = output.includes('data-qa="passed"') ? 0 : 1;
+  });
+});

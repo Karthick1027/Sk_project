@@ -1,3 +1,5 @@
+// Legacy backend retained for reference only. Not deployed or called by the
+// Spark-plan website; google-apps-script/WorkshopRegistrations.gs is active.
 const { createHash, createHmac, timingSafeEqual } = require('node:crypto');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
@@ -5,8 +7,15 @@ const { defineSecret } = require('firebase-functions/params');
 const razorpayKeyId = defineSecret('RAZORPAY_KEY_ID');
 const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
 const workshopApiToken = defineSecret('WORKSHOP_API_TOKEN');
-const registrationUrl = 'https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec';
-const advancePaise = 50000;
+const registrationUrl = 'https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec';
+function paymentAmountPaise(value = 500) {
+  const text = String(value).trim();
+  if (!/^\d+(?:\.\d{1,2})?$/.test(text)) throw new HttpsError('invalid-argument', 'Enter a payment amount of at least INR 1 with up to two decimal places.');
+  const [whole, fraction = ''] = text.split('.');
+  const paise = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+  if (!Number.isSafeInteger(paise) || paise < 100) throw new HttpsError('invalid-argument', 'Payment amount is invalid.');
+  return paise;
+}
 const allowedCourses = [
   'Full 2-day masterclass',
   'Muhurtham Look (Day 1)',
@@ -80,6 +89,7 @@ exports.createWorkshopOrder = onCall(
   { secrets: [razorpayKeyId, razorpayKeySecret] },
   async (request) => {
     const registration = validateRegistration(request.data?.registration);
+    const advancePaise = paymentAmountPaise(request.data?.amount);
 
     const order = await razorpayRequest('/orders', {
       method: 'POST',
@@ -106,7 +116,7 @@ exports.createWorkshopOrder = onCall(
 
 exports.verifyWorkshopPayment = onCall(
   { secrets: [razorpayKeyId, razorpayKeySecret, workshopApiToken] },
-  async (request) => {
+  async (request, response) => {
     const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = request.data || {};
     const registration = validateRegistration(request.data?.registration);
     const paymentProof = request.data?.paymentProof;
@@ -146,13 +156,13 @@ exports.verifyWorkshopPayment = onCall(
     let payment = await razorpayRequest(`/payments/${encodeURIComponent(paymentId)}`);
 
     if (
-      order.amount !== advancePaise ||
+      !Number.isSafeInteger(order.amount) || order.amount < 100 ||
       order.currency !== 'INR' ||
       order.notes?.type !== 'workshop_advance' ||
       order.notes?.course !== registration.course ||
       order.notes?.registration_hash !== registrationHash(registration) ||
       payment.order_id !== orderId ||
-      payment.amount !== advancePaise ||
+      payment.amount !== order.amount ||
       payment.currency !== 'INR'
     ) {
       throw new HttpsError('failed-precondition', 'Payment does not match this workshop order.');
@@ -161,7 +171,7 @@ exports.verifyWorkshopPayment = onCall(
     if (payment.status === 'authorized') {
       payment = await razorpayRequest(`/payments/${encodeURIComponent(paymentId)}/capture`, {
         method: 'POST',
-        body: JSON.stringify({ amount: advancePaise, currency: 'INR' }),
+        body: JSON.stringify({ amount: order.amount, currency: 'INR' }),
       });
     }
 
@@ -169,26 +179,34 @@ exports.verifyWorkshopPayment = onCall(
       throw new HttpsError('failed-precondition', 'Payment has not been captured. Please contact us if you were charged.');
     }
 
-    const sheetResponse = await fetch(registrationUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        ...registration,
-        source: 'SK Bridal Studio Website',
-        paymentId,
-        orderId,
-        advance: advancePaise / 100,
-        paymentProof,
-        apiToken: workshopApiToken.value(),
-      }),
-    });
-    const sheetResult = await sheetResponse.json();
-
-    if (!sheetResponse.ok || !sheetResult.ok) {
-      console.error('Verified payment could not be saved to the registration sheet.');
-      throw new HttpsError('internal', 'Payment was received, but registration could not be saved. Please contact us.');
+    if (request.acceptsStreaming && response) {
+      await response.sendChunk({ stage: 'saving' });
     }
 
-    return { ok: true };
+    try {
+      const sheetResponse = await fetch(registrationUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          ...registration,
+          source: 'SK Bridal Studio Website',
+          paymentId,
+          orderId,
+          advance: order.amount / 100,
+          paymentProof,
+          apiToken: workshopApiToken.value(),
+        }),
+      });
+      const sheetResult = await sheetResponse.json();
+
+      if (!sheetResponse.ok || !sheetResult.ok) {
+        throw new Error('Registration sheet did not acknowledge saving.');
+      }
+    } catch {
+      console.error('Verified payment could not be saved to the registration sheet.');
+      throw new HttpsError('internal', 'Payment was received, but registration could not be saved. Please contact us.', { code: 'REGISTRATION_SAVE_FAILED', stage: 'saving' });
+    }
+
+    return { ok: true, amount: order.amount, currency: order.currency };
   },
 );

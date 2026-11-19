@@ -1,40 +1,110 @@
-# Workshop Registration with Razorpay
+# Workshop registration: Firebase Spark + Google Apps Script
 
-Workshop registrations are completed only after Firebase verifies a captured ₹500 Razorpay payment. A Firebase Cloud Function creates the order with a hash of the normalized registration details, then verifies Razorpay's payment signature, order details, and captured payment before sending the registration to Google Apps Script. The script writes verified attendees to the `Registrations` tab.
+The active payment backend is `google-apps-script/WorkshopRegistrations.gs`. Firebase is used for Hosting and the existing analytics setup only. No Cloud Functions, Secret Manager, paid Firebase services, or new spreadsheet/tab are used.
 
-Existing columns A–N remain in place. The selected course is also recorded in O, the Razorpay payment ID in P, the order ID in Q, and the ₹500 advance in R. Payment status remains in L, so the existing WhatsApp confirmation flow continues to work.
+The amount is editable: INR 500 is the default suggestion, students may pay below or above it, and the minimum is INR 1. The chosen rupee amount must be a positive integer (no decimals). Checkout, verification, the saved row and the confirmation all use the chosen order amount.
 
-## Connect your sheet
+## What was wrong
 
-1. Create or open the Google spreadsheet where registrations should be saved.
-2. In the spreadsheet, open **Extensions → Apps Script**. Copy the contents of `google-apps-script/WorkshopRegistrations.gs` into the script editor and save it. The spreadsheet ID from the link you provided is already configured in that file.
-3. In **Project Settings → Script properties**, add `WORKSHOP_API_TOKEN` with a long random value. Keep this value private.
-4. Choose **Deploy → Manage deployments**, edit the web app deployment, select **New version**, and save. Set **Execute as** to your account and **Who has access** to **Anyone**.
-5. The deployed web app URL is `https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec`.
+The repository's old Apps Script action handlers called Firebase Functions to create orders and verify/save payments. That was not a Spark-only backend. The old sheet helper also recreated a missing response tab and rewrote headers A-R, including the Google Form-owned columns A-K. Finally, using `getLastRow()` after a website append could update the wrong student's WhatsApp cell if Google Forms appended concurrently.
 
-The web app is publicly reachable, but rejects requests without the server-side token. Keep the spreadsheet private; do not put the API token or Razorpay secret in frontend code.
+The deployed URL's old generic `ok: true` status only proved that a web app was reachable. It did not prove sheet permissions, credential configuration, payment verification, or saving. The updated status identifies the backend version and reports sheet access and whether credentials are configured. Live saving still needs the updated script to be deployed and a real Razorpay test-mode registration.
 
-## Configure Razorpay and Firebase
+The later error “The registration server needs the Apps Script-only update before payments can be accepted” was produced by an extra frontend `backend`/`version` response check. The frontend was already POSTing directly to the configured Apps Script URL; this message did not establish that Firebase was being called. That check has been removed. Order responses require the documented public key, order ID, matching chosen amount and INR currency, plus the API's `ok: true` acknowledgement. The diagnostic backend/version labels are not prerequisites for opening Checkout. During local Vite Fast Refresh, the page clears obsolete development notices while retaining entered registration fields.
 
-1. In Firebase Console, upgrade the project to the Blaze plan and enable Cloud Functions.
-2. Set these Firebase Functions secrets with your Razorpay **Key ID**, **Key Secret**, and the same random token configured in Apps Script:
+## Existing destination and column preservation
 
-```sh
-firebase functions:secrets:set RAZORPAY_KEY_ID
-firebase functions:secrets:set RAZORPAY_KEY_SECRET
-firebase functions:secrets:set WORKSHOP_API_TOKEN
+Spreadsheet: `1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows`
+
+Existing tab: `Form Responses 1`
+
+The script opens that exact spreadsheet and tab. If the tab is absent or inaccessible, Checkout is blocked; no replacement tab is created. Existing Google Form headers A-K and all existing response rows are preserved. Only blank L-R header cells are filled, and columns are extended to R in that same tab only if necessary.
+
+| Column | Website value |
+| --- | --- |
+| A | Timestamp |
+| B | Name |
+| C | International phone (`91XXXXXXXXXX`) |
+| D | Gender |
+| E | Goal (`mainGoal` in React, `goal` in the API) |
+| F | Question |
+| G | Experience |
+| H | Email |
+| I | City |
+| J | Blank score |
+| K | Screenshot URL if supplied; otherwise blank |
+| L | Verified |
+| M | Ready to Send |
+| N | WhatsApp link |
+| O | Exact selected course |
+| P | Razorpay payment ID |
+| Q | Razorpay order ID |
+| R | Actual verified payment in rupees |
+
+Website registrations use `appendRow`, never overwrite existing rows, and locate the appended row by payment/order IDs instead of assuming it is still the last row. Google Forms continues to submit normally. The existing payment-status edit trigger and WhatsApp helpers remain available.
+
+## Configure and deploy the existing Apps Script project
+
+1. Open the existing spreadsheet and its Apps Script project. Replace the project code with the updated `google-apps-script/WorkshopRegistrations.gs`. Do not create a spreadsheet or response tab.
+2. In Apps Script **Project Settings > Script properties**, set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`. Use Razorpay test credentials first. Enter secrets only in Script Properties; never in frontend code or chat. The old `WORKSHOP_API_TOKEN` is no longer used.
+3. Run `setupWorkshopRegistration()` once as the spreadsheet owner. Authorize the script. It checks the exact destination and fills missing L-R headers without changing A-K. Its execution log reports readiness without printing secret values.
+4. Choose **Deploy > Manage deployments**, edit the EXISTING web app deployment, select **New version**, and deploy. Set **Execute as: Me** (an account with edit access to this spreadsheet) and **Who has access: Anyone**. Reauthorize updated permissions if prompted.
+5. Keep this existing endpoint:
+
+   `https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec`
+
+   Use the web app `/exec` URL, not the library URL or a `/dev` URL.
+6. Open that endpoint. The new response must identify `backend: "google-apps-script"`, `version: "workshop-spark-v2-flexible"`, `sheet: "Form Responses 1"`, `sheetAccessible: true`, `credentialsConfigured: true`, `suggestedAmountRupees: 500`, `minimumAmountRupees: 1`, `currency: "INR"`, and `ok: true`. Configured credentials still need a successful Razorpay test to establish that they are valid. If the response is still the old generic message, the new code is not deployed at this URL.
+7. Build and deploy Hosting only:
+
+   ```sh
+   npm run build
+   firebase deploy --only hosting:skbridalstudio
+   ```
+
+`firebase.json` no longer configures Functions deployment. The `functions/` source remains as an archived reference and is not called by the active website. Do not deploy it or upgrade the project to Blaze for this flow.
+
+## Server-side payment and save flow
+
+`create_order` receives the nine registration fields and the chosen amount as a positive integer in rupees. Name, phone, email, gender, experience, goal and course are required; city and question are optional. The three allowed course names are unchanged. The server checks destination access, validates the chosen amount and converts it exactly to paise, fixes currency at INR, calls Razorpay directly using Script Properties credentials, and stores the canonical registration and amount against the returned order ID in Script Properties. No unverified registration is appended to Sheets.
+
+The frontend supplies the default 500 explicitly. A request missing its amount is rejected, rather than silently creating an INR 500 order.
+
+```json
+{"action":"create_order","amount":250,"registration":{"name":"Student","phone":"919876543210","email":"student@example.com","gender":"Female","experience":"Beginner","goal":"Learn bridal makeup","question":"","city":"Chennai","course":"Full 2-day masterclass"}}
 ```
 
-Enter each value directly in the Firebase CLI prompt. Never commit or paste secret values into source files. If a live key secret has been shared in chat or another public place, rotate it in Razorpay before adding it to Firebase. Use Razorpay test credentials first and switch to live credentials only after completing a test registration.
+Checkout uses only the validated returned `keyId`, `orderId`, `amount` and `currency`. The frontend requires a readable, successful JSON response with the matching chosen amount before opening it, without requiring extra backend/version metadata. Deploy the updated Apps Script before using editable amounts: an older fixed-price backend returning INR 500 for an INR 250 request is rejected before Checkout opens.
 
-Install the Functions dependency from the `functions` directory, then deploy:
-
-```sh
-cd functions && npm install
-cd ..
-firebase deploy --only functions,hosting:skbridalstudio
+```json
+{"action":"verify_payment","orderId":"order_example","paymentId":"pay_example","signature":"<Razorpay signature>"}
 ```
 
-For local development, payment requires the Firebase Functions emulator with the same secrets configured. A plain `npm run dev` page cannot create or verify payment orders by itself.
+Apps Script verifies HMAC-SHA256 with its private Razorpay secret, fetches the order and payment from Razorpay, checks the stored order/registration/amount binding, INR currency and order ID, and confirms captured status. Authorized payments are captured for the exact server-fetched order amount and fetched again before saving. Verification never trusts an amount supplied by the frontend. Invalid signatures, wrong amounts/currencies, failed capture or mismatched orders cannot write registration rows.
 
-Test a Razorpay payment and confirm it appears once in the `Registrations` tab with `Payment Status` set to `Verified` before announcing registration is open.
+Only then does the script acquire its write lock, check payment/order IDs in P/Q, append A-R, flush and read the saved row back. Duplicate retries return the existing verified row, never append a second one. For INR 250 the response is `{ "ok": true, "verified": true, "saved": true, "amount": 25000, "currency": "INR", "row": 123, "duplicate": false }` only after saving is confirmed. Pending registration properties are removed after saving; a retry still verifies HMAC and Razorpay and finds the existing row. The public API has no append/mark-verified action and no legacy Firebase callback.
+
+## Errors and recovery
+
+- `VALIDATION_ERROR` includes field errors; React displays them inline before Checkout.
+- `CONFIG_ERROR` / `SHEET_NOT_FOUND` block order creation. Check Script Properties, the exact tab name, permissions and deployment owner.
+- `PAYMENT_VERIFICATION_FAILED` blocks saving. Keep the receipt and retry verification without creating a new charge.
+- `REGISTRATION_SAVE_FAILED` means payment was verified but sheet saving was not confirmed. The separate saving-failure dialog preserves form details and the receipt. Fix sheet access and retry the same payment. Never ask an already-charged student to pay again.
+- If an older deployment never retained the original registration for an already-paid order and no verified row exists, contact the studio with the Razorpay payment/order IDs for reconciliation. The backend does not invent registration details or mark unknown payments successful.
+- An old order can be retried without paying again when its server-side pending registration still contains the exact expected amount/currency and matches the original Razorpay order hash. Missing expected amounts are never replaced with an assumed INR 500 value.
+
+Requests use `text/plain;charset=UTF-8`, CORS mode, omitted credentials and followed redirects. HTTP errors, unreadable/opaque responses, malformed JSON and backend errors never count as successful orders or registrations. A health response alone cannot confirm a saved registration.
+
+## Checks and release QA
+
+```sh
+node --test google-apps-script/WorkshopRegistrations.test.cjs src/lib/workshopPayment.test.cjs
+npx tsc -p tsconfig.app.json --noEmit
+npm run build
+node scripts/check-workshop-form.cjs "<installed Edge or Chrome executable>"
+node scripts/check-workshop-cors.cjs "<installed Edge or Chrome executable>"
+```
+
+The Apps Script tests use realistic in-memory spreadsheet and Razorpay mocks: unchanged A-K headers and existing records, missing L-R headers, no new tabs, HMAC rejection, capture and amount/currency/order checks, all A-R field mappings, save failures, lost responses, duplicate retries and concurrent Google Form append. Browser form tests mock payments and send no live registrations. The CORS probe sends only invalid requests and tests readable errors, not successful saving.
+
+After deployment, submit one Google Form response and confirm existing data/headers remain intact. Then complete one website registration with Razorpay test credentials from the production origin using an amount below INR 500 and one above it. Verify the payment is captured and the website's row appears exactly once in the SAME `Form Responses 1` tab with the correct P/Q IDs and actual verified amount in R. Test cancellation, failed verification and a retry after saving failure. Confirm the page stays on Workshops and success appears only after verification plus saving. Switch to live credentials only after this passes.

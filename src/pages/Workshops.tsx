@@ -1,20 +1,25 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   ArrowDown, Sparkles, Check, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award, Send,
-  type LucideIcon,
+  LockKeyhole, Loader2, type LucideIcon,
 } from 'lucide-react';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
+import WorkshopDropdown from '../components/WorkshopDropdown';
+import WorkshopPaymentDialog, { type PaymentResult } from '../components/WorkshopPaymentDialog';
+import {
+  initialRegistration, normalizePhone, validateRegistration, createWorkshopOrder,
+  verifyWorkshopPayment, loadCheckout, readPendingPayment, storePendingPayment,
+  RegistrationValidationError, WorkshopApiError, WORKSHOP_COURSES,
+  DEFAULT_PAYMENT_AMOUNT, paymentAmountPaise, formatPaymentAmount,
+  type Registration, type RegistrationField, type RegistrationErrors, type PaymentStage, type PendingPayment, type Checkout,
+} from '../lib/workshopPayment';
 import heroImage from '../images/gallery/client_2151.jpg';
 import polaroidImage from '../images/gallery/client_2175.jpg';
 import muhurthamImage from '../images/gallery/client_2170.jpg';
 import receptionImage from '../images/gallery/client_2163.jpg';
 
 const INSTAGRAM_URL = 'https://instagram.com/srinithimakeupartist';
-// Opens a DM thread straight away in the Instagram app or web
-const DM_URL = 'https://ig.me/m/srinithimakeupartist';
-const ADVANCE_AMOUNT = 500;
-const RAZORPAY_PAYMENT_URL = 'https://razorpay.me/@skbridalstudio';
 
 interface Highlight {
   label: string;
@@ -123,8 +128,8 @@ const essentials: { icon: LucideIcon; title: string; text: string }[] = [
 
 const steps = [
   { title: 'Choose your course', text: 'Register for both days or select the bridal look you want to learn.' },
-  { title: 'Pay your advance', text: 'Pay ₹500 through Razorpay to reserve your seat.' },
-  { title: 'Pay the balance later', text: 'We will confirm your remaining balance. Pay it through the same link and message us on Instagram.' },
+  { title: 'Pay your advance', text: 'Choose your advance amount and pay securely through Razorpay to reserve your seat.' },
+  { title: 'Pay the balance later', text: 'We will confirm your remaining balance and share instructions for paying it. Message us on Instagram with any questions.' },
 ];
 
 /** Circular "Live · Online" sticker whose text slowly rotates */
@@ -209,36 +214,183 @@ const CertificatePreview: React.FC = () => (
 
 const Workshops: React.FC = () => {
   const [active, setActive] = useState(0);
-  const [registration, setRegistration] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    course: 'Full 2-day masterclass',
-    city: '',
-    gender: '',
-    mainGoal: '',
-    experience: '',
-    question: '',
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(readPendingPayment);
+  const [registration, setRegistration] = useState<Registration>(() => {
+    const pending = readPendingPayment();
+    return pending ? { ...pending.registration, phone: normalizePhone(pending.registration.phone) } : { ...initialRegistration };
   });
-  const [paymentStarted, setPaymentStarted] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(() => {
+    const amount = readPendingPayment()?.amount;
+    return amount == null ? DEFAULT_PAYMENT_AMOUNT : String(amount / 100);
+  });
+  const [verifiedAmount, setVerifiedAmount] = useState(0);
+  const [errors, setErrors] = useState<RegistrationErrors>({});
+  const [stage, setStage] = useState<PaymentStage>('idle');
+  const [result, setResult] = useState<PaymentResult | null>(null);
+  const [resultDetail, setResultDetail] = useState('');
+  const [formError, setFormError] = useState('');
+  const busy = useRef(false);
+  const checkout = useRef<Checkout | null>(null);
+  const mounted = useRef(true);
+  const processing = stage !== 'idle';
+  const statusText: Record<PaymentStage, string> = {
+    idle: '', creating: 'Creating Razorpay order...', opening: 'Opening payment gateway...',
+    checkout: 'Complete your payment in the secure Razorpay checkout.',
+    verifying: 'Verifying payment and saving registration...', saving: 'Saving registration...',
+  };
   const day = days[active];
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; checkout.current?.close(); };
+  }, []);
+
+  const fieldAccessibility = (field: RegistrationField) => ({
+    'aria-invalid': Boolean(errors[field]),
+    'aria-describedby': errors[field] ? `workshop-${field}-error` : undefined,
+  });
+  const fieldError = (field: RegistrationField) => errors[field] && (
+    <p id={`workshop-${field}-error`} className="mt-2 text-sm text-red-700">{errors[field]}</p>
+  );
 
   const handleRegistrationChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
     const value = event.target.name === 'phone'
-      ? event.target.value.replace(/\D/g, '').slice(0, 15)
+      ? normalizePhone(event.target.value)
       : event.target.value;
-    setRegistration({ ...registration, [event.target.name]: value });
+    const field = event.target.name as keyof Registration;
+    setFormError('');
+    setRegistration((previous) => ({ ...previous, [field]: value }));
+    setErrors((previous) => ({ ...previous, [field]: undefined }));
+  };
+
+  const finishPayment = (outcome: PaymentResult) => {
+    if (!mounted.current) return;
+    busy.current = false;
+    setStage('idle');
+    setResult(outcome);
+  };
+
+  const verifyPayment = async (pending: PendingPayment) => {
+    if (!mounted.current) return;
+    setStage('verifying');
+    try {
+      const advance = await verifyWorkshopPayment(pending.proof, pending.amount);
+      if (mounted.current) setVerifiedAmount(advance);
+      storePendingPayment(null);
+      if (mounted.current) setPendingPayment(null);
+      finishPayment('success');
+    } catch (error) {
+      if (mounted.current) setResultDetail(error instanceof Error ? error.message : 'Payment verification is unavailable. Please try again.');
+      finishPayment(error instanceof WorkshopApiError && error.kind === 'saving' ? 'saving-failure' : 'failure');
+    }
+  };
+
+  const startPayment = async () => {
+    if (busy.current || result === 'success') return;
+    setResultDetail('');
+    setFormError('');
+    if (pendingPayment) {
+      busy.current = true;
+      setResult(null);
+      await verifyPayment(pendingPayment);
+      return;
+    }
+    const validationErrors = validateRegistration(registration);
+    try { paymentAmountPaise(paymentAmount); } catch (error) {
+      if (error instanceof RegistrationValidationError) Object.assign(validationErrors, error.fields); else throw error;
+    }
+    setErrors(validationErrors);
+    const firstError = Object.keys(validationErrors)[0];
+    if (firstError) {
+      document.querySelector<HTMLElement>(`[name="${firstError}"]`)?.focus();
+      return;
+    }
+    busy.current = true;
+    setResult(null);
+    setStage('creating');
+    const submitted = { ...registration, phone: `91${registration.phone}` };
+    let settled = false;
+    let orderCreated = false;
+    try {
+      const order = await createWorkshopOrder({ registration: submitted, amount: paymentAmount });
+      orderCreated = true;
+      if (!mounted.current) return;
+      setStage('opening');
+      await loadCheckout();
+      if (!mounted.current) return;
+      if (!window.Razorpay || order.amount !== paymentAmountPaise(paymentAmount) || order.currency !== 'INR' || !order.orderId || !order.keyId) throw new Error('Invalid payment order.');
+      const instance = new window.Razorpay({
+        key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
+        name: 'SK Bridal Studio', description: `${submitted.course} — ${formatPaymentAmount(order.amount / 100)} advance`,
+        prefill: { name: submitted.name, contact: submitted.phone, ...(submitted.email ? { email: submitted.email } : {}) },
+        theme: { color: '#4B3025' }, redirect: false, retry: { enabled: false },
+        modal: { handleback: false, ondismiss: () => {
+          if (settled) return;
+          settled = true;
+          finishPayment('cancelled');
+        } },
+        handler: (proof) => {
+          if (settled) return;
+          settled = true;
+          const pending = { proof, registration: submitted, amount: order.amount };
+          storePendingPayment(pending);
+          setPendingPayment(pending);
+          instance.close();
+          void verifyPayment(pending);
+        },
+      });
+      checkout.current = instance;
+      instance.on('payment.failed', () => {
+        if (settled) return;
+        settled = true;
+        instance.close();
+        finishPayment('failure');
+      });
+      setStage('checkout');
+      instance.open();
+    } catch (error) {
+      settled = true;
+      if (!mounted.current) return;
+      if (!orderCreated) {
+        busy.current = false;
+        setStage('idle');
+        setResult(null);
+        if (error instanceof RegistrationValidationError) {
+          setErrors(error.fields);
+          setFormError(Object.keys(error.fields).length ? 'Please correct the highlighted fields.' : error.message);
+          const firstField = Object.keys(error.fields)[0];
+          if (firstField) document.querySelector<HTMLElement>(`[name="${firstField}"]`)?.focus();
+        } else {
+          setFormError(error instanceof Error ? `Unable to create your payment order: ${error.message}` : 'Unable to create your payment order. Please try again.');
+        }
+        return;
+      }
+      if (mounted.current) setResultDetail(error instanceof Error ? error.message : 'The payment gateway is unavailable. Please try again.');
+      finishPayment('failure');
+    }
   };
 
   const handleRegistrationSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    window.open(RAZORPAY_PAYMENT_URL, '_blank', 'noopener,noreferrer');
-    setPaymentStarted(true);
+    void startPayment();
+  };
+
+  const closeResult = () => {
+    if (result === 'success') {
+      setRegistration({ ...initialRegistration });
+      setPaymentAmount(DEFAULT_PAYMENT_AMOUNT);
+      setVerifiedAmount(0);
+      setErrors({});
+    }
+    setResult(null);
   };
 
   useEffect(() => {
+    // Fast Refresh preserves local form state, including obsolete errors.
+    // Clear development notices when code reloads without clearing student data.
+    if (import.meta.env.DEV) { setFormError(''); setResultDetail(''); }
     const prevTitle = document.title;
     document.title = 'Live Makeup & Hair Workshops | SK Bridal Studio';
     return () => {
@@ -546,86 +698,102 @@ const Workshops: React.FC = () => {
             </ol>
           </div>
           <div className="mt-8 text-center">
-            <div className="mx-auto max-w-3xl rounded-2xl border border-sand bg-beige p-5 text-left shadow-soft sm:p-8">
+            <div className="workshop-registration mx-auto w-full min-w-0 max-w-3xl rounded-2xl border border-sand bg-beige p-4 text-left shadow-soft sm:p-8">
               <p className="eyebrow">Course Registration</p>
               <h2 className="mt-2 font-playfair text-3xl font-medium text-chocolate">Save your seat</h2>
               <p className="mt-2 font-inter text-sm leading-relaxed text-ink">
-                Enter ₹500 on Razorpay to reserve your seat. We’ll confirm the remaining balance for you to pay later through the same link. Message us on Instagram with your name and selected course after each payment.
+                The suggested advance is ₹500. You can pay a lower or higher amount. Your registration is confirmed only after your payment is verified and your details are saved. We’ll confirm the remaining balance separately.
               </p>
 
-              {paymentStarted && (
-                <p role="status" className="mt-5 rounded-lg border border-champagne bg-white/70 p-4 font-inter text-sm text-chocolate">
-                  The Razorpay payment page has opened in a new tab. Enter ₹500 for your advance. The remaining balance can be paid later through the same link once confirmed; <a href={DM_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline">message us on Instagram</a> after each payment.
-                </p>
-              )}
+              {pendingPayment && !processing && <p role="status" className="mt-5 rounded-xl border border-champagne bg-ivory p-4 text-sm text-cocoa">Your previous payment needs confirmation. Continue below to recheck it without making another payment. Payment ID: <span className="break-all font-semibold">{pendingPayment.proof.razorpay_payment_id}</span></p>}
 
-              <form onSubmit={handleRegistrationSubmit} className="mt-6 space-y-5">
-                <div className="grid gap-5 sm:grid-cols-2">
+              <form onSubmit={handleRegistrationSubmit} noValidate className="mt-6 space-y-5" aria-busy={processing}>
+                <fieldset disabled={processing || Boolean(pendingPayment)} className="min-w-0 space-y-5 disabled:opacity-75">
+                <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
                   <div>
-                    <label htmlFor="workshop-course" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Course *</label>
-                    <select
+                    <label id="workshop-course-label" htmlFor="workshop-course" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Course *</label>
+                    <WorkshopDropdown
+                      {...fieldAccessibility('course')}
                       id="workshop-course"
                       name="course"
-                      required
                       value={registration.course}
-                      onChange={handleRegistrationChange}
-                      className="field"
-                    >
-                      <option>Full 2-day masterclass</option>
-                      <option>Muhurtham Look (Day 1)</option>
-                      <option>Reception Look (Day 2)</option>
-                    </select>
+                      options={WORKSHOP_COURSES.map(course => ({ value: course, label: course }))}
+                      disabled={processing || Boolean(pendingPayment)}
+                      onChange={course => { setRegistration(previous => ({ ...previous, course })); setErrors(previous => ({ ...previous, course: undefined })); setFormError(''); }}
+                    />
+                    {fieldError('course')}
                   </div>
                   <div>
                     <label htmlFor="workshop-name" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Your name *</label>
-                    <input id="workshop-name" name="name" type="text" autoComplete="name" required maxLength={100} value={registration.name} onChange={handleRegistrationChange} className="field" placeholder="Full name" />
+                    <input {...fieldAccessibility('name')} id="workshop-name" name="name" type="text" autoComplete="name" required maxLength={100} value={registration.name} onChange={handleRegistrationChange} className="field" placeholder="Full name" />
+                    {fieldError('name')}
                   </div>
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="workshop-email" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Email Address *</label>
+                  <input {...fieldAccessibility('email')} id="workshop-email" name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required maxLength={150} value={registration.email} onChange={handleRegistrationChange} className="field" placeholder="you@example.com" />
+                  {fieldError('email')}
+                </div>
+                <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
                   <div>
                     <label htmlFor="workshop-phone" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">WhatsApp number *</label>
-                    <input id="workshop-phone" name="phone" type="tel" inputMode="numeric" pattern="[0-9]{10,15}" title="Enter 10 to 15 digits, including country code" autoComplete="tel" required maxLength={15} value={registration.phone} onChange={handleRegistrationChange} className="field" placeholder="10 to 15 digits, include country code" />
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center border-r border-sand pr-3 text-base font-medium text-cocoa">+91</span>
+                      <input {...fieldAccessibility('phone')} aria-label="WhatsApp number, India +91" id="workshop-phone" name="phone" type="tel" inputMode="numeric" pattern="[6-9][0-9]{9}" autoComplete="tel-national" required maxLength={10} value={registration.phone} onChange={handleRegistrationChange} onPaste={(event) => { event.preventDefault(); setRegistration((previous) => ({ ...previous, phone: normalizePhone(event.clipboardData.getData('text')) })); setErrors((previous) => ({ ...previous, phone: undefined })); }} className="field !pl-20" placeholder="10-digit mobile number" />
+                    </div>
+                    {fieldError('phone')}
                   </div>
                   <div>
                     <label htmlFor="workshop-city" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">City</label>
-                    <input id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city" />
+                    <input {...fieldAccessibility('city')} id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city" />
+                    {fieldError('city')}
                   </div>
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
                   <div>
-                    <label htmlFor="workshop-gender" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Gender *</label>
-                    <select id="workshop-gender" name="gender" required value={registration.gender} onChange={handleRegistrationChange} className="field">
-                      <option value="">Select gender</option>
-                      <option>Female</option>
-                      <option>Male</option>
-                      <option>Prefer not to say</option>
-                    </select>
+                    <label id="workshop-gender-label" htmlFor="workshop-gender" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Gender *</label>
+                    <WorkshopDropdown {...fieldAccessibility('gender')} id="workshop-gender" name="gender" value={registration.gender} options={[{ value: '', label: 'Select gender' }, ...['Female', 'Male', 'Prefer not to say'].map(gender => ({ value: gender, label: gender }))]} disabled={processing || Boolean(pendingPayment)} onChange={gender => { setRegistration(previous => ({ ...previous, gender })); setErrors(previous => ({ ...previous, gender: undefined })); setFormError(''); }} />
+                    {fieldError('gender')}
                   </div>
                   <div>
                     <label htmlFor="workshop-experience" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Current makeup experience *</label>
-                    <input id="workshop-experience" name="experience" type="text" required maxLength={500} value={registration.experience} onChange={handleRegistrationChange} className="field" placeholder="Beginner, professional, etc." />
+                    <input {...fieldAccessibility('experience')} id="workshop-experience" name="experience" type="text" required maxLength={150} value={registration.experience} onChange={handleRegistrationChange} className="field" placeholder="Beginner, professional, etc." />
+                    {fieldError('experience')}
                   </div>
                 </div>
                 <div>
                   <label htmlFor="workshop-main-goal" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Main goal for joining the course *</label>
-                  <textarea id="workshop-main-goal" name="mainGoal" rows={3} required maxLength={1000} value={registration.mainGoal} onChange={handleRegistrationChange} className="field resize-y" placeholder="What do you want to learn?" />
+                  <textarea {...fieldAccessibility('mainGoal')} id="workshop-main-goal" name="mainGoal" rows={3} required maxLength={500} value={registration.mainGoal} onChange={handleRegistrationChange} className="field resize-y" placeholder="What do you want to learn?" />
+                  {fieldError('mainGoal')}
                 </div>
                 <div>
                   <label htmlFor="workshop-question" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Additional comments or suggestions (optional)</label>
-                  <textarea id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Any additional comments?" />
+                  <textarea {...fieldAccessibility('question')} id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Any additional comments?" />
+                  {fieldError('question')}
                 </div>
-                <div className="ml-auto grid w-full max-w-lg grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_max-content] sm:gap-4">
-                  <p className="order-2 text-right font-inter text-xs leading-relaxed text-mocha sm:order-none">Pay your ₹{ADVANCE_AMOUNT} advance through Razorpay.</p>
-                  <button type="submit" className="order-1 btn-primary justify-self-end text-center leading-tight sm:order-none">
-                    <Send className="h-4 w-4" />
-                    {`Pay ₹${ADVANCE_AMOUNT} Advance`}
+                <div>
+                  <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Payment amount (₹) *</label>
+                  <input {...fieldAccessibility('amount')} id="workshop-amount" name="amount" type="number" inputMode="numeric" min="1" step="1" required value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value); setErrors(previous => ({ ...previous, amount: undefined })); setFormError(''); }} className="field" />
+                  <p className="mt-2 text-sm text-cocoa">₹500 is suggested. You can pay less or more. Enter a whole-rupee amount of at least ₹1.</p>
+                  {fieldError('amount')}
+                </div>
+                </fieldset>
+                <div className="flex w-full min-w-0 flex-col items-center gap-3">
+                  {formError && <p role="alert" className="w-full rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{formError}</p>}
+                  <button type="submit" disabled={processing} className="btn-primary w-full !whitespace-normal text-center leading-snug">
+                    {processing ? <Loader2 aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" /> : <LockKeyhole aria-hidden="true" className="h-4 w-4 shrink-0" />}
+                    {stage === 'verifying' || stage === 'saving' ? 'Verifying Payment...' : processing ? 'Processing Payment...' : pendingPayment ? 'Verify Existing Payment' : `Pay ${Number(paymentAmount) > 0 && Number.isFinite(Number(paymentAmount)) ? formatPaymentAmount(Number(paymentAmount)) : 'Selected Amount'} & Register`}
                   </button>
+                  <p className="flex items-center justify-center gap-1.5 text-center font-inter text-xs leading-relaxed text-cocoa"><LockKeyhole aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />Secure advance payment via Razorpay</p>
+                  <p role="status" aria-live="polite" className="text-center text-sm text-cocoa">{statusText[stage]}</p>
                 </div>
               </form>
             </div>
           </div>
         </div>
       </section>
+
+      {result && <WorkshopPaymentDialog result={result} detail={resultDetail} course={registration.course} amount={verifiedAmount} pending={Boolean(pendingPayment)} onClose={closeResult} onRetry={() => { void startPayment(); }} />}
 
       <CtaBanner
         eyebrow="Learn With Me"
