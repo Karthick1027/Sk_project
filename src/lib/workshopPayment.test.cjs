@@ -7,7 +7,7 @@ const ts = require('typescript');
 const exportsObject = {};
 const storage = new Map();
 let fetchHandler;
-vm.runInNewContext(ts.transpileModule(readFileSync(`${__dirname}/workshopPayment.ts`, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+vm.runInNewContext(ts.transpileModule(readFileSync(`${__dirname}/workshopPayment.ts`, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, {
   exports: exportsObject,
   fetch: (...args) => fetchHandler(...args),
   setTimeout, clearTimeout, AbortController, Error, TypeError, SyntaxError,

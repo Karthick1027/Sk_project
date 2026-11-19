@@ -16,9 +16,10 @@ function backend(options = {}) {
   const originalHeaders = Array.from({ length: 11 }, (_, i) => `Original Google Form header ${i + 1}`);
   const rows = [originalHeaders.slice(), ['existing timestamp', 'Existing Form Student', '919999999999', 'Female', 'Original goal', '', 'Pro', 'original@example.com', 'City', 9, 'existing-screenshot']];
   const original = JSON.stringify(rows);
-  const properties = new Map(options.noCredentials ? [] : [['RAZORPAY_KEY_ID', 'rzp_test_123'], ['RAZORPAY_KEY_SECRET', 'test-secret']]);
+  const properties = new Map(options.noCredentials ? [] : [['RAZORPAY_KEY_ID', 'rzp_live_U25YrcAuJHuYfR'], ['RAZORPAY_KEY_SECRET', 'dQQTq7AlaQVlhwEkg7mDvm5M']]);
   const calls = [];
   const writes = [];
+  const logs = [];
   let columns = 11;
   let locked = false;
   let status = options.status || 'captured';
@@ -26,6 +27,9 @@ function backend(options = {}) {
   let flushFailures = options.flushFailures || 0;
   let order;
   const sheet = {
+    getName: () => 'Form Responses 1',
+    getSheetId: () => 1885927180,
+    getFilter: () => options.filtered ? {} : null,
     getMaxColumns: () => columns,
     insertColumnsAfter(after, count) { assert.equal(after, columns); columns += count; },
     getLastRow: () => rows.length,
@@ -39,6 +43,7 @@ function backend(options = {}) {
       assert.ok(column + width - 1 <= columns, 'missing L-R columns must be added before reading them');
       const values = () => Array.from({ length: count }, (_, r) => Array.from({ length: width }, (_, c) => rows[row - 1 + r]?.[column - 1 + c] ?? ''));
       const write = value => {
+        if (options.protectedHeaders && row === 1) throw new Error('Cannot edit a protected header range');
         assert.ok(row !== 1 || column > 11, 'Google Form headers A-K must never be written');
         writes.push({ row, column, value });
         rows[row - 1][column - 1] = value;
@@ -51,8 +56,8 @@ function backend(options = {}) {
     },
   };
   const context = {
-    console: { error() {}, warn() {}, log() {} },
-    LockService: { getScriptLock: () => ({ waitLock() { assert.equal(locked, false); locked = true; }, releaseLock() { locked = false; } }) },
+    console: { error: (...args) => logs.push(args.join(' ')), warn() {}, log: (...args) => logs.push(args.join(' ')) },
+    LockService: { getScriptLock: () => ({ waitLock() { if (options.lockTimeout) throw new Error('Lock timeout'); assert.equal(locked, false); locked = true; }, releaseLock() { locked = false; } }) },
     PropertiesService: { getScriptProperties: () => ({ getProperty: key => properties.get(key), setProperty: (key, value) => properties.set(key, value), deleteProperty: key => properties.delete(key) }) },
     SpreadsheetApp: {
       openById(id) {
@@ -103,7 +108,7 @@ function backend(options = {}) {
     return result;
   };
   return {
-    post, rows, properties, calls, writes, original, context, sheet,
+    post, rows, properties, calls, writes, logs, original, context, sheet,
     create: overrides => post({ action: 'create_order', amount: 500, registration, ...overrides }),
     allowAppend: () => { failAppend = false; },
   };
@@ -318,4 +323,52 @@ test('read-only diagnostics identify Apps Script backend and do not expose crede
   assert.equal(JSON.stringify(status).includes('test-secret'), false);
   assert.equal(JSON.stringify(api.rows), api.original);
   assert.equal(api.writes.length, 0);
+});
+
+test('save failures identify the failing stage and log the actual Sheets exception for the owner', () => {
+  const api = backend({ failAppend: true }); api.create();
+  const result = api.post(proof);
+  assert.equal(result.code, 'REGISTRATION_SAVE_FAILED');
+  assert.equal(result.saveStage, 'append_row');
+  assert.ok(result.reference);
+  assert.equal(result.saved, false);
+  const log = JSON.parse(api.logs.at(-1));
+  assert.equal(log.reference, result.reference);
+  assert.match(log.message, /Sheet access denied/);
+  assert.equal(log.spreadsheetId, '1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows');
+  assert.equal(JSON.stringify(result).includes('Sheet access denied'), false);
+  assert.equal(JSON.stringify(result).includes('test-secret'), false);
+});
+
+test('missing pending registration is distinguished from append and permission failures', () => {
+  const api = backend(); api.create();
+  api.properties.delete('WORKSHOP_ORDER_order_test');
+  const result = api.post(proof);
+  assert.equal(result.saveStage, 'load_registration');
+  assert.equal(result.saveCause, 'ORDER_NOT_FOUND');
+  assert.equal(api.rows.length, 2);
+});
+
+for (const [options, stage] of [[{ lockTimeout: true }, 'acquire_lock'], [{ protectedHeaders: true }, 'prepare_sheet'], [{ flushFailures: 1 }, 'flush_new_row']]) {
+  test(`diagnostics identify ${stage} failure without returning success`, () => {
+    const api = backend(options); api.create();
+    const result = api.post(proof);
+    assert.equal(result.saveStage, stage);
+    assert.equal(result.ok, false);
+    assert.equal(result.saved, false);
+    assert.ok(result.reference);
+  });
+}
+
+test('manual destination diagnostics report the exact tab and filter state without changing data', () => {
+  const api = backend({ filtered: true });
+  const report = api.context.diagnoseWorkshopSaving();
+  assert.equal(report.spreadsheetId, '1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows');
+  assert.equal(report.sheetId, 1885927180);
+  assert.equal(report.sheetName, 'Form Responses 1');
+  assert.equal(report.hasFilter, true);
+  assert.equal(report.lastUsedRow, 2);
+  assert.equal(api.writes.length, 0);
+  assert.equal(api.calls.length, 0);
+  assert.equal(JSON.stringify(api.rows), api.original);
 });

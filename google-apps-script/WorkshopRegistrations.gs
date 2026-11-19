@@ -127,7 +127,7 @@ function doPost(event) {
     // No public append/mark-verified action or legacy token callback is allowed.
     throw backendError_("UNKNOWN_ACTION", "Unknown registration action.");
   } catch (error) {
-    return jsonResponse({ ok: false, error: String(error.message || error), code: error.code || "REQUEST_FAILED", fields: error.fields || undefined, verified: error.code === "REGISTRATION_SAVE_FAILED", saved: false });
+    return jsonResponse({ ok: false, error: String(error.message || error), code: error.code || "REQUEST_FAILED", fields: error.fields || undefined, reference: error.reference || undefined, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, verified: error.code === "REGISTRATION_SAVE_FAILED", saved: false });
   }
 }
 
@@ -252,8 +252,15 @@ function verifyWorkshopPayment_(request) {
     result = saveVerifiedRegistration_(pending && pending.registration, request.orderId, request.paymentId, order.amount);
   } catch (error) {
     if (error.code === "PAYMENT_ALREADY_USED") throw error;
-    console.error("Verified registration save failed", error.code || "SHEET_WRITE_ERROR");
-    throw backendError_("REGISTRATION_SAVE_FAILED", "Your payment was verified, but registration could not be saved. Try Again will retry saving without charging you again.");
+    const reference = Utilities.getUuid().substring(0, 8);
+    // Keep the actual Google Sheets exception in owner-only execution logs.
+    // Return only a stage/reference to the browser, never student data or secrets.
+    console.error(JSON.stringify({ event: "workshop_registration_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", message: String(error.message || error), stack: String(error.stack || ""), spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
+    const failure = backendError_("REGISTRATION_SAVE_FAILED", "Your payment was verified, but registration could not be saved. Reference: " + reference + ". Try Again will retry saving without charging you again.");
+    failure.reference = reference;
+    failure.saveStage = error.saveStage || "unknown";
+    failure.saveCause = error.code || "SHEET_WRITE_ERROR";
+    throw failure;
   }
   // The saved row is the durable deduplication record. A retry without this
   // pending property still rechecks HMAC, Razorpay and the exact saved row.
@@ -276,28 +283,57 @@ function findPaymentRow_(sheet, orderId, paymentId, amount) {
 
 function saveVerifiedRegistration_(registration, orderId, paymentId, amount) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  let locked = false;
+  let stage = "acquire_lock";
   try {
+    lock.waitLock(20000);
+    locked = true;
+    stage = "prepare_sheet";
     const sheet = getResponseSheet_();
+    stage = "check_duplicate";
     const existing = findPaymentRow_(sheet, orderId, paymentId, amount);
-    if (existing) { SpreadsheetApp.flush(); return { duplicate: true, row: existing }; }
+    if (existing) { stage = "flush_existing_row"; SpreadsheetApp.flush(); return { duplicate: true, row: existing }; }
+    stage = "load_registration";
     if (!registration) throw backendError_("ORDER_NOT_FOUND", "The original order details are missing. Please contact SK Bridal Studio with your payment ID.");
     const details = validateRegistration_(registration);
     const whatsapp = "https://web.whatsapp.com/send?phone=" + details.phone + "&text=" + encodeURIComponent(buildConfirmationMessage_(details.name, amount / 100));
+    stage = "append_row";
     sheet.appendRow([
       new Date(), cleanValue(details.name, 100), details.phone, cleanValue(details.gender, 50),
       cleanValue(details.goal, 500), cleanValue(details.question, 1000), cleanValue(details.experience, 150),
       cleanValue(details.email, 150), cleanValue(details.city, 100), "", cleanValue(details.paymentScreenshot || "", 1000),
       "Verified", "Ready to Send", whatsapp, details.course, paymentId, orderId, amount / 100
     ]);
+    stage = "flush_new_row";
     SpreadsheetApp.flush();
     // Locate this payment, not getLastRow(): a Google Form can append at the
     // same time, and is not governed by the Apps Script website lock.
+    stage = "read_back";
     const row = findPaymentRow_(sheet, orderId, paymentId, amount);
     if (!row) throw backendError_("SHEET_WRITE_ERROR", "The registration row could not be read back.");
     try { createWhatsAppLink_(sheet, row); } catch (_) { console.warn("Registration saved; the plain WhatsApp URL remains available."); }
     return { duplicate: false, row: row };
-  } finally { lock.releaseLock(); }
+  } catch (error) {
+    error.saveStage = stage;
+    throw error;
+  } finally { if (locked) lock.releaseLock(); }
+}
+
+// Run manually in the Apps Script editor. Read-only: no test registrations,
+// payments, new tabs or changes to existing response rows are created.
+function diagnoseWorkshopSaving() {
+  const sheet = getExistingResponseSheet_();
+  const report = {
+    version: CONFIG.BACKEND_VERSION,
+    spreadsheetId: CONFIG.SPREADSHEET_ID,
+    sheetName: sheet.getName(),
+    sheetId: sheet.getSheetId(),
+    lastUsedRow: sheet.getLastRow(),
+    columnCount: sheet.getMaxColumns(),
+    hasFilter: Boolean(sheet.getFilter())
+  };
+  console.log(JSON.stringify(report));
+  return report;
 }
 
 function doGet() {

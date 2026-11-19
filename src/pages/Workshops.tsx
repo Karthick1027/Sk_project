@@ -11,6 +11,7 @@ import {
   initialRegistration, normalizePhone, validateRegistration, createWorkshopOrder,
   verifyWorkshopPayment, loadCheckout, readPendingPayment, storePendingPayment,
   RegistrationValidationError, WorkshopApiError, WORKSHOP_COURSES,
+  CheckoutLoadError, logWorkshopPayment,
   DEFAULT_PAYMENT_AMOUNT, paymentAmountPaise, formatPaymentAmount,
   type Registration, type RegistrationField, type RegistrationErrors, type PaymentStage, type PendingPayment, type Checkout,
 } from '../lib/workshopPayment';
@@ -231,6 +232,7 @@ const Workshops: React.FC = () => {
   const [formError, setFormError] = useState('');
   const busy = useRef(false);
   const checkout = useRef<Checkout | null>(null);
+  const reusableOrder = useRef<{ fingerprint: string; order: Awaited<ReturnType<typeof createWorkshopOrder>> } | null>(null);
   const mounted = useRef(true);
   const processing = stage !== 'idle';
   const statusText: Record<PaymentStage, string> = {
@@ -277,11 +279,14 @@ const Workshops: React.FC = () => {
     setStage('verifying');
     try {
       const advance = await verifyWorkshopPayment(pending.proof, pending.amount);
+      reusableOrder.current = null;
+      logWorkshopPayment('registration_saved', { amount: advance * 100, currency: 'INR' });
       if (mounted.current) setVerifiedAmount(advance);
       storePendingPayment(null);
       if (mounted.current) setPendingPayment(null);
       finishPayment('success');
     } catch (error) {
+      logWorkshopPayment('verification_failed', { code: error instanceof WorkshopApiError ? error.kind : 'COMMUNICATION_ERROR', stage: 'verifying' });
       if (mounted.current) setResultDetail(error instanceof Error ? error.message : 'Payment verification is unavailable. Please try again.');
       finishPayment(error instanceof WorkshopApiError && error.kind === 'saving' ? 'saving-failure' : 'failure');
     }
@@ -309,17 +314,24 @@ const Workshops: React.FC = () => {
     }
     busy.current = true;
     setResult(null);
-    setStage('creating');
+    setStage('opening');
     const submitted = { ...registration, phone: `91${registration.phone}` };
     let settled = false;
     let orderCreated = false;
     try {
-      const order = await createWorkshopOrder({ registration: submitted, amount: paymentAmount });
-      orderCreated = true;
-      if (!mounted.current) return;
-      setStage('opening');
       await loadCheckout();
       if (!mounted.current) return;
+      setStage('creating');
+      // A cancelled/failed Checkout can retry the same order. Bind it to all
+      // registration details and the exact amount so edited forms get a new one.
+      const fingerprint = JSON.stringify([submitted, paymentAmountPaise(paymentAmount)]);
+      const cached = reusableOrder.current;
+      const order = cached?.fingerprint === fingerprint ? cached.order : await createWorkshopOrder({ registration: submitted, amount: paymentAmount });
+      reusableOrder.current = { fingerprint, order };
+      orderCreated = true;
+      logWorkshopPayment('order_ready', { amount: order.amount, currency: order.currency, mode: order.keyId.startsWith('rzp_test_') ? 'test' : 'live' });
+      if (!mounted.current) return;
+      setStage('opening');
       if (!window.Razorpay || order.amount !== paymentAmountPaise(paymentAmount) || order.currency !== 'INR' || !order.orderId || !order.keyId) throw new Error('Invalid payment order.');
       const instance = new window.Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
@@ -329,6 +341,7 @@ const Workshops: React.FC = () => {
         modal: { handleback: false, ondismiss: () => {
           if (settled) return;
           settled = true;
+          logWorkshopPayment('checkout_dismissed', { stage: 'checkout' });
           finishPayment('cancelled');
         } },
         handler: (proof) => {
@@ -345,15 +358,23 @@ const Workshops: React.FC = () => {
       instance.on('payment.failed', () => {
         if (settled) return;
         settled = true;
+        logWorkshopPayment('payment_failed', { stage: 'checkout' });
         instance.close();
         finishPayment('failure');
       });
       setStage('checkout');
+      logWorkshopPayment('checkout_open_requested', { stage: 'checkout' });
       instance.open();
     } catch (error) {
       settled = true;
       if (!mounted.current) return;
+      if (error instanceof CheckoutLoadError) {
+        setResultDetail(error.message);
+        finishPayment('gateway-unavailable');
+        return;
+      }
       if (!orderCreated) {
+        logWorkshopPayment('order_failed', { code: error instanceof RegistrationValidationError ? 'VALIDATION_FAILED' : 'ORDER_REQUEST_FAILED', stage: 'creating' });
         busy.current = false;
         setStage('idle');
         setResult(null);
@@ -368,7 +389,8 @@ const Workshops: React.FC = () => {
         return;
       }
       if (mounted.current) setResultDetail(error instanceof Error ? error.message : 'The payment gateway is unavailable. Please try again.');
-      finishPayment('failure');
+      logWorkshopPayment('checkout_open_failed', { code: 'CHECKOUT_OPEN_FAILED', stage: 'opening' });
+      finishPayment('gateway-unavailable');
     }
   };
 

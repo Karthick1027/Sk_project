@@ -3,7 +3,7 @@ import { AlertCircle, Check, X } from 'lucide-react';
 import './WorkshopPaymentDialog.css';
 import { formatPaymentAmount } from '../lib/workshopPayment';
 
-export type PaymentResult = 'success' | 'failure' | 'cancelled' | 'saving-failure';
+export type PaymentResult = 'success' | 'failure' | 'cancelled' | 'saving-failure' | 'gateway-unavailable';
 interface Props {
   result: PaymentResult;
   detail?: string;
@@ -19,6 +19,7 @@ export default function WorkshopPaymentDialog({ result, detail, course, amount, 
   const success = result === 'success';
   const cancelled = result === 'cancelled';
   const savingFailed = result === 'saving-failure';
+  const gatewayUnavailable = result === 'gateway-unavailable';
   useEffect(() => {
     const element = dialog.current;
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -35,9 +36,9 @@ export default function WorkshopPaymentDialog({ result, detail, course, amount, 
       <div className={`workshop-result-icon mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border ${success ? 'border-champagne bg-beige text-cocoa' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
         {success ? <Check className="workshop-check h-10 w-10" strokeWidth={2} /> : <AlertCircle className="h-10 w-10" />}
       </div>
-      <h2 id="payment-result-title" className="font-playfair text-3xl">{success ? 'Registration Successful!' : cancelled ? 'Payment Cancelled' : savingFailed ? 'Registration Not Saved' : 'Payment Not Completed'}</h2>
+      <h2 id="payment-result-title" className="font-playfair text-3xl">{success ? 'Registration Successful!' : cancelled ? 'Payment Cancelled' : savingFailed ? 'Registration Not Saved' : gatewayUnavailable ? 'Unable to Open Payment' : 'Payment Not Completed'}</h2>
       <p id="payment-result-description" className="mt-4 text-sm leading-relaxed text-cocoa">
-        {success ? `Your ${formatPaymentAmount(amount)} advance payment has been verified successfully.` : cancelled ? 'Checkout was closed before payment was completed. Your form details have been kept so you can try again.' : savingFailed ? 'We could not confirm that your registration was saved. Try Again will recheck your existing payment and registration without charging you again.' : "We couldn't confirm your payment. Please try again."}
+        {success ? `Your ${formatPaymentAmount(amount)} advance payment has been verified successfully.` : cancelled ? 'Checkout was closed before payment was completed. Your form details have been kept so you can try again.' : savingFailed ? 'We could not confirm that your registration was saved. Try Again will recheck your existing payment and registration without charging you again.' : gatewayUnavailable ? 'The payment window did not open. Your registration details have been kept so you can try again.' : "We couldn't confirm your payment. Please try again."}
       </p>
       {!success && !cancelled && detail && <p role="alert" className="mt-3 break-words text-sm leading-relaxed text-red-800">{detail}</p>}
       {success ? <>

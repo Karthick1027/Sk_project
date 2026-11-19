@@ -51,7 +51,7 @@ Website registrations use `appendRow`, never overwrite existing rows, and locate
 4. Choose **Deploy > Manage deployments**, edit the EXISTING web app deployment, select **New version**, and deploy. Set **Execute as: Me** (an account with edit access to this spreadsheet) and **Who has access: Anyone**. Reauthorize updated permissions if prompted.
 5. Keep this existing endpoint:
 
-   `https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec`
+   `https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec`
 
    Use the web app `/exec` URL, not the library URL or a `/dev` URL.
 6. Open that endpoint. The new response must identify `backend: "google-apps-script"`, `version: "workshop-spark-v2-flexible"`, `sheet: "Form Responses 1"`, `sheetAccessible: true`, `credentialsConfigured: true`, `suggestedAmountRupees: 500`, `minimumAmountRupees: 1`, `currency: "INR"`, and `ok: true`. Configured credentials still need a successful Razorpay test to establish that they are valid. If the response is still the old generic message, the new code is not deployed at this URL.
@@ -93,12 +93,52 @@ Only then does the script acquire its write lock, check payment/order IDs in P/Q
 - If an older deployment never retained the original registration for an already-paid order and no verified row exists, contact the studio with the Razorpay payment/order IDs for reconciliation. The backend does not invent registration details or mark unknown payments successful.
 - An old order can be retried without paying again when its server-side pending registration still contains the exact expected amount/currency and matches the original Razorpay order hash. Missing expected amounts are never replaced with an assumed INR 500 value.
 
+For a saving failure, the response now includes `reference`, `saveStage` and `saveCause`. The matching owner-only Apps Script execution log retains the actual Google Sheets exception, stack and destination; the public response does not expose those details. Stages distinguish lock timeout (`acquire_lock`), tab/header preparation (`prepare_sheet`), duplicate lookup (`check_duplicate`), missing order registration (`load_registration`), append (`append_row`), flush (`flush_new_row`) and read-back (`read_back`). These diagnostics do not change verification rules or mark failures successful.
+
+Run `diagnoseWorkshopSaving()` manually in the Apps Script editor for a read-only report of spreadsheet ID, actual sheet name/ID, last used row, column count and filter presence. The expected tab ID from the provided spreadsheet link is `1885927180`. This diagnostic does not create orders, payments, tabs or test registrations. A successful `setupEditTrigger()` run is not a website saving test.
+
 Requests use `text/plain;charset=UTF-8`, CORS mode, omitted credentials and followed redirects. HTTP errors, unreadable/opaque responses, malformed JSON and backend errors never count as successful orders or registrations. A health response alone cannot confirm a saved registration.
+
+The Razorpay Checkout script loads before an Apps Script order is created. If the CDN is unavailable, times out after 30 seconds, is blocked by a security policy, or fails to initialize, the form keeps its data and shows “Unable to Open Payment”. No order is created on that attempt. Retry removes the failed script and starts a fresh load. This is separate from payment verification or Sheets saving and does not require an Apps Script change. Use `node scripts/check-razorpay-loader.cjs "<installed Edge or Chrome executable>"` to check actual Checkout script loading without opening Checkout or creating orders/charges. A network/browser extension or security policy block must be resolved in the affected browser/network; the website does not bypass it or show false success.
 
 ## Checks and release QA
 
+### Checkout diagnostic findings (20 November 2026)
+
+The official `https://checkout.razorpay.com/v1/checkout.js` returned HTTP 200
+and initialized `window.Razorpay` in approximately 9.3 seconds in a clean Edge
+profile. The diagnostic now uses real wall-clock time and Chrome DevTools
+Protocol network events, rather than virtual time. A failed sandbox network
+probe is not evidence that the customer's browser or Razorpay is broken.
+
+The deployed Web App health response separately reported `sheetAccessible:false`
+because its older code requires R1 to be exactly `Advance Paid (INR)`. The local
+Apps Script preserves every existing nonempty header and addresses column R by
+position. Deploy that complete file to the existing Web App deployment to remove
+the header-name restriction without renaming Google Form columns A-K.
+
+The loader reports `SDK_LOAD_FAILED`, `SDK_OFFLINE`, `SDK_TIMEOUT`,
+`SDK_CSP_BLOCKED`, `SDK_NOT_INITIALIZED`, or `SDK_INSERTION_BLOCKED`. A script
+error alone cannot identify an extension, DNS, TLS or HTTP failure. In the
+affected browser inspect the Network entry for `checkout.js` and the console's
+`[Workshop payment]` events. Logs exclude registration data, signatures, key
+secrets and raw API responses. No project CSP blocking Razorpay was found in
+the HTML or Firebase Hosting configuration.
+
+Opening errors use the gateway-unavailable dialog; actual `payment.failed`
+events use the payment-failure dialog. Unchanged forms reuse their last order
+within the mounted page after cancellation/opening failure/payment failure.
+Once a receipt exists, retry only verifies that payment. Order reuse is not
+persisted across page reloads. If a browser closes before receiving a payment
+receipt, reconcile that payment in Razorpay before requesting another payment.
+
+Both `rzp_test_` and `rzp_live_` public keys are accepted; the returned key is
+passed directly to Checkout. Script Properties must contain the corresponding
+key ID and secret from the same mode. This review did not access credentials
+or create an authenticated live/test order, so it cannot confirm their pairing.
+
 ```sh
-node --test google-apps-script/WorkshopRegistrations.test.cjs src/lib/workshopPayment.test.cjs
+node --test google-apps-script/WorkshopRegistrations.test.cjs src/lib/workshopPayment.test.cjs src/lib/workshopCheckout.test.cjs
 npx tsc -p tsconfig.app.json --noEmit
 npm run build
 node scripts/check-workshop-form.cjs "<installed Edge or Chrome executable>"

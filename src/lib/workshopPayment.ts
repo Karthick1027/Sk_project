@@ -54,11 +54,17 @@ export interface Checkout {
   close: () => void;
   on: (event: 'payment.failed', handler: () => void) => void;
 }
+
+// Only explicitly selected, non-personal diagnostics belong in the console.
+// Never log registrations, callback objects, signatures or API response bodies.
+export function logWorkshopPayment(event: string, details: { code?: string; stage?: PaymentStage; mode?: 'test' | 'live'; amount?: number; currency?: string } = {}): void {
+  console.info('[Workshop payment]', { event, ...details });
+}
 declare global {
   interface Window { Razorpay?: new (options: CheckoutOptions) => Checkout }
 }
 
-export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec';
+export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec';
 
 export class WorkshopCommunicationError extends Error {
   constructor() {
@@ -147,26 +153,58 @@ export async function verifyWorkshopPayment(proof: PaymentProof, expectedPaise?:
 }
 
 let checkoutScript: Promise<void> | undefined;
+export const CHECKOUT_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
+type CheckoutLoadCode = 'SDK_TIMEOUT' | 'SDK_CSP_BLOCKED' | 'SDK_NOT_INITIALIZED' | 'SDK_OFFLINE' | 'SDK_LOAD_FAILED' | 'SDK_INSERTION_BLOCKED';
+export class CheckoutLoadError extends Error {
+  constructor(message: string, public code: CheckoutLoadCode = 'SDK_LOAD_FAILED') { super(message); this.name = 'CheckoutLoadError'; }
+}
 export function loadCheckout(): Promise<void> {
-  if (window.Razorpay) return Promise.resolve();
+  if (typeof window.Razorpay === 'function') return Promise.resolve();
   if (!checkoutScript) {
     checkoutScript = new Promise<void>((resolve, reject) => {
       const script = document.createElement('script');
-      const timer = window.setTimeout(() => fail(), 20000);
-      const fail = () => {
+      let settled = false;
+      const timer = window.setTimeout(() => fail('SDK_TIMEOUT', 'Razorpay Checkout did not finish loading within 30 seconds. Please try again.'), 30000);
+      const finish = () => {
         window.clearTimeout(timer);
+        script.onload = null;
+        script.onerror = null;
+        document.removeEventListener('securitypolicyviolation', onPolicyViolation);
+      };
+      const fail = (code: CheckoutLoadCode, message: string) => {
+        if (settled) return;
+        settled = true;
+        finish();
         script.remove();
-        reject(new Error('Payment gateway could not load. Please try again.'));
+        logWorkshopPayment('checkout_script_failed', { code, stage: 'opening' });
+        reject(new CheckoutLoadError(`${message} Reference: ${code}.`, code));
       };
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      script.onload = () => {
-        window.clearTimeout(timer);
-        if (window.Razorpay) resolve(); else fail();
+      const onPolicyViolation = (event: SecurityPolicyViolationEvent) => {
+        if (event.blockedURI.includes('checkout.razorpay.com')) fail('SDK_CSP_BLOCKED', 'Your browser security policy blocked the payment gateway. Please contact SK Bridal Studio.');
       };
-      script.onerror = fail;
-      document.head.appendChild(script);
-    }).catch((error: unknown) => { checkoutScript = undefined; throw error; });
+      document.addEventListener('securitypolicyviolation', onPolicyViolation);
+      try {
+        script.src = CHECKOUT_SCRIPT_URL;
+        script.async = true;
+        script.onload = () => {
+          if (settled) return;
+          if (typeof window.Razorpay === 'function') { settled = true; finish(); logWorkshopPayment('checkout_script_ready'); resolve(); }
+          else fail('SDK_NOT_INITIALIZED', 'The payment gateway did not initialize. Please refresh the page and try again.');
+        };
+        script.onerror = () => {
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) fail('SDK_OFFLINE', 'Your browser reports that it is offline. Reconnect and try again.');
+          else fail('SDK_LOAD_FAILED', 'Your browser could not load Razorpay Checkout. Please try again. If this continues, contact SK Bridal Studio with this reference.');
+        };
+        logWorkshopPayment('checkout_script_requested', { stage: 'opening' });
+        document.head.appendChild(script);
+      } catch {
+        fail('SDK_INSERTION_BLOCKED', 'Your browser blocked loading the payment gateway. Please contact SK Bridal Studio or try another browser.');
+      }
+    }).then(() => { checkoutScript = undefined; }, (error: unknown) => {
+      checkoutScript = undefined;
+      if (error instanceof CheckoutLoadError) throw error;
+      throw new CheckoutLoadError('The payment gateway could not load. Please refresh the page and try again.');
+    });
   }
   return checkoutScript;
 }

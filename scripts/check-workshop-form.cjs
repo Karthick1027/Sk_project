@@ -33,8 +33,19 @@ window.Razorpay = class {
   close() { this.options.modal.ondismiss(); }
   open() {
     window.qa.checkouts++;
+    if (window.qa.mode === 'open-error') throw new Error('Checkout initialization rejected');
+    if (window.qa.mode === 'cancelled') { setTimeout(() => this.options.modal.ondismiss(), 10); return; }
     setTimeout(() => window.qa.mode === 'failure' ? this.events['payment.failed']() : this.options.handler({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'a'.repeat(64) }), 10);
   }
+};
+window.qa.mockRazorpay = window.Razorpay;
+const appendToHead = document.head.appendChild.bind(document.head);
+document.head.appendChild = node => {
+  if (window.qa.blockGateway && node.src?.includes('checkout.razorpay.com')) {
+    setTimeout(() => node.onerror?.(new Event('error')), 1);
+    return node;
+  }
+  return appendToHead(node);
 };
 </script>`;
 const checks = `<script>
@@ -80,17 +91,33 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     await setField('amount', '250.50'); await submit();
     assert(document.getElementById('workshop-amount-error') && qa.orders === 0, 'Fractional rupee amounts are rejected before order creation');
     await setField('amount', '250');
+    qa.blockGateway = true; delete window.Razorpay;
+    await submit();
+    assert(document.getElementById('payment-result-title')?.textContent === 'Unable to Open Payment' && qa.orders === 0, 'Blocked Checkout script is identified before any order is created');
+    assert(document.querySelector('[name="name"]').value === 'Test Student', 'Gateway load failure preserves registration details');
+    document.querySelector('[aria-label="Close payment message"]').click(); await delay();
+    qa.blockGateway = false; window.Razorpay = qa.mockRazorpay;
     await submit();
     assert(document.getElementById('workshop-email-error')?.textContent === 'Please check your email.' && !document.querySelector('dialog[open]') && qa.orders === 1 && qa.checkouts === 0, 'Backend field error stays inline and does not show payment failure');
     assert(qa.payloads[0].registration.email === 'student@example.com' && qa.payloads[0].registration.phone === '919876543210' && qa.payloads[0].registration.goal === 'Learn bridal makeup', 'Payload maps email, phone and goal correctly');
     assert(qa.payloads[0].amount === 250, 'Edited amount below INR 500 is sent to Apps Script');
+    qa.mode = 'open-error'; await submit();
+    assert(document.getElementById('payment-result-title')?.textContent === 'Unable to Open Payment', 'Checkout open exceptions are distinct from payment failures');
+    document.querySelector('[aria-label="Close payment message"]').click(); await delay();
+    const createdOrders = qa.orders;
+    qa.mode = 'cancelled'; await submit();
+    assert(qa.orders === createdOrders && qa.verifications === 0, 'Retry after opening failure reuses the same order without verifying or charging');
+    document.querySelector('[aria-label="Close payment message"]').click(); await delay();
     qa.mode = 'failure';
     await setField('email', 'student@example.com');
     await submit();
+    assert(qa.orders === createdOrders + 1, 'Editing registration details creates a newly bound order');
+    const failedOrderCount = qa.orders;
     assert(document.getElementById('payment-result-title')?.textContent === 'Payment Not Completed', 'Razorpay failure retains animated payment dialog');
     document.querySelector('[aria-label="Close payment message"]').click(); await delay();
     assert(document.querySelector('[name="question"]').value === 'Please keep these details', 'Payment failure preserves form details');
     qa.mode = 'saving'; await submit();
+    assert(qa.orders === failedOrderCount, 'Failed Checkout retry reuses the unchanged registration order');
     assert(document.getElementById('payment-result-title')?.textContent === 'Registration Not Saved', 'Google Sheets saving error has a separate result');
     assert(document.querySelector('dialog[open] #payment-result-title')?.textContent !== 'Registration Successful!', 'Unconfirmed save never shows success');
     const orderCount = qa.orders;
