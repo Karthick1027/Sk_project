@@ -1,12 +1,10 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import {
-  ArrowDown, Sparkles, Check, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award, Send, Upload,
+  ArrowDown, Sparkles, Check, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award, Send,
   type LucideIcon,
 } from 'lucide-react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
-import { app } from '../firebase';
 import heroImage from '../images/gallery/client_2151.jpg';
 import polaroidImage from '../images/gallery/client_2175.jpg';
 import muhurthamImage from '../images/gallery/client_2170.jpg';
@@ -16,84 +14,7 @@ const INSTAGRAM_URL = 'https://instagram.com/srinithimakeupartist';
 // Opens a DM thread straight away in the Instagram app or web
 const DM_URL = 'https://ig.me/m/srinithimakeupartist';
 const ADVANCE_AMOUNT = 500;
-const RAZORPAY_PAYMENT_URL = 'https://rzp.io/rzp/l7U6ziQ0';
-const functions = getFunctions(app, 'us-central1');
-
-interface WorkshopRegistration {
-  name: string;
-  email: string;
-  phone: string;
-  course: string;
-  city: string;
-  gender: string;
-  mainGoal: string;
-  experience: string;
-  question: string;
-  paymentScreenshot: string;
-}
-
-interface CreateWorkshopOrderResponse {
-  orderId: string;
-  amount: number;
-  currency: string;
-  keyId: string;
-}
-
-interface RazorpayPaymentResponse {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-}
-
-interface PaymentProofUpload {
-  name: string;
-  mimeType: string;
-  dataBase64: string;
-}
-
-interface RazorpayCheckoutOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  prefill: { name: string; email: string; contact: string };
-  theme: { color: string };
-  handler: (response: RazorpayPaymentResponse) => void;
-  modal: { ondismiss: () => void };
-}
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayCheckoutOptions) => { open: () => void };
-  }
-}
-
-const loadRazorpay = async () => {
-  if (window.Razorpay) return;
-
-  await new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Razorpay checkout could not be loaded.'));
-    document.body.appendChild(script);
-  });
-};
-
-const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => {
-    if (typeof reader.result !== 'string') {
-      reject(new Error('Payment proof could not be read.'));
-      return;
-    }
-    resolve(reader.result.split(',')[1] ?? '');
-  };
-  reader.onerror = () => reject(new Error('Payment proof could not be read.'));
-  reader.readAsDataURL(file);
-});
+const RAZORPAY_PAYMENT_URL = 'https://razorpay.me/@skbridalstudio';
 
 interface Highlight {
   label: string;
@@ -202,8 +123,8 @@ const essentials: { icon: LucideIcon; title: string; text: string }[] = [
 
 const steps = [
   { title: 'Choose your course', text: 'Register for both days or select the bridal look you want to learn.' },
-  { title: 'Pay your advance', text: 'Pay ₹500 securely through Razorpay to reserve your seat.' },
-  { title: 'Registration complete', text: 'Your seat is confirmed after successful payment verification.' },
+  { title: 'Pay your advance', text: 'Pay ₹500 through Razorpay to reserve your seat.' },
+  { title: 'Pay the balance later', text: 'We will confirm your remaining balance. Pay it through the same link and message us on Instagram.' },
 ];
 
 /** Circular "Live · Online" sticker whose text slowly rotates */
@@ -298,40 +219,9 @@ const Workshops: React.FC = () => {
     mainGoal: '',
     experience: '',
     question: '',
-    paymentScreenshot: '',
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registrationStatus, setRegistrationStatus] =
-    useState<'idle' | 'success' | 'error'>('idle');
-  const [paymentProof, setPaymentProof] = useState<File | null>(null);
-  const [paymentProofError, setPaymentProofError] = useState('');
-  const paymentProofInput = useRef<HTMLInputElement>(null);
+  const [paymentStarted, setPaymentStarted] = useState(false);
   const day = days[active];
-
-  const handlePaymentProofChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    setPaymentProofError('');
-    if (!file) {
-      setPaymentProof(null);
-      return;
-    }
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      setPaymentProof(null);
-      setPaymentProofError('Choose a JPG, PNG, WEBP, or PDF file.');
-      event.target.value = '';
-      return;
-    }
-    if (file.size > 4 * 1024 * 1024) {
-      setPaymentProof(null);
-      setPaymentProofError('The file must be 4 MB or smaller.');
-      event.target.value = '';
-      return;
-    }
-
-    setPaymentProof(file);
-  };
 
   const handleRegistrationChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -342,82 +232,10 @@ const Workshops: React.FC = () => {
     setRegistration({ ...registration, [event.target.name]: value });
   };
 
-  const handleRegistrationSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleRegistrationSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (isSubmitting) return;
-    const payload: WorkshopRegistration = {
-      name: registration.name.trim(),
-      email: registration.email.trim(),
-      phone: registration.phone.trim(),
-      course: registration.course,
-      city: registration.city.trim(),
-      gender: registration.gender,
-      mainGoal: registration.mainGoal.trim(),
-      experience: registration.experience.trim(),
-      question: registration.question.trim(),
-      paymentScreenshot: registration.paymentScreenshot.trim(),
-    };
-
-    setIsSubmitting(true);
-    setRegistrationStatus('idle');
-
-    try {
-      const createOrder = httpsCallable<{ registration: WorkshopRegistration }, CreateWorkshopOrderResponse>(
-        functions,
-        'createWorkshopOrder',
-      );
-      const { data: order } = await createOrder({ registration: payload });
-      await loadRazorpay();
-
-      if (!window.Razorpay) throw new Error('Razorpay checkout is unavailable.');
-
-      const verifyPayment = httpsCallable<
-        RazorpayPaymentResponse & { registration: WorkshopRegistration; paymentProof?: PaymentProofUpload },
-        { ok: true }
-      >(functions, 'verifyWorkshopPayment');
-
-      const checkout = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'SK Bridal Studio',
-        description: `Workshop seat advance: ${ADVANCE_AMOUNT} INR`,
-        order_id: order.orderId,
-        prefill: { name: payload.name, email: payload.email, contact: payload.phone },
-        theme: { color: '#674d40' },
-        handler: async (payment) => {
-          try {
-            const uploadedProof = paymentProof
-              ? {
-                name: paymentProof.name,
-                mimeType: paymentProof.type,
-                dataBase64: await fileToBase64(paymentProof),
-              }
-              : undefined;
-            await verifyPayment({ ...payment, registration: payload, paymentProof: uploadedProof });
-            setRegistrationStatus('success');
-          } catch (error) {
-            console.error('Payment verification or registration failed:', error);
-            setRegistrationStatus('error');
-          } finally {
-            setIsSubmitting(false);
-          }
-        },
-        modal: {
-          ondismiss: () => setIsSubmitting(false),
-        },
-      });
-      checkout.open();
-    } catch (error) {
-      console.error('Could not start Firebase Razorpay checkout:', error);
-      const paymentUrl = new URL(RAZORPAY_PAYMENT_URL);
-      paymentUrl.searchParams.set('name', payload.name);
-      paymentUrl.searchParams.set('phone', payload.phone);
-      window.location.assign(paymentUrl.toString());
-    }
+    window.open(RAZORPAY_PAYMENT_URL, '_blank', 'noopener,noreferrer');
+    setPaymentStarted(true);
   };
 
   useEffect(() => {
@@ -732,23 +550,13 @@ const Workshops: React.FC = () => {
               <p className="eyebrow">Course Registration</p>
               <h2 className="mt-2 font-playfair text-3xl font-medium text-chocolate">Save your seat</h2>
               <p className="mt-2 font-inter text-sm leading-relaxed text-ink">
-                Pay a ₹500 advance to reserve your seat. Your registration is complete once the payment is verified.
+                Enter ₹500 on Razorpay to reserve your seat. We’ll confirm the remaining balance for you to pay later through the same link. Message us on Instagram with your name and selected course after each payment.
               </p>
 
-              {registrationStatus === 'success' && (
-                <div role="status" className="mt-5 rounded-lg border border-champagne bg-white/70 p-4">
-                  <p className="font-inter text-sm font-semibold text-chocolate">Payment verified. Your workshop seat is confirmed.</p>
-                  <p className="mt-1 font-inter text-sm text-mocha">We’ll contact you with the workshop details.</p>
-                </div>
-              )}
-
-              {registrationStatus === 'error' && (
-                <div role="alert" className="mt-5 rounded-lg border border-clay/50 bg-clay/10 p-4">
-                  <p className="font-inter text-sm text-clay">
-                    Payment or registration could not be confirmed. If you were charged, please contact us before trying again, or{' '}
-                    <a href={DM_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline">message us on Instagram</a>.
-                  </p>
-                </div>
+              {paymentStarted && (
+                <p role="status" className="mt-5 rounded-lg border border-champagne bg-white/70 p-4 font-inter text-sm text-chocolate">
+                  The Razorpay payment page has opened in a new tab. Enter ₹500 for your advance. The remaining balance can be paid later through the same link once confirmed; <a href={DM_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline">message us on Instagram</a> after each payment.
+                </p>
               )}
 
               <form onSubmit={handleRegistrationSubmit} className="mt-6 space-y-5">
@@ -762,7 +570,6 @@ const Workshops: React.FC = () => {
                       value={registration.course}
                       onChange={handleRegistrationChange}
                       className="field"
-                      disabled={isSubmitting}
                     >
                       <option>Full 2-day masterclass</option>
                       <option>Muhurtham Look (Day 1)</option>
@@ -771,23 +578,23 @@ const Workshops: React.FC = () => {
                   </div>
                   <div>
                     <label htmlFor="workshop-name" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Your name *</label>
-                    <input id="workshop-name" name="name" type="text" autoComplete="name" required maxLength={100} value={registration.name} onChange={handleRegistrationChange} className="field" placeholder="Full name" disabled={isSubmitting} />
+                    <input id="workshop-name" name="name" type="text" autoComplete="name" required maxLength={100} value={registration.name} onChange={handleRegistrationChange} className="field" placeholder="Full name" />
                   </div>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <label htmlFor="workshop-phone" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">WhatsApp number *</label>
-                    <input id="workshop-phone" name="phone" type="tel" inputMode="numeric" pattern="[0-9]{10,15}" title="Enter 10 to 15 digits, including country code" autoComplete="tel" required maxLength={15} value={registration.phone} onChange={handleRegistrationChange} className="field" placeholder="10 to 15 digits, include country code" disabled={isSubmitting} />
+                    <input id="workshop-phone" name="phone" type="tel" inputMode="numeric" pattern="[0-9]{10,15}" title="Enter 10 to 15 digits, including country code" autoComplete="tel" required maxLength={15} value={registration.phone} onChange={handleRegistrationChange} className="field" placeholder="10 to 15 digits, include country code" />
                   </div>
                   <div>
                     <label htmlFor="workshop-city" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">City</label>
-                    <input id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city" disabled={isSubmitting} />
+                    <input id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city" />
                   </div>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <label htmlFor="workshop-gender" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Gender *</label>
-                    <select id="workshop-gender" name="gender" required value={registration.gender} onChange={handleRegistrationChange} className="field" disabled={isSubmitting}>
+                    <select id="workshop-gender" name="gender" required value={registration.gender} onChange={handleRegistrationChange} className="field">
                       <option value="">Select gender</option>
                       <option>Female</option>
                       <option>Male</option>
@@ -796,46 +603,22 @@ const Workshops: React.FC = () => {
                   </div>
                   <div>
                     <label htmlFor="workshop-experience" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Current makeup experience *</label>
-                    <input id="workshop-experience" name="experience" type="text" required maxLength={500} value={registration.experience} onChange={handleRegistrationChange} className="field" placeholder="Beginner, professional, etc." disabled={isSubmitting} />
+                    <input id="workshop-experience" name="experience" type="text" required maxLength={500} value={registration.experience} onChange={handleRegistrationChange} className="field" placeholder="Beginner, professional, etc." />
                   </div>
                 </div>
                 <div>
                   <label htmlFor="workshop-main-goal" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Main goal for joining the course *</label>
-                  <textarea id="workshop-main-goal" name="mainGoal" rows={3} required maxLength={1000} value={registration.mainGoal} onChange={handleRegistrationChange} className="field resize-y" placeholder="What do you want to learn?" disabled={isSubmitting} />
+                  <textarea id="workshop-main-goal" name="mainGoal" rows={3} required maxLength={1000} value={registration.mainGoal} onChange={handleRegistrationChange} className="field resize-y" placeholder="What do you want to learn?" />
                 </div>
                 <div>
                   <label htmlFor="workshop-question" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Additional comments or suggestions (optional)</label>
-                  <textarea id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Any additional comments?" disabled={isSubmitting} />
+                  <textarea id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Any additional comments?" />
                 </div>
-                <div>
-                  <span className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Payment proof file (optional)</span>
-                  <input
-                    ref={paymentProofInput}
-                    id="workshop-payment-proof"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    onChange={handlePaymentProofChange}
-                    className="sr-only"
-                    disabled={isSubmitting}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => paymentProofInput.current?.click()}
-                    className="inline-flex min-h-12 items-center gap-2 rounded-md border border-champagne bg-white px-4 py-3 font-inter text-sm font-medium text-chocolate transition-colors hover:bg-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mocha/60 disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={isSubmitting}
-                  >
-                    <Upload className="h-4 w-4" />
-                    {paymentProof ? 'Change payment proof' : 'Choose payment proof'}
-                  </button>
-                  <p className="mt-2 font-inter text-xs text-mocha">JPG, PNG, WEBP, or PDF. Maximum 4 MB.</p>
-                  {paymentProof && <p className="mt-1 break-all font-inter text-sm text-cocoa">{paymentProof.name}</p>}
-                  {paymentProofError && <p role="alert" className="mt-1 font-inter text-sm text-clay">{paymentProofError}</p>}
-                </div>
-                <div className="ml-auto grid w-full max-w-lg grid-cols-[minmax(0,1fr)_max-content] items-center gap-4">
-                  <p className="text-right font-inter text-xs leading-relaxed text-mocha">Secure ₹{ADVANCE_AMOUNT} advance payment via Razorpay.</p>
-                  <button type="submit" className="btn-primary justify-self-end text-center leading-tight" disabled={isSubmitting}>
+                <div className="ml-auto grid w-full max-w-lg grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_max-content] sm:gap-4">
+                  <p className="order-2 text-right font-inter text-xs leading-relaxed text-mocha sm:order-none">Pay your ₹{ADVANCE_AMOUNT} advance through Razorpay.</p>
+                  <button type="submit" className="order-1 btn-primary justify-self-end text-center leading-tight sm:order-none">
                     <Send className="h-4 w-4" />
-                    {isSubmitting ? 'Opening secure payment…' : `Pay ₹${ADVANCE_AMOUNT} & Register`}
+                    {`Pay ₹${ADVANCE_AMOUNT} Advance`}
                   </button>
                 </div>
               </form>
