@@ -42,7 +42,7 @@ test('payment receipt survives reload for verification retry and clears after co
   assert.equal(readPendingPayment(), null);
 });
 
-const validOrder = { ok: true, keyId: 'rzp_test_123', orderId: 'order_123', amount: 50000, currency: 'INR' };
+const validOrder = { ok: true, pendingSaved: true, row: 3, keyId: 'rzp_test_123', orderId: 'order_123', amount: 50000, currency: 'INR' };
 const jsonResponse = (data) => ({ ok: true, type: 'cors', json: async () => data });
 
 test('create_order sends goal and international phone using a readable simple CORS POST', async () => {
@@ -93,6 +93,13 @@ test('missing order fields and wrong amount/currency cannot open checkout', asyn
   for (const order of [{ ok: true }, { ...validOrder, amount: 500 }, { ...validOrder, currency: 'USD' }, { ...validOrder, keyId: '' }]) {
     fetchHandler = async () => jsonResponse(order);
     await assert.rejects(createWorkshopOrder({ registration: validRegistration }), /invalid payment order/);
+  }
+});
+
+test('valid order fields without confirmed Pending persistence cannot open checkout', async () => {
+  for (const changes of [{ pendingSaved: undefined }, { pendingSaved: false }, { pendingSaved: 'true' }, { row: undefined }, { row: 1 }, { row: '3' }, { row: 3.5 }]) {
+    fetchHandler = async () => jsonResponse({ ...validOrder, ...changes });
+    await assert.rejects(createWorkshopOrder({ registration: validRegistration }), error => error.kind === 'order' && error.diagnostics.code === 'PENDING_SAVE_NOT_CONFIRMED');
   }
 });
 

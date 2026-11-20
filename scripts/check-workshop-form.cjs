@@ -19,8 +19,9 @@ window.fetch = async (url, options = {}) => {
   if (payload.action === 'create_order') {
     qa.orders++;
     response = qa.mode === 'validation' ? { ok: false, code: 'VALIDATION_ERROR', fields: { email: 'Please check your email.' }, error: 'Check your fields.' }
-      : { ok: true, orderId: 'order_123', keyId: 'rzp_test_123', amount: Math.round(Number(payload.amount) * 100), currency: 'INR' };
+      : { ok: true, pendingSaved: true, row: 3, orderId: 'order_123', keyId: 'rzp_test_123', amount: Math.round(Number(payload.amount) * 100), currency: 'INR' };
     qa.amount = Math.round(Number(payload.amount) * 100);
+    if (qa.mode === 'unconfirmed-pending') delete response.pendingSaved;
   } else {
     qa.verifications++;
     response = qa.mode === 'saving' ? { ok: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Registration could not be saved.' } : { ok: true, verified: true, saved: true, amount: qa.amount, currency: 'INR' };
@@ -101,6 +102,8 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     assert(document.getElementById('workshop-email-error')?.textContent === 'Please check your email.' && !document.querySelector('dialog[open]') && qa.orders === 1 && qa.checkouts === 0, 'Backend field error stays inline and does not show payment failure');
     assert(qa.payloads[0].registration.email === 'student@example.com' && qa.payloads[0].registration.phone === '919876543210' && qa.payloads[0].registration.goal === 'Learn bridal makeup', 'Payload maps email, phone and goal correctly');
     assert(qa.payloads[0].amount === 250, 'Edited amount below INR 500 is sent to Apps Script');
+    qa.mode = 'unconfirmed-pending'; await submit();
+    assert(qa.checkouts === 0 && !document.querySelector('dialog[open]') && document.querySelector('[role="alert"]')?.textContent.includes('registration was saved'), 'Unconfirmed Pending save blocks Checkout and displays an actionable error');
     qa.mode = 'open-error'; await submit();
     assert(document.getElementById('payment-result-title')?.textContent === 'Unable to Open Payment', 'Checkout open exceptions are distinct from payment failures');
     document.querySelector('[aria-label="Close payment message"]').click(); await delay();

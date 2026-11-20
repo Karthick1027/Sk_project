@@ -109,7 +109,7 @@ async function postWorkshopAction(payload: object): Promise<Record<string, unkno
       // Preserve only bounded diagnostic tokens. Never log the raw response,
       // registration details, signatures or credentials.
       const token = (value: unknown) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(value) ? value : undefined;
-      const diagnostics = { code: token(result.code), reference: token(result.reference), saveStage: token(result.saveStage), saveCause: token(result.saveCause) };
+      const diagnostics = { code: token(result.code), reference: token(result.reference), saveStage: token(result.saveStage) || token(result.stage), saveCause: token(result.saveCause) };
       const context = [diagnostics.code, diagnostics.saveStage, diagnostics.saveCause, diagnostics.reference ? 'Reference: ' + diagnostics.reference : undefined].filter(Boolean).join(' / ');
       throw new WorkshopApiError(saving ? 'saving' : action === 'create_order' ? 'order' : 'payment', context ? message + ' (' + context + ')' : message, diagnostics);
     }
@@ -141,6 +141,9 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
       typeof data.keyId !== 'string' || !/^rzp_(test|live)_[A-Za-z0-9]+$/.test(data.keyId) ||
       data.amount !== paise || data.currency !== 'INR') {
     throw new Error('The registration server returned an invalid payment order. Checkout was not opened. Please contact SK Bridal Studio.');
+  }
+  if (data.pendingSaved !== true || typeof data.row !== 'number' || !Number.isSafeInteger(data.row) || data.row < 2) {
+    throw new WorkshopApiError('order', 'We could not confirm that your registration was saved. Checkout was not opened. Please contact SK Bridal Studio before trying again.', { code: 'PENDING_SAVE_NOT_CONFIRMED' });
   }
   return { orderId: data.orderId, keyId: data.keyId, amount: data.amount, currency: data.currency };
 }

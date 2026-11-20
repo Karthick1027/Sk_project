@@ -41,6 +41,8 @@ function backend(options = {}) {
       assert.equal(locked, true);
       if (failAppend) throw new Error('Sheet access denied');
       rows.push(Array.from(values));
+      if (options.missingOrderAfterAppend) rows[rows.length - 1][16] = '';
+      if (options.corruptPendingConfirmation) rows[rows.length - 1][12] = 'Ready to Send';
       if (options.concurrentForm) rows.push(['later Google Form timestamp', 'Concurrent Form Student', '918888888888']);
     },
     getRange(row, column, count = 1, width = 1) {
@@ -137,7 +139,7 @@ function backend(options = {}) {
 test('creates the suggested INR 500 order and saves its pending row before checkout', () => {
   const api = backend();
   const order = api.create();
-  assert.deepEqual(order, { ok: true, keyId: 'rzp_test_123', orderId: 'order_test', amount: 50000, currency: 'INR' });
+  assert.deepEqual(order, { ok: true, pendingSaved: true, row: 3, keyId: 'rzp_test_123', orderId: 'order_test', amount: 50000, currency: 'INR' });
   assert.equal(api.rows.length, 3);
   assert.equal(api.rows[2][11], 'Pending');
   assert.equal(api.rows[2][12], 'No');
@@ -383,7 +385,7 @@ test('read-only diagnostics identify Apps Script backend and do not expose crede
   assert.equal(api.writes.length, 0);
 });
 
-test('verification save failures identify the failing stage and log the Sheets exception for the owner', () => {
+test('verification save failures identify the failing stage without logging raw exceptions', () => {
   const api = backend({ failUpdate: true }); api.create();
   const result = api.post(proof);
   assert.equal(result.code, 'REGISTRATION_SAVE_FAILED');
@@ -392,7 +394,9 @@ test('verification save failures identify the failing stage and log the Sheets e
   assert.equal(result.saved, false);
   const log = api.logs.map(entry => JSON.parse(entry)).find(entry => entry.event === "workshop_registration_save_failed");
   assert.equal(log.reference, result.reference);
-  assert.match(log.message, /Sheet update denied/);
+  assert.equal(log.cause, 'SHEET_WRITE_ERROR');
+  assert.equal(log.stage, 'update_verified_row');
+  assert.equal(log.message, undefined);
   assert.equal(log.spreadsheetId, '1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows');
   assert.equal(JSON.stringify(result).includes('Sheet access denied'), false);
   assert.equal(JSON.stringify(result).includes('test-secret'), false);
@@ -480,4 +484,46 @@ test('successful verification logs saving only after the exact row is confirmed'
   assert.equal(event.action, 'verify_payment');
   assert.equal(event.saved, true); assert.equal(event.verified, true);
   assert.equal(event.row, result.row);
+});
+
+test('failed flush or order lookup after append never acknowledges a Pending save', () => {
+  for (const [options, stage] of [
+    [{ flushFailures: 1 }, 'flush_pending_row'],
+    [{ missingOrderAfterAppend: true }, 'locate_pending_row'],
+    [{ corruptPendingConfirmation: true }, 'read_back_pending_row'],
+  ]) {
+    const api = backend(options);
+    const result = api.create();
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'PENDING_REGISTRATION_SAVE_FAILED');
+    assert.equal(result.stage, stage);
+    assert.equal(result.saveStage, stage);
+    assert.notEqual(result.pendingSaved, true);
+    assert.equal(result.orderId, undefined);
+    assert.ok(result.reference);
+  }
+});
+
+test('malformed POST is a structured rejection without leaking the body', () => {
+  const api = backend();
+  const result = api.context.doPost({ postData: { contents: '{"email":"private@example.com"' } });
+  assert.equal(result.code, 'INVALID_REQUEST');
+  assert.equal(result.stage, 'parse_request');
+  assert.equal(result.ok, false);
+  assert.equal(api.calls.length, 0);
+  assert.equal(JSON.stringify([result, api.logs]).includes('private@example.com'), false);
+});
+
+test('Pending acknowledgement follows row confirmation and logs no customer fields', () => {
+  const api = backend();
+  const result = api.create();
+  const events = api.logs.map(entry => JSON.parse(entry));
+  assert.equal(result.pendingSaved, true);
+  const confirmed = events.findIndex(event => event.event === 'workshop_pending_row_confirmed');
+  const completed = events.findIndex(event => event.event === 'workshop_request_completed');
+  assert.ok(confirmed >= 0 && completed > confirmed);
+  assert.equal(events[completed].pendingSaved, true);
+  for (const value of [registration.name, registration.email, registration.phone, registration.goal, registration.question, 'test-secret', proof.signature]) {
+    assert.equal(JSON.stringify(api.logs).includes(value), false);
+  }
 });

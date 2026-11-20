@@ -11,7 +11,7 @@ const CONFIG = {
   SUGGESTED_PAYMENT_RUPEES: 500,
   CURRENCY: "INR",
   TIME_ZONE: "Asia/Kolkata",
-  BACKEND_VERSION: "workshop-spark-v3-sheet-pending",
+  BACKEND_VERSION: "workshop-spark-v4-pending-confirmed",
 
   // Registration columns
   COURSE_COL: 15,          // O
@@ -121,9 +121,12 @@ function backendError_(code, message, fields) {
 function doPost(event) {
   const requestReference = Utilities.getUuid().substring(0, 8);
   let action = "unknown";
+  console.log(JSON.stringify({ event: "workshop_post_received", reference: requestReference, version: CONFIG.BACKEND_VERSION }));
   try {
     if (!event || !event.postData || !event.postData.contents) throw backendError_("INVALID_REQUEST", "Request data is missing.");
-    const request = JSON.parse(event.postData.contents);
+    let request;
+    try { request = JSON.parse(event.postData.contents); }
+    catch (_) { throw backendError_("INVALID_REQUEST", "Request data must be valid JSON."); }
     if (!request || typeof request !== "object" || Array.isArray(request)) throw backendError_("INVALID_REQUEST", "Request data is invalid.");
     if (request.action === "create_order" || request.action === "verify_payment") action = request.action;
     console.log(JSON.stringify({ event: "workshop_request_started", action: action, reference: requestReference, version: CONFIG.BACKEND_VERSION }));
@@ -132,15 +135,18 @@ function doPost(event) {
     else if (action === "verify_payment") result = verifyWorkshopPayment_(request);
     // No public append/mark-verified action or legacy token callback is allowed.
     else throw backendError_("UNKNOWN_ACTION", "Unknown registration action.");
-    console.log(JSON.stringify({ event: "workshop_request_completed", action: action, reference: requestReference, verified: result.verified === true, saved: result.saved === true, row: result.row || undefined, duplicate: result.duplicate === true }));
+    console.log(JSON.stringify({ event: "workshop_request_completed", action: action, reference: requestReference, verified: result.verified === true, saved: result.saved === true, pendingSaved: result.pendingSaved === true, row: result.row || undefined, duplicate: result.duplicate === true }));
     return jsonResponse(result);
   } catch (error) {
     const reference = error.reference || requestReference;
     const code = error.code || "REQUEST_FAILED";
     // doPost catches errors, so Apps Script can label rejected requests
     // Completed. Explicitly log the action and rejection without the payload.
-    console.error(JSON.stringify({ event: "workshop_request_failed", action: action, reference: reference, code: code, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, version: CONFIG.BACKEND_VERSION }));
-    return jsonResponse({ ok: false, error: String(error.message || error), code: code, fields: error.fields || undefined, reference: reference, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, verified: code === "REGISTRATION_SAVE_FAILED", saved: false });
+    const stage = error.saveStage || (action === "create_order" ? "creating_order" : action === "verify_payment" ? "verifying_payment" : "parse_request");
+    console.error(JSON.stringify({ event: "workshop_request_failed", action: action, reference: reference, code: code, stage: stage, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, version: CONFIG.BACKEND_VERSION }));
+    // Raw platform exceptions can contain cell contents or personal data.
+    const message = error.code ? String(error.message) : "The registration server could not complete this request. Contact SK Bridal Studio with the reference below.";
+    return jsonResponse({ ok: false, error: message, code: code, stage: stage, fields: error.fields || undefined, reference: reference, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, verified: code === "REGISTRATION_SAVE_FAILED", saved: false });
   }
 }
 
@@ -202,17 +208,20 @@ function createWorkshopOrder_(data, requestedAmount) {
     notes: { type: "workshop_advance", backend: CONFIG.BACKEND_VERSION, course: registration.course, registration_hash: sheetRegistrationHash_(registration) }
   });
   if (!/^order_[A-Za-z0-9]+$/.test(order.id || "") || order.amount !== amount || order.currency !== CONFIG.CURRENCY) throw backendError_("ORDER_FAILED", "The payment service returned an invalid order. Checkout was not opened.");
+  console.log(JSON.stringify({ event: "workshop_order_created", version: CONFIG.BACKEND_VERSION, orderId: order.id, amount: order.amount, currency: order.currency }));
+  let row;
   try {
-    savePendingRegistration_(registration, order.id, amount);
+    row = savePendingRegistration_(registration, order.id, amount);
   } catch (error) {
     const reference = Utilities.getUuid().substring(0, 8);
-    console.error(JSON.stringify({ event: "workshop_pending_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", message: String(error.message || error), spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
+    console.error(JSON.stringify({ event: "workshop_pending_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
     const failure = backendError_("PENDING_REGISTRATION_SAVE_FAILED", "Your registration could not be saved, so Checkout was not opened. Please try again.");
     failure.reference = reference;
     failure.saveStage = error.saveStage || "unknown";
+    failure.saveCause = error.code || "SHEET_WRITE_ERROR";
     throw failure;
   }
-  return { ok: true, keyId: credentials.keyId, orderId: order.id, amount: order.amount, currency: order.currency };
+  return { ok: true, pendingSaved: true, row: row, keyId: credentials.keyId, orderId: order.id, amount: order.amount, currency: order.currency };
 }
 
 function verifySignature_(orderId, paymentId, signature) {
@@ -265,7 +274,8 @@ function setTextCell_(sheet, row, column, value) {
   cell.setValue(String(value || ""));
 }
 
-function appendPendingRow_(sheet, registration, orderId, amount) {
+function appendPendingRow_(sheet, registration, orderId, amount, enterStage) {
+  enterStage = enterStage || function() {};
   const timestamp = new Date();
   sheet.appendRow([
     timestamp, cleanValue(registration.name, 100), registration.phone, cleanValue(registration.gender, 50),
@@ -273,13 +283,18 @@ function appendPendingRow_(sheet, registration, orderId, amount) {
     cleanValue(registration.email, 150), cleanValue(registration.city, 100), "", cleanValue(registration.paymentScreenshot || "", 1000),
     "Pending", "No", "", registration.course, "", orderId, amount / 100
   ]);
+  enterStage("flush_pending_row");
   SpreadsheetApp.flush();
+  enterStage("locate_pending_row");
   const matches = findRegistrationRows_(sheet, orderId, "");
   if (matches.orderRows.length !== 1) throw backendError_("SHEET_WRITE_ERROR", "The pending registration row could not be confirmed.");
   const row = matches.orderRows[0];
+  console.log(JSON.stringify({ event: "workshop_pending_row_located", row: row, orderId: orderId }));
+  enterStage("format_pending_row");
   setTextCell_(sheet, row, CONFIG.PHONE_COL, registration.phone);
   setTextCell_(sheet, row, CONFIG.PAYMENT_ID_COL, "");
   setTextCell_(sheet, row, CONFIG.ORDER_ID_COL, orderId);
+  enterStage("flush_pending_text_cells");
   SpreadsheetApp.flush();
   return row;
 }
@@ -288,21 +303,27 @@ function savePendingRegistration_(registration, orderId, amount) {
   const lock = LockService.getScriptLock();
   let locked = false;
   let stage = "acquire_lock";
+  function enterStage(value) {
+    stage = value;
+    console.log(JSON.stringify({ event: "workshop_pending_save_stage", stage: stage, version: CONFIG.BACKEND_VERSION, spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME, orderId: orderId }));
+  }
   try {
+    enterStage(stage);
     lock.waitLock(20000);
     locked = true;
-    stage = "prepare_sheet";
+    enterStage("prepare_sheet");
     const sheet = getResponseSheet_();
-    stage = "check_duplicate";
+    enterStage("check_duplicate");
     const matches = findRegistrationRows_(sheet, orderId, "");
     if (matches.orderRows.length) throw backendError_("ORDER_ALREADY_EXISTS", "This payment order already has a registration row.");
-    stage = "append_pending_row";
-    const row = appendPendingRow_(sheet, registration, orderId, amount);
-    stage = "read_back_pending_row";
+    enterStage("append_pending_row");
+    const row = appendPendingRow_(sheet, registration, orderId, amount, enterStage);
+    enterStage("read_back_pending_row");
     const saved = sheet.getRange(row, 1, 1, 18).getValues()[0];
-    if (String(saved[11]).toLowerCase() !== "pending" || String(saved[16]) !== orderId || Number(saved[17]) !== amount / 100) {
+    if (String(saved[11]).toLowerCase() !== "pending" || saved[12] !== "No" || saved[13] !== "" || saved[14] !== registration.course || saved[15] !== "" || String(saved[16]) !== orderId || Number(saved[17]) !== amount / 100) {
       throw backendError_("SHEET_WRITE_ERROR", "The pending registration row did not match the payment order.");
     }
+    console.log(JSON.stringify({ event: "workshop_pending_row_confirmed", row: row, pendingSaved: true, orderId: orderId }));
     return row;
   } catch (error) {
     error.saveStage = stage;
@@ -363,7 +384,7 @@ function verifyWorkshopPayment_(request, trustedRecovery) {
     pending = pendingRegistration_(record);
     expectedAmount = Number(record.amount);
   }
-  if (!pending) throw backendError_("ORDER_NOT_FOUND", "The original registration is missing from the response sheet and Script Properties. Contact SK Bridal Studio with your payment and order IDs.");
+  if (!pending) throw backendError_("ORDER_NOT_FOUND", "The original registration is missing from the response sheet and Script Properties. Contact SK Bridal Studio with your payment ID.");
 
   const order = razorpayRequest_("/orders/" + encodeURIComponent(request.orderId));
   if (order.id !== request.orderId || !Number.isSafeInteger(order.amount) || order.amount < 100 || order.currency !== CONFIG.CURRENCY || !order.notes || order.notes.type !== "workshop_advance" || !order.notes.registration_hash) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment does not match this workshop order.");
@@ -377,15 +398,15 @@ function verifyWorkshopPayment_(request, trustedRecovery) {
     payment = razorpayRequest_(path);
   }
   if (!paymentMatchesOrder_(payment, request.orderId, order.amount) || payment.id !== request.paymentId || payment.status !== "captured" || payment.captured !== true) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment has not been captured. If you were charged, retry verification without paying again.");
+  console.log(JSON.stringify({ event: "workshop_payment_verified", orderId: request.orderId, verified: true, captured: true }));
   let result;
   try {
     result = saveVerifiedRegistration_(pending.registration, request.orderId, request.paymentId, payment.amount);
   } catch (error) {
     if (error.code === "PAYMENT_ALREADY_USED") throw error;
     const reference = Utilities.getUuid().substring(0, 8);
-    // Keep the actual Google Sheets exception in owner-only execution logs.
-    // Return only a stage/reference to the browser, never student data or secrets.
-    console.error(JSON.stringify({ event: "workshop_registration_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", message: String(error.message || error), stack: String(error.stack || ""), spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
+    // Log stages and bounded codes rather than raw platform exception text.
+    console.error(JSON.stringify({ event: "workshop_registration_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
     const failure = backendError_("REGISTRATION_SAVE_FAILED", "Your payment was verified, but registration could not be saved. Reference: " + reference + ". Try Again will retry saving without charging you again.");
     failure.reference = reference;
     failure.saveStage = error.saveStage || "unknown";
