@@ -187,3 +187,15 @@ test('chosen amount is sent to Apps Script and checked before opening Checkout',
   fetchHandler = async () => jsonResponse(validOrder);
   await assert.rejects(createWorkshopOrder({ registration: validRegistration, amount: '250' }), /invalid payment order/);
 });
+
+test('saving errors retain safe backend stage and reference in the customer message', async () => {
+  fetchHandler = async () => jsonResponse({ ok: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Registration could not be saved.', reference: 'abc12345', saveStage: 'append_row', saveCause: 'SHEET_WRITE_ERROR', registration: validRegistration, signature: 'must-not-appear' });
+  await assert.rejects(verifyWorkshopPayment({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'proof' }), error => {
+    assert.equal(error.kind, 'saving');
+    assert.equal(error.diagnostics.reference, 'abc12345');
+    assert.match(error.message, /REGISTRATION_SAVE_FAILED.*append_row.*abc12345/);
+    assert.equal(error.message.includes('must-not-appear'), false);
+    assert.equal(error.message.includes(validRegistration.email), false);
+    return true;
+  });
+});

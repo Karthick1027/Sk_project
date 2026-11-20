@@ -16,7 +16,7 @@ function backend(options = {}) {
   const originalHeaders = Array.from({ length: 11 }, (_, i) => `Original Google Form header ${i + 1}`);
   const rows = [originalHeaders.slice(), ['existing timestamp', 'Existing Form Student', '919999999999', 'Female', 'Original goal', '', 'Pro', 'original@example.com', 'City', 9, 'existing-screenshot']];
   const original = JSON.stringify(rows);
-  const properties = new Map(options.noCredentials ? [] : [['RAZORPAY_KEY_ID', 'rzp_live_U25YrcAuJHuYfR'], ['RAZORPAY_KEY_SECRET', 'dQQTq7AlaQVlhwEkg7mDvm5M']]);
+  const properties = new Map(options.noCredentials ? [] : [['RAZORPAY_KEY_ID', 'rzp_test_123'], ['RAZORPAY_KEY_SECRET', 'test-secret']]);
   const calls = [];
   const writes = [];
   const logs = [];
@@ -332,7 +332,7 @@ test('save failures identify the failing stage and log the actual Sheets excepti
   assert.equal(result.saveStage, 'append_row');
   assert.ok(result.reference);
   assert.equal(result.saved, false);
-  const log = JSON.parse(api.logs.at(-1));
+  const log = api.logs.map(entry => JSON.parse(entry)).find(entry => entry.event === "workshop_registration_save_failed");
   assert.equal(log.reference, result.reference);
   assert.match(log.message, /Sheet access denied/);
   assert.equal(log.spreadsheetId, '1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows');
@@ -371,4 +371,28 @@ test('manual destination diagnostics report the exact tab and filter state witho
   assert.equal(api.writes.length, 0);
   assert.equal(api.calls.length, 0);
   assert.equal(JSON.stringify(api.rows), api.original);
+});
+
+test('caught verification rejection logs its action/reference without pretending the row was saved', () => {
+  const api = backend(); api.create();
+  const result = api.post({ ...proof, signature: '0'.repeat(64) });
+  assert.equal(result.ok, false); assert.equal(result.saved, false);
+  assert.ok(result.reference);
+  const event = JSON.parse(api.logs.at(-1));
+  assert.equal(event.event, 'workshop_request_failed');
+  assert.equal(event.action, 'verify_payment');
+  assert.equal(event.reference, result.reference);
+  assert.equal(event.code, 'PAYMENT_VERIFICATION_FAILED');
+  const logs = JSON.stringify(api.logs);
+  for (const secret of ['test-secret', registration.email, registration.phone, proof.signature]) assert.equal(logs.includes(secret), false);
+});
+
+test('successful verification logs saving only after the exact row is confirmed', () => {
+  const api = backend(); api.create();
+  const result = api.post(proof);
+  const event = JSON.parse(api.logs.at(-1));
+  assert.equal(event.event, 'workshop_request_completed');
+  assert.equal(event.action, 'verify_payment');
+  assert.equal(event.saved, true); assert.equal(event.verified, true);
+  assert.equal(event.row, result.row);
 });

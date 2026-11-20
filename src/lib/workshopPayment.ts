@@ -26,7 +26,7 @@ export class RegistrationValidationError extends Error {
   }
 }
 export class WorkshopApiError extends Error {
-  constructor(public kind: 'order' | 'payment' | 'saving', message: string) {
+  constructor(public kind: 'order' | 'payment' | 'saving', message: string, public diagnostics: { code?: string; reference?: string; saveStage?: string; saveCause?: string } = {}) {
     super(message);
     this.name = 'WorkshopApiError';
   }
@@ -57,14 +57,14 @@ export interface Checkout {
 
 // Only explicitly selected, non-personal diagnostics belong in the console.
 // Never log registrations, callback objects, signatures or API response bodies.
-export function logWorkshopPayment(event: string, details: { code?: string; stage?: PaymentStage; mode?: 'test' | 'live'; amount?: number; currency?: string } = {}): void {
+export function logWorkshopPayment(event: string, details: { code?: string; stage?: PaymentStage; mode?: 'test' | 'live'; amount?: number; currency?: string; reference?: string; saveStage?: string; saveCause?: string } = {}): void {
   console.info('[Workshop payment]', { event, ...details });
 }
 declare global {
   interface Window { Razorpay?: new (options: CheckoutOptions) => Checkout }
 }
 
-export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec';
+export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec';
 
 export class WorkshopCommunicationError extends Error {
   constructor() {
@@ -106,7 +106,12 @@ async function postWorkshopAction(payload: object): Promise<Record<string, unkno
         throw new RegistrationValidationError(fields, message);
       }
       const saving = result.code === 'REGISTRATION_SAVE_FAILED' || result.stage === 'saving' || /registration.*(?:could not be saved|not saved)|(?:saving|save).*(?:registration|sheet)/i.test(message);
-      throw new WorkshopApiError(saving ? 'saving' : action === 'create_order' ? 'order' : 'payment', message);
+      // Preserve only bounded diagnostic tokens. Never log the raw response,
+      // registration details, signatures or credentials.
+      const token = (value: unknown) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(value) ? value : undefined;
+      const diagnostics = { code: token(result.code), reference: token(result.reference), saveStage: token(result.saveStage), saveCause: token(result.saveCause) };
+      const context = [diagnostics.code, diagnostics.saveStage, diagnostics.saveCause, diagnostics.reference ? 'Reference: ' + diagnostics.reference : undefined].filter(Boolean).join(' / ');
+      throw new WorkshopApiError(saving ? 'saving' : action === 'create_order' ? 'order' : 'payment', context ? message + ' (' + context + ')' : message, diagnostics);
     }
     return result;
   } catch (error) {

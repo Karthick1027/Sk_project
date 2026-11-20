@@ -118,16 +118,28 @@ function backendError_(code, message, fields) {
 }
 
 function doPost(event) {
+  const requestReference = Utilities.getUuid().substring(0, 8);
+  let action = "unknown";
   try {
     if (!event || !event.postData || !event.postData.contents) throw backendError_("INVALID_REQUEST", "Request data is missing.");
     const request = JSON.parse(event.postData.contents);
     if (!request || typeof request !== "object" || Array.isArray(request)) throw backendError_("INVALID_REQUEST", "Request data is invalid.");
-    if (request.action === "create_order") return jsonResponse(createWorkshopOrder_(request.registration, request.amount));
-    if (request.action === "verify_payment") return jsonResponse(verifyWorkshopPayment_(request));
+    if (request.action === "create_order" || request.action === "verify_payment") action = request.action;
+    console.log(JSON.stringify({ event: "workshop_request_started", action: action, reference: requestReference, version: CONFIG.BACKEND_VERSION }));
+    let result;
+    if (action === "create_order") result = createWorkshopOrder_(request.registration, request.amount);
+    else if (action === "verify_payment") result = verifyWorkshopPayment_(request);
     // No public append/mark-verified action or legacy token callback is allowed.
-    throw backendError_("UNKNOWN_ACTION", "Unknown registration action.");
+    else throw backendError_("UNKNOWN_ACTION", "Unknown registration action.");
+    console.log(JSON.stringify({ event: "workshop_request_completed", action: action, reference: requestReference, verified: result.verified === true, saved: result.saved === true, row: result.row || undefined, duplicate: result.duplicate === true }));
+    return jsonResponse(result);
   } catch (error) {
-    return jsonResponse({ ok: false, error: String(error.message || error), code: error.code || "REQUEST_FAILED", fields: error.fields || undefined, reference: error.reference || undefined, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, verified: error.code === "REGISTRATION_SAVE_FAILED", saved: false });
+    const reference = error.reference || requestReference;
+    const code = error.code || "REQUEST_FAILED";
+    // doPost catches errors, so Apps Script can label rejected requests
+    // Completed. Explicitly log the action and rejection without the payload.
+    console.error(JSON.stringify({ event: "workshop_request_failed", action: action, reference: reference, code: code, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, version: CONFIG.BACKEND_VERSION }));
+    return jsonResponse({ ok: false, error: String(error.message || error), code: code, fields: error.fields || undefined, reference: reference, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, verified: code === "REGISTRATION_SAVE_FAILED", saved: false });
   }
 }
 

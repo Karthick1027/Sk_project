@@ -286,7 +286,7 @@ const Workshops: React.FC = () => {
       if (mounted.current) setPendingPayment(null);
       finishPayment('success');
     } catch (error) {
-      logWorkshopPayment('verification_failed', { code: error instanceof WorkshopApiError ? error.kind : 'COMMUNICATION_ERROR', stage: 'verifying' });
+      logWorkshopPayment('verification_failed', { ...(error instanceof WorkshopApiError ? error.diagnostics : {}), code: error instanceof WorkshopApiError ? error.diagnostics.code || error.kind : 'COMMUNICATION_ERROR', stage: 'verifying' });
       if (mounted.current) setResultDetail(error instanceof Error ? error.message : 'Payment verification is unavailable. Please try again.');
       finishPayment(error instanceof WorkshopApiError && error.kind === 'saving' ? 'saving-failure' : 'failure');
     }
