@@ -10,7 +10,8 @@ const CONFIG = {
   FIRST_DATA_ROW: 2,
   SUGGESTED_PAYMENT_RUPEES: 500,
   CURRENCY: "INR",
-  BACKEND_VERSION: "workshop-spark-v2-flexible",
+  TIME_ZONE: "Asia/Kolkata",
+  BACKEND_VERSION: "workshop-spark-v3-sheet-pending",
 
   // Registration columns
   COURSE_COL: 15,          // O
@@ -178,23 +179,39 @@ function registrationHash_(registration) {
     .map(function(byte) { return (byte & 255).toString(16).padStart(2, "0"); }).join("");
 }
 
+function sheetRegistrationHash_(registration) {
+  const stored = Object.assign({}, registration, {
+    name: cleanValue(registration.name, 100), gender: cleanValue(registration.gender, 50),
+    goal: cleanValue(registration.goal, 500), question: cleanValue(registration.question, 1000),
+    experience: cleanValue(registration.experience, 150), email: cleanValue(registration.email, 150),
+    city: cleanValue(registration.city, 100), paymentScreenshot: cleanValue(registration.paymentScreenshot || "", 1000),
+    course: cleanValue(registration.course, 150)
+  });
+  return registrationHash_(stored);
+}
+
 function createWorkshopOrder_(data, requestedAmount) {
   const registration = validateRegistration_(data);
   const amount = paymentAmountPaise_(requestedAmount);
-  // Check sheet access before allowing Checkout. This never creates a tab.
+  // Check destination access before creating an order. This never creates a tab.
   getExistingResponseSheet_();
   const credentials = razorpayCredentials_();
-  const record = { registration: registration, amount: amount, currency: CONFIG.CURRENCY };
-  const stored = JSON.stringify(record);
-  if (Utilities.newBlob(stored).getBytes().length > 8500) throw backendError_("VALIDATION_ERROR", "Please shorten your goal or comments.", { goal: "Please shorten your goal or comments." });
   const order = razorpayRequest_("/orders", "post", {
     amount: amount, currency: CONFIG.CURRENCY,
     receipt: "ws_" + Date.now() + "_" + Utilities.getUuid().substring(0, 8),
-    notes: { type: "workshop_advance", backend: CONFIG.BACKEND_VERSION, course: registration.course, registration_hash: registrationHash_(registration) }
+    notes: { type: "workshop_advance", backend: CONFIG.BACKEND_VERSION, course: registration.course, registration_hash: sheetRegistrationHash_(registration) }
   });
   if (!/^order_[A-Za-z0-9]+$/.test(order.id || "") || order.amount !== amount || order.currency !== CONFIG.CURRENCY) throw backendError_("ORDER_FAILED", "The payment service returned an invalid order. Checkout was not opened.");
-  try { PropertiesService.getScriptProperties().setProperty("WORKSHOP_ORDER_" + order.id, stored); }
-  catch (_) { throw backendError_("ORDER_SAVE_FAILED", "Your order details could not be saved. Checkout was not opened. Please contact SK Bridal Studio."); }
+  try {
+    savePendingRegistration_(registration, order.id, amount);
+  } catch (error) {
+    const reference = Utilities.getUuid().substring(0, 8);
+    console.error(JSON.stringify({ event: "workshop_pending_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", message: String(error.message || error), spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
+    const failure = backendError_("PENDING_REGISTRATION_SAVE_FAILED", "Your registration could not be saved, so Checkout was not opened. Please try again.");
+    failure.reference = reference;
+    failure.saveStage = error.saveStage || "unknown";
+    throw failure;
+  }
   return { ok: true, keyId: credentials.keyId, orderId: order.id, amount: order.amount, currency: order.currency };
 }
 
@@ -219,6 +236,82 @@ function paymentMatchesOrder_(payment, orderId, amount) {
   return payment && payment.order_id === orderId && payment.amount === amount && payment.currency === CONFIG.CURRENCY;
 }
 
+function findRegistrationRows_(sheet, orderId, paymentId) {
+  const lastRow = sheet.getLastRow();
+  const result = { orderRows: [], paymentRows: [] };
+  if (lastRow < CONFIG.FIRST_DATA_ROW) return result;
+  const ids = sheet.getRange(CONFIG.FIRST_DATA_ROW, CONFIG.PAYMENT_ID_COL, lastRow - CONFIG.FIRST_DATA_ROW + 1, 2).getValues();
+  ids.forEach(function(row, index) {
+    if (orderId && String(row[1] || "") === orderId) result.orderRows.push(CONFIG.FIRST_DATA_ROW + index);
+    if (paymentId && String(row[0] || "") === paymentId) result.paymentRows.push(CONFIG.FIRST_DATA_ROW + index);
+  });
+  return result;
+}
+
+function registrationFromSheetRow_(sheet, row) {
+  const values = sheet.getRange(row, 1, 1, 18).getValues()[0];
+  return {
+    registration: validateRegistration_({
+      name: values[1], phone: values[2], gender: values[3], goal: values[4], question: values[5],
+      experience: values[6], email: values[7], city: values[8], paymentScreenshot: values[10], course: values[14]
+    }),
+    values: values
+  };
+}
+
+function setTextCell_(sheet, row, column, value) {
+  const cell = sheet.getRange(row, column);
+  cell.setNumberFormat("@");
+  cell.setValue(String(value || ""));
+}
+
+function appendPendingRow_(sheet, registration, orderId, amount) {
+  const timestamp = new Date();
+  sheet.appendRow([
+    timestamp, cleanValue(registration.name, 100), registration.phone, cleanValue(registration.gender, 50),
+    cleanValue(registration.goal, 500), cleanValue(registration.question, 1000), cleanValue(registration.experience, 150),
+    cleanValue(registration.email, 150), cleanValue(registration.city, 100), "", cleanValue(registration.paymentScreenshot || "", 1000),
+    "Pending", "No", "", registration.course, "", orderId, amount / 100
+  ]);
+  SpreadsheetApp.flush();
+  const matches = findRegistrationRows_(sheet, orderId, "");
+  if (matches.orderRows.length !== 1) throw backendError_("SHEET_WRITE_ERROR", "The pending registration row could not be confirmed.");
+  const row = matches.orderRows[0];
+  setTextCell_(sheet, row, CONFIG.PHONE_COL, registration.phone);
+  setTextCell_(sheet, row, CONFIG.PAYMENT_ID_COL, "");
+  setTextCell_(sheet, row, CONFIG.ORDER_ID_COL, orderId);
+  SpreadsheetApp.flush();
+  return row;
+}
+
+function savePendingRegistration_(registration, orderId, amount) {
+  const lock = LockService.getScriptLock();
+  let locked = false;
+  let stage = "acquire_lock";
+  try {
+    lock.waitLock(20000);
+    locked = true;
+    stage = "prepare_sheet";
+    const sheet = getResponseSheet_();
+    stage = "check_duplicate";
+    const matches = findRegistrationRows_(sheet, orderId, "");
+    if (matches.orderRows.length) throw backendError_("ORDER_ALREADY_EXISTS", "This payment order already has a registration row.");
+    stage = "append_pending_row";
+    const row = appendPendingRow_(sheet, registration, orderId, amount);
+    stage = "read_back_pending_row";
+    const saved = sheet.getRange(row, 1, 1, 18).getValues()[0];
+    if (String(saved[11]).toLowerCase() !== "pending" || String(saved[16]) !== orderId || Number(saved[17]) !== amount / 100) {
+      throw backendError_("SHEET_WRITE_ERROR", "The pending registration row did not match the payment order.");
+    }
+    return row;
+  } catch (error) {
+    error.saveStage = stage;
+    throw error;
+  } finally {
+    if (locked) lock.releaseLock();
+  }
+}
+
 function pendingRegistration_(record) {
   const raw = record.registration;
   const registration = validateRegistration_(Object.assign({}, raw, { goal: raw.goal || raw.mainGoal }));
@@ -236,24 +329,49 @@ function pendingRegistration_(record) {
   return { registration: registration, hashes: hashes };
 }
 
-function verifyWorkshopPayment_(request) {
+function verifyWorkshopPayment_(request, trustedRecovery) {
   if (typeof request.orderId !== "string" || !/^order_[A-Za-z0-9]+$/.test(request.orderId) || request.orderId.length > 100 ||
       typeof request.paymentId !== "string" || !/^pay_[A-Za-z0-9]+$/.test(request.paymentId) || request.paymentId.length > 100 ||
-      typeof request.signature !== "string" || !/^[a-f0-9]{64}$/i.test(request.signature)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment verification details are invalid.");
-  verifySignature_(request.orderId, request.paymentId, request.signature);
+      (!trustedRecovery && (typeof request.signature !== "string" || !/^[a-f0-9]{64}$/i.test(request.signature)))) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment verification details are invalid.");
+  if (!trustedRecovery) verifySignature_(request.orderId, request.paymentId, request.signature);
   const properties = PropertiesService.getScriptProperties();
   const key = "WORKSHOP_ORDER_" + request.orderId;
   const stored = properties.getProperty(key);
-  const record = stored ? JSON.parse(stored) : null;
-  const pending = record && record.registration ? pendingRegistration_(record) : null;
+  let record = null;
+  try { record = stored ? JSON.parse(stored) : null; } catch (_) { /* A sheet row is the primary recovery record. */ }
+  const sheet = getResponseSheet_();
+  const matches = findRegistrationRows_(sheet, request.orderId, request.paymentId);
+  if (matches.orderRows.length > 1 || matches.paymentRows.length > 1) throw backendError_("SHEET_ROW_CONFLICT", "Multiple registration rows match this payment. Please contact SK Bridal Studio.");
+  if (matches.paymentRows.length && matches.paymentRows[0] !== matches.orderRows[0]) throw backendError_("PAYMENT_ALREADY_USED", "This payment ID is already associated with a different order.");
+
+  let pending = null;
+  let sheetRow = 0;
+  let expectedAmount = 0;
+  if (matches.orderRows.length) {
+    sheetRow = matches.orderRows[0];
+    const found = registrationFromSheetRow_(sheet, sheetRow);
+    const values = found.values;
+    const status = String(values[11] || "").trim().toLowerCase();
+    const existingPaymentId = String(values[15] || "");
+    if (status !== "pending" && status !== "verified") throw backendError_("SHEET_ROW_CONFLICT", "The registration row is not in a recoverable payment state.");
+    if (existingPaymentId && existingPaymentId !== request.paymentId) throw backendError_("ORDER_ALREADY_VERIFIED", "This order is already associated with a different payment.");
+    const rupees = Number(values[17]);
+    if (!Number.isSafeInteger(rupees) || rupees < 1 || !Number.isSafeInteger(rupees * 100)) throw backendError_("SHEET_ROW_CONFLICT", "The pending registration has an invalid advance amount.");
+    expectedAmount = rupees * 100;
+    pending = { registration: found.registration, hashes: [sheetRegistrationHash_(found.registration)] };
+  } else if (record && record.registration) {
+    pending = pendingRegistration_(record);
+    expectedAmount = Number(record.amount);
+  }
+  if (!pending) throw backendError_("ORDER_NOT_FOUND", "The original registration is missing from the response sheet and Script Properties. Contact SK Bridal Studio with your payment and order IDs.");
+
   const order = razorpayRequest_("/orders/" + encodeURIComponent(request.orderId));
   if (order.id !== request.orderId || !Number.isSafeInteger(order.amount) || order.amount < 100 || order.currency !== CONFIG.CURRENCY || !order.notes || order.notes.type !== "workshop_advance" || !order.notes.registration_hash) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment does not match this workshop order.");
-  if (pending && (!Number.isSafeInteger(record.amount) || record.amount < 100 || record.amount !== order.amount || record.currency !== CONFIG.CURRENCY || order.notes.course !== pending.registration.course || pending.hashes.indexOf(order.notes.registration_hash) === -1)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment does not match the saved registration or its stored expected amount.");
+  if (!Number.isSafeInteger(expectedAmount) || expectedAmount < 100 || expectedAmount !== order.amount || order.notes.course !== pending.registration.course || pending.hashes.indexOf(order.notes.registration_hash) === -1) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment does not match the saved registration or its expected amount.");
   const path = "/payments/" + encodeURIComponent(request.paymentId);
   let payment = razorpayRequest_(path);
   if (payment.id !== request.paymentId || !paymentMatchesOrder_(payment, request.orderId, order.amount)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment amount, currency or order could not be verified.");
   if (payment.status === "authorized") {
-    if (!pending) throw backendError_("PAYMENT_VERIFICATION_FAILED", "The original registration is missing. Contact SK Bridal Studio before making another payment.");
     try { razorpayRequest_(path + "/capture", "post", { amount: order.amount, currency: CONFIG.CURRENCY }); }
     catch (_) { /* Another concurrent verification may already have captured it. Refetch below. */ }
     payment = razorpayRequest_(path);
@@ -261,7 +379,7 @@ function verifyWorkshopPayment_(request) {
   if (!paymentMatchesOrder_(payment, request.orderId, order.amount) || payment.id !== request.paymentId || payment.status !== "captured" || payment.captured !== true) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment has not been captured. If you were charged, retry verification without paying again.");
   let result;
   try {
-    result = saveVerifiedRegistration_(pending && pending.registration, request.orderId, request.paymentId, order.amount);
+    result = saveVerifiedRegistration_(pending.registration, request.orderId, request.paymentId, payment.amount);
   } catch (error) {
     if (error.code === "PAYMENT_ALREADY_USED") throw error;
     const reference = Utilities.getUuid().substring(0, 8);
@@ -274,23 +392,25 @@ function verifyWorkshopPayment_(request) {
     failure.saveCause = error.code || "SHEET_WRITE_ERROR";
     throw failure;
   }
-  // The saved row is the durable deduplication record. A retry without this
-  // pending property still rechecks HMAC, Razorpay and the exact saved row.
+  // New registrations are recovered from the sheet; this removes only legacy fallback data.
   try { properties.deleteProperty(key); } catch (_) { /* Saving already succeeded. */ }
-  return { ok: true, verified: true, saved: true, amount: order.amount, currency: CONFIG.CURRENCY, duplicate: result.duplicate, row: result.row };
+  return { ok: true, verified: true, saved: true, orderId: request.orderId, paymentId: request.paymentId, amount: payment.amount, currency: payment.currency, duplicate: result.duplicate, row: result.row };
 }
 
-function findPaymentRow_(sheet, orderId, paymentId, amount) {
-  const lastRow = sheet.getLastRow();
-  if (lastRow < CONFIG.FIRST_DATA_ROW) return null;
-  const rows = sheet.getRange(CONFIG.FIRST_DATA_ROW, CONFIG.PAYMENT_ID_COL, lastRow - CONFIG.FIRST_DATA_ROW + 1, 2).getDisplayValues();
-  const index = rows.findIndex(function(row) { return row[0] === paymentId || row[1] === orderId; });
-  if (index < 0) return null;
-  const row = CONFIG.FIRST_DATA_ROW + index;
-  const values = sheet.getRange(row, 1, 1, 18).getValues()[0];
-  if (String(values[15]) !== paymentId || String(values[16]) !== orderId) throw backendError_("PAYMENT_ALREADY_USED", "This payment or order is already associated with another registration.");
-  if (String(values[11]).toLowerCase() !== "verified" || Number(values[17]) !== amount / 100) throw backendError_("SHEET_ROW_CONFLICT", "The saved payment record needs review. Please contact SK Bridal Studio.");
-  return row;
+// Owner-run recovery: supply payment and order IDs only. Registration data is
+// loaded from the pending sheet row, then checked against Razorpay's API.
+function recoverCapturedWorkshopPayment(paymentId) {
+  const properties = PropertiesService.getScriptProperties();
+  paymentId = String(paymentId || properties.getProperty("WORKSHOP_RECOVERY_PAYMENT_ID") || "").trim();
+  if (!/^pay_[A-Za-z0-9]+$/.test(paymentId) || paymentId.length > 100) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Set WORKSHOP_RECOVERY_PAYMENT_ID to a valid Razorpay payment ID, or pass one to this function.");
+  const payment = razorpayRequest_("/payments/" + encodeURIComponent(paymentId));
+  if (payment.id !== paymentId || typeof payment.order_id !== "string" || !/^order_[A-Za-z0-9]+$/.test(payment.order_id)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Razorpay did not return a valid order for this payment ID.");
+  const result = verifyWorkshopPayment_({
+    paymentId: paymentId,
+    orderId: payment.order_id
+  }, true);
+  console.log(JSON.stringify({ event: "workshop_manual_recovery_completed", orderId: result.orderId, paymentId: result.paymentId, verified: result.verified, saved: result.saved, row: result.row, duplicate: result.duplicate }));
+  return result;
 }
 
 function saveVerifiedRegistration_(registration, orderId, paymentId, amount) {
@@ -303,28 +423,51 @@ function saveVerifiedRegistration_(registration, orderId, paymentId, amount) {
     stage = "prepare_sheet";
     const sheet = getResponseSheet_();
     stage = "check_duplicate";
-    const existing = findPaymentRow_(sheet, orderId, paymentId, amount);
-    if (existing) { stage = "flush_existing_row"; SpreadsheetApp.flush(); return { duplicate: true, row: existing }; }
-    stage = "load_registration";
-    if (!registration) throw backendError_("ORDER_NOT_FOUND", "The original order details are missing. Please contact SK Bridal Studio with your payment ID.");
-    const details = validateRegistration_(registration);
-    const whatsapp = "https://web.whatsapp.com/send?phone=" + details.phone + "&text=" + encodeURIComponent(buildConfirmationMessage_(details.name, amount / 100));
-    stage = "append_row";
-    sheet.appendRow([
-      new Date(), cleanValue(details.name, 100), details.phone, cleanValue(details.gender, 50),
-      cleanValue(details.goal, 500), cleanValue(details.question, 1000), cleanValue(details.experience, 150),
-      cleanValue(details.email, 150), cleanValue(details.city, 100), "", cleanValue(details.paymentScreenshot || "", 1000),
-      "Verified", "Ready to Send", whatsapp, details.course, paymentId, orderId, amount / 100
-    ]);
-    stage = "flush_new_row";
+    let matches = findRegistrationRows_(sheet, orderId, paymentId);
+    let duplicate = false;
+    if (matches.orderRows.length > 1 || matches.paymentRows.length > 1) throw backendError_("SHEET_ROW_CONFLICT", "Multiple registration rows match this payment.");
+    if (matches.paymentRows.length && matches.paymentRows[0] !== matches.orderRows[0]) throw backendError_("PAYMENT_ALREADY_USED", "This payment ID is already associated with a different order.");
+    if (matches.orderRows.length) {
+      const row = matches.orderRows[0];
+      const values = sheet.getRange(row, 1, 1, 18).getValues()[0];
+      const status = String(values[11] || "").trim().toLowerCase();
+      const existingPaymentId = String(values[15] || "");
+      if (existingPaymentId && existingPaymentId !== paymentId) throw backendError_("ORDER_ALREADY_VERIFIED", "This order is already associated with a different payment.");
+      if (status === "verified" && existingPaymentId === paymentId) {
+        if (Number(values[17]) !== amount / 100) throw backendError_("SHEET_ROW_CONFLICT", "The verified registration amount does not match this payment.");
+        duplicate = true;
+      } else {
+        if (status !== "pending") throw backendError_("SHEET_ROW_CONFLICT", "The registration row is not pending payment.");
+        const existing = registrationFromSheetRow_(sheet, row).registration;
+        if (sheetRegistrationHash_(existing) !== sheetRegistrationHash_(registration)) throw backendError_("SHEET_ROW_CONFLICT", "The pending registration details changed before payment verification.");
+      }
+    } else {
+      stage = "restore_pending_row";
+      if (!registration) throw backendError_("ORDER_NOT_FOUND", "The original registration is missing from the response sheet.");
+      appendPendingRow_(sheet, validateRegistration_(registration), orderId, amount);
+      matches = findRegistrationRows_(sheet, orderId, paymentId);
+      if (matches.orderRows.length !== 1) throw backendError_("SHEET_WRITE_ERROR", "The recovered pending row could not be confirmed.");
+    }
+
+    const row = matches.orderRows[0];
+    stage = "update_verified_row";
+    const sheetValues = sheet.getRange(row, 1, 1, 18).getValues()[0];
+    const details = registrationFromSheetRow_(sheet, row).registration;
+    const previousConfirmation = String(sheetValues[12] || "").trim();
+    const confirmation = /^(yes|sent|confirmation sent)$/i.test(previousConfirmation) ? previousConfirmation : "Ready to Send";
+    const whatsapp = "https://wa.me/" + details.phone + "?text=" + encodeURIComponent(buildConfirmationMessage_(details.name, amount / 100));
+    const paymentCells = sheet.getRange(row, CONFIG.PAYMENT_COL, 1, 7);
+    sheet.getRange(row, CONFIG.PAYMENT_ID_COL).setNumberFormat("@");
+    sheet.getRange(row, CONFIG.ORDER_ID_COL).setNumberFormat("@");
+    paymentCells.setValues([["Verified", confirmation, whatsapp, details.course, paymentId, orderId, amount / 100]]);
+    stage = "flush_verified_row";
     SpreadsheetApp.flush();
-    // Locate this payment, not getLastRow(): a Google Form can append at the
-    // same time, and is not governed by the Apps Script website lock.
-    stage = "read_back";
-    const row = findPaymentRow_(sheet, orderId, paymentId, amount);
-    if (!row) throw backendError_("SHEET_WRITE_ERROR", "The registration row could not be read back.");
-    try { createWhatsAppLink_(sheet, row); } catch (_) { console.warn("Registration saved; the plain WhatsApp URL remains available."); }
-    return { duplicate: false, row: row };
+    stage = "read_back_verified_row";
+    const verified = sheet.getRange(row, 1, 1, 18).getValues()[0];
+    if (String(verified[11]).toLowerCase() !== "verified" || String(verified[15]) !== paymentId || String(verified[16]) !== orderId || Number(verified[17]) !== amount / 100) {
+      throw backendError_("SHEET_WRITE_ERROR", "The verified registration row could not be confirmed.");
+    }
+    return { duplicate: duplicate, row: row };
   } catch (error) {
     error.saveStage = stage;
     throw error;
@@ -340,6 +483,7 @@ function diagnoseWorkshopSaving() {
     spreadsheetId: CONFIG.SPREADSHEET_ID,
     sheetName: sheet.getName(),
     sheetId: sheet.getSheetId(),
+    timeZone: SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSpreadsheetTimeZone(),
     lastUsedRow: sheet.getLastRow(),
     columnCount: sheet.getMaxColumns(),
     hasFilter: Boolean(sheet.getFilter())
@@ -359,7 +503,11 @@ function doGet() {
 function setupWorkshopRegistration() {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
-  try { getResponseSheet_(); SpreadsheetApp.flush(); }
+  try {
+    SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).setSpreadsheetTimeZone(CONFIG.TIME_ZONE);
+    getResponseSheet_();
+    SpreadsheetApp.flush();
+  }
   finally { lock.releaseLock(); }
   const status = JSON.parse(doGet().getContent());
   console.log(JSON.stringify(status));
@@ -461,37 +609,12 @@ function createWhatsAppLink_(sheet, row) {
   }
 
   const advance = Number(sheet.getRange(row, CONFIG.ADVANCE_COL).getValue());
-  const message = buildConfirmationMessage_(name, advance);
+  const url = "https://wa.me/" + phone + "?text=" + encodeURIComponent(buildConfirmationMessage_(name, advance));
+  linkCell.setValue(url);
 
-  // Encode complete message, including emojis.
-  const encodedMessage = encodeURIComponent(message);
-
-  const url =
-    "https://web.whatsapp.com/send?phone=" +
-    phone +
-    "&text=" +
-    encodedMessage;
-
-  const richText = SpreadsheetApp.newRichTextValue()
-    .setText("Send WhatsApp")
-    .setLinkUrl(url)
-    .build();
-
-  linkCell.setRichTextValue(richText);
-
-  // Update confirmation status.
-  const confirmationCell = sheet.getRange(
-    row,
-    CONFIG.CONFIRMATION_COL
-  );
-
-  const currentStatus = String(
-    confirmationCell.getDisplayValue()
-  ).trim();
-
-  if (currentStatus !== "Confirmation Sent") {
-    confirmationCell.setValue("Ready to Send");
-  }
+  const confirmationCell = sheet.getRange(row, CONFIG.CONFIRMATION_COL);
+  const currentStatus = String(confirmationCell.getValue() || "").trim();
+  if (!/^(yes|sent|confirmation sent)$/i.test(currentStatus)) confirmationCell.setValue("Ready to Send");
 }
 
 
