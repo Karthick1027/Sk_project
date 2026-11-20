@@ -64,7 +64,7 @@ declare global {
   interface Window { Razorpay?: new (options: CheckoutOptions) => Checkout }
 }
 
-export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbydhomLABwy2Qv1BSu0tapGjsF3qU9xJ6cG0mqaOIdfvY8U57VuLrMUg7JgwEPkBqKt/exec';
+export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec';
 
 export class WorkshopCommunicationError extends Error {
   constructor() {
