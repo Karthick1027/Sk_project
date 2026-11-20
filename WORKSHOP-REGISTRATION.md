@@ -51,7 +51,7 @@ Website registrations use `appendRow`, never overwrite existing rows, and locate
 4. Choose **Deploy > Manage deployments**, edit the EXISTING web app deployment, select **New version**, and deploy. Set **Execute as: Me** (an account with edit access to this spreadsheet) and **Who has access: Anyone**. Reauthorize updated permissions if prompted.
 5. Keep this existing endpoint:
 
-   `https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec`
+   `https://script.google.com/macros/s/AKfycbydhomLABwy2Qv1BSu0tapGjsF3qU9xJ6cG0mqaOIdfvY8U57VuLrMUg7JgwEPkBqKt/exec`
 
    Use the web app `/exec` URL, not the library URL or a `/dev` URL.
 6. Open that endpoint. The new response must identify `backend: "google-apps-script"`, `version: "workshop-spark-v2-flexible"`, `sheet: "Form Responses 1"`, `sheetAccessible: true`, `credentialsConfigured: true`, `suggestedAmountRupees: 500`, `minimumAmountRupees: 1`, `currency: "INR"`, and `ok: true`. Configured credentials still need a successful Razorpay test to establish that they are valid. If the response is still the old generic message, the new code is not deployed at this URL.
