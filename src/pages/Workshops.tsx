@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   ArrowDown, Sparkles, Check, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award, Send,
-  LockKeyhole, Loader2, type LucideIcon,
+  LockKeyhole, Loader2, AlertCircle, type LucideIcon,
 } from 'lucide-react';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
@@ -801,12 +801,15 @@ const Workshops: React.FC = () => {
                 <div>
                   <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Payment amount (₹) *</label>
                   <input {...fieldAccessibility('amount')} id="workshop-amount" name="amount" type="number" inputMode="numeric" min="1" step="1" required value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value); setErrors(previous => ({ ...previous, amount: undefined })); setFormError(''); }} className="field" />
-                  <p className="mt-2 text-sm text-cocoa">₹500 is suggested. You can pay less or more. Enter a whole-rupee amount of at least ₹1.</p>
+                  <p className="mt-2 text-sm text-cocoa">₹500 suggested. Pay any amount (minimum ₹1).</p>
                   {fieldError('amount')}
                 </div>
                 </fieldset>
                 <div className="flex w-full min-w-0 flex-col items-center gap-3">
-                  {formError && <p role="alert" className="w-full rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{formError}</p>}
+                  {formError && <div role="alert" className="workshop-validation-alert flex w-full items-start gap-3 rounded-lg p-2 text-left">
+                    <AlertCircle aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0" strokeWidth={2} />
+                    <p className="min-w-0 break-words  font-medium leading-relaxed">{formError}</p>
+                  </div>}
                   <button type="submit" disabled={processing} className="btn-primary w-full !whitespace-normal text-center leading-snug">
                     {processing ? <Loader2 aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" /> : <LockKeyhole aria-hidden="true" className="h-4 w-4 shrink-0" />}
                     {stage === 'verifying' ? 'Verifying Payment...' : processing ? 'Processing Payment...' : pendingPayment ? pendingPayment.proof ? 'Verify Existing Payment' : 'View Payment Review' : `Pay ${Number(paymentAmount) > 0 && Number.isFinite(Number(paymentAmount)) ? formatPaymentAmount(Number(paymentAmount)) : 'Selected Amount'} & Register`}
