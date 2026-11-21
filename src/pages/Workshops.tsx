@@ -463,7 +463,7 @@ const Workshops: React.FC = () => {
         <div aria-hidden="true" className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-blush/50 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-champagne/30 blur-3xl" />
 
-        <div className="relative container mx-auto grid items-center gap-12 px-4 pt-6 pb-8 sm:py-14 md:max-w-[90%] lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:py-16">
+        <div className="relative container mx-auto grid items-center gap-12 px-4 pt-6 pb-8 sm:pt-14 sm:pb-14 md:max-w-[90%] lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:pt-16 lg:pb-6">
           <img
             src="/images/workshop-academy-art.svg"
             alt=""
@@ -494,7 +494,7 @@ const Workshops: React.FC = () => {
               reception look on the second. Demonstrated as it happens, with all your questions answered along the way.
             </p>
 
-            <dl className="mx-auto mt-5 sm:mt-9 grid max-w-md grid-cols-3 divide-x divide-sand rounded-2xl border border-sand bg-ivory/70 py-3 sm:py-4 lg:mx-0">
+            <dl className="mx-auto mt-3 sm:mt-4 grid max-w-md grid-cols-3 divide-x divide-sand rounded-2xl border border-sand bg-ivory/70 py-2.5 lg:mx-0">
               {[
                 ['02', 'Days'],
                 ['02', 'Bridal looks'],
@@ -502,8 +502,8 @@ const Workshops: React.FC = () => {
               ].map(([n, label]) => (
                 <div key={label} className="px-2 text-center">
                   <dt className="sr-only">{label}</dt>
-                  <dd className="font-cormorant text-3xl sm:text-4xl italic leading-none text-chocolate">{n}</dd>
-                  <dd className="mt-1 sm:mt-1.5 font-inter text-[10px] font-semibold uppercase leading-snug tracking-[0.1em] sm:tracking-[0.2em] text-mocha">{label}</dd>
+                  <dd className="font-cormorant text-3xl sm:text-4xl font-medium italic leading-none text-chocolate">{n}</dd>
+                  <dd className="mt-1 font-inter text-[10px] font-bold uppercase leading-snug tracking-[0.1em] sm:tracking-[0.2em] text-cocoa">{label}</dd>
                 </div>
               ))}
             </dl>

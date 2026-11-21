@@ -118,15 +118,13 @@ const Home: React.FC = () => {
                 Book Your Makeup
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <a
-                href={CLASS_FORM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/workshops"
                 className="btn-secondary"
               >
                 Join Makeup Class
                 <ArrowRight className="w-4 h-4" />
-              </a>
+              </Link>
             </div>
 
             <div className="mt-8 sm:mt-10 flex items-center justify-center lg:justify-start gap-4 sm:gap-6 text-cocoa">
