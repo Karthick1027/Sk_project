@@ -3,9 +3,32 @@ export const initialRegistration = {
   gender: '', mainGoal: '', experience: '', question: '',
 };
 export type Registration = typeof initialRegistration;
-export type RegistrationField = keyof Registration | 'amount';
+export type RegistrationField = keyof Registration | 'amount' | 'paymentScreenshot';
 export type RegistrationErrors = Partial<Record<RegistrationField, string>>;
 export const DEFAULT_PAYMENT_AMOUNT = '500';
+export const MAX_PAYMENT_PROOF_BYTES = 5 * 1024 * 1024;
+export const PAYMENT_PROOF_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const;
+interface PaymentProofUpload { mimeType: string; base64: string }
+export function validatePaymentProofFile(file: Pick<File, 'size' | 'type'>): void {
+  const message = file.size <= 0 ? 'Please select a file that is not empty.'
+    : file.size > MAX_PAYMENT_PROOF_BYTES ? 'Choose a payment proof file of 5 MB or smaller.'
+    : !(PAYMENT_PROOF_TYPES as readonly string[]).includes(file.type) ? 'Choose a JPG, PNG, WEBP image or a PDF.' : '';
+  if (message) throw new RegistrationValidationError({ paymentScreenshot: message });
+}
+export async function readPaymentProofFile(file: File): Promise<PaymentProofUpload> {
+  validatePaymentProofFile(file);
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result.split(',')[1] : '';
+      if (result) resolve(result);
+      else reject(new RegistrationValidationError({ paymentScreenshot: 'Could not read this file. Please choose it again.' }));
+    };
+    reader.onerror = reader.onabort = () => reject(new RegistrationValidationError({ paymentScreenshot: 'Could not read this file. Please choose it again.' }));
+    reader.readAsDataURL(file);
+  });
+  return { mimeType: file.type, base64 };
+}
 export function paymentAmountPaise(value: string): number {
   const text = value.trim();
   const rupees = Number(text);
@@ -96,7 +119,7 @@ async function postWorkshopAction(payload: object): Promise<Record<string, unkno
       if (backendFields && typeof backendFields === 'object') {
         for (const [key, value] of Object.entries(backendFields)) {
           const field = key === 'goal' ? 'mainGoal' : key;
-          if ((field === 'amount' || Object.prototype.hasOwnProperty.call(initialRegistration, field)) && typeof value === 'string') fields[field as RegistrationField] = value.slice(0, 500);
+          if ((field === 'amount' || field === 'paymentScreenshot' || Object.prototype.hasOwnProperty.call(initialRegistration, field)) && typeof value === 'string') fields[field as RegistrationField] = value.slice(0, 500);
         }
       }
       if (action === 'create_order' && (result.code === 'VALIDATION_ERROR' || Object.keys(fields).length || /required fields|registration details|invalid email|invalid course|valid Indian WhatsApp/i.test(message))) {
@@ -122,7 +145,7 @@ async function postWorkshopAction(payload: object): Promise<Record<string, unkno
   }
 }
 
-export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYMENT_AMOUNT }: { registration: Registration; amount?: string }): Promise<WorkshopOrder> {
+export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYMENT_AMOUNT, paymentProof }: { registration: Registration; amount?: string; paymentProof?: File | null }): Promise<WorkshopOrder> {
   const normalized = Object.fromEntries(Object.entries(registration).map(([key, value]) => [key, value.trim()])) as Registration;
   normalized.email = normalized.email.toLowerCase();
   if (/^91[6-9][0-9]{9}$/.test(normalized.phone)) normalized.phone = normalized.phone.slice(2);
@@ -132,12 +155,14 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
     if (error instanceof RegistrationValidationError) Object.assign(errors, error.fields); else throw error;
   }
   if (Object.keys(errors).length) throw new RegistrationValidationError(errors);
+  const proofUpload = paymentProof ? await readPaymentProofFile(paymentProof) : undefined;
   // The form and Apps Script request use rupees. The backend converts to
   // paise for Razorpay; its response and Checkout amount remain in paise.
   const amountRupees = Number(amount.trim());
   const { mainGoal, ...details } = normalized;
   const data = await postWorkshopAction({
     action: 'create_order', amount: amountRupees, registration: { ...details, phone: `91${normalized.phone}`, goal: mainGoal },
+    ...(proofUpload ? { paymentProof: proofUpload } : {}),
   });
   // Do not open Checkout just because the POST was sent or returned HTTP 200.
   if (typeof data.orderId !== 'string' || !/^order_[A-Za-z0-9]+$/.test(data.orderId) ||
@@ -147,6 +172,9 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
   }
   if (data.registrationSaved !== true || typeof data.row !== 'number' || !Number.isSafeInteger(data.row) || data.row < 2) {
     throw new WorkshopApiError('order', 'We could not confirm that your registration was saved. Checkout was not opened. Please contact SK Bridal Studio before trying again.', { code: 'PENDING_SAVE_NOT_CONFIRMED' });
+  }
+  if (proofUpload && data.paymentProofSaved !== true) {
+    throw new WorkshopApiError('order', 'Your payment proof upload was not confirmed. Checkout was not opened. Please contact SK Bridal Studio before trying again.', { code: 'PAYMENT_PROOF_NOT_CONFIRMED' });
   }
   const modes = [data.verificationMode, data.paymentVerification].filter(value => value !== undefined);
   if (!modes.length || !modes.every(value => typeof value === 'string' && value.trim().toLowerCase() === 'automatic')) {

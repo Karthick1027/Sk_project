@@ -16,7 +16,13 @@ function backend(options = {}) {
   let columns = 11, locked = false, status = options.status || 'captured', order;
   let failUpdate = Boolean(options.failUpdate), failPending = Boolean(options.failPending), verifiedWritten = false;
   let failVerifiedFlush = Boolean(options.failVerifiedFlush), rejectFormat = false;
-  const calls = [], writes = [], logs = [];
+  const calls = [], writes = [], logs = [], files = [];
+  const properties = new Map([['RAZORPAY_KEY_ID','rzp_test_123'],['RAZORPAY_KEY_SECRET','test-secret']]);
+  if (!options.noProofFolder) properties.set('WORKSHOP_PROOF_FOLDER_ID', 'proof_folder');
+  const proofFolder = { getId: () => 'proof_folder', getUrl: () => 'https://drive.google.com/drive/folders/proof_folder', createFile(blob) {
+    if(options.driveFails) throw Error('Drive upload denied');
+    files.push(blob); return { getUrl: () => 'https://drive.google.com/file/d/proof_test/view' };
+  } };
   const sheet = {
     getName: () => 'Form Responses 1', getSheetId: () => 1885927180, getLastRow: () => rows.length,
     getMaxColumns: () => columns, insertColumnsAfter: (_,n) => { columns += n; },
@@ -43,6 +49,7 @@ function backend(options = {}) {
             verifiedWritten = true;
           }
           matrix.forEach((line,r) => line.forEach((value,c) => write(row+r,column+c,value)));
+          if(options.dropProof && row>1 && column===1) rows[row-1][10]='';
         },
         setRichTextValue: value => write(row,column,value.url), clearContent: () => write(row,column,''),
       };
@@ -51,7 +58,8 @@ function backend(options = {}) {
   const context = {
     console: {log: (...a) => logs.push(a.join(' ')), error: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' '))},
     LockService: {getScriptLock: () => ({waitLock() {assert.equal(locked,false);locked=true;}, releaseLock(){locked=false;}})},
-    PropertiesService: {getScriptProperties: () => ({getProperty: key => ({RAZORPAY_KEY_ID:'rzp_test_123',RAZORPAY_KEY_SECRET:'test-secret'})[key]})},
+    PropertiesService: {getScriptProperties: () => ({getProperty: key => properties.get(key),setProperty:(key,value)=>properties.set(key,value)})},
+    DriveApp: {getFolderById(id){assert.equal(id,'proof_folder');return proofFolder;},createFolder:()=>proofFolder},
     SpreadsheetApp: {
       openById(id) { assert.equal(id,'1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows'); return {getSheetByName(name){assert.equal(name,'Form Responses 1');return sheet;}}; },
       flush() { if(verifiedWritten && failVerifiedFlush){failVerifiedFlush=false;throw Error('Lost flush acknowledgement');} },
@@ -60,6 +68,7 @@ function backend(options = {}) {
     ContentService: {MimeType:{JSON:'application/json'},createTextOutput: text => ({setMimeType: () => JSON.parse(text)})},
     Utilities: {getUuid: () => '12345678-1234-1234-1234-123456789012', Charset:{UTF_8:'UTF-8'}, DigestAlgorithm:{SHA_256:'SHA-256'},
       base64Encode: s => Buffer.from(s).toString('base64'),
+      base64Decode: s => [...Buffer.from(s,'base64')], newBlob: (bytes,mimeType,name) => ({bytes,mimeType,name}),
       computeDigest: (_,s) => [...crypto.createHash('sha256').update(s).digest()],
       computeHmacSha256Signature: (s,key) => [...crypto.createHmac('sha256',key).update(s).digest()],
     },
@@ -83,7 +92,7 @@ function backend(options = {}) {
   };
   vm.createContext(context);vm.runInContext(readFileSync(__dirname+'/WorkshopRegistrations.gs','utf8'),context);
   const post = payload => context.doPost({postData:{contents:JSON.stringify(payload)}});
-  return {rows,original,sheet,context,calls,writes,logs,post,create: amount => post({action:'create_order',registration,amount:amount??500}),allowUpdate:()=>{failUpdate=false;},rejectFormatting:()=>{rejectFormat=true;}};
+  return {rows,original,sheet,context,calls,writes,logs,files,properties,post,create: (amount,paymentProof) => post({action:'create_order',registration,amount:amount??500,paymentProof}),allowUpdate:()=>{failUpdate=false;},rejectFormatting:()=>{rejectFormat=true;}};
 }
 test('supplied first-empty-row saver persists a complete Pending registration before returning an order',()=>{
   const api=backend({gap:true});const original=JSON.parse(api.original);const order=api.create();
@@ -136,4 +145,30 @@ test('frontend helper and supplied backend agree on the rupee/paise and verifica
   vm.runInNewContext(ts.transpileModule(readFileSync(__dirname+'/../src/lib/workshopPayment.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports:frontend,setTimeout,clearTimeout,AbortController,Error,TypeError,SyntaxError,fetch:async(_,options)=>{const result=api.post(JSON.parse(options.body));return {ok:true,type:'cors',json:async()=>result};}});
   const form={...frontend.initialRegistration,name:registration.name,email:registration.email,phone:'9876543210',gender:registration.gender,experience:registration.experience,mainGoal:registration.goal};
   const order=await frontend.createWorkshopOrder({registration:form,amount:'500'});assert.equal(order.amount,50000);assert.equal(api.rows[1][11],'Pending');const receipt={razorpay_order_id:'order_test',razorpay_payment_id:'pay_test',razorpay_signature:signature};assert.equal(await frontend.verifyWorkshopPayment(receipt,order.amount),500);assert.equal(api.rows[1][11],'Verified');assert.equal(api.rows.length,3);
+});
+
+const pngProof = {mimeType:'image/png',base64:Buffer.from([137,80,78,71,13,10,26,10]).toString('base64')};
+test('uploaded proof is stored in Drive and its URL is confirmed in K before Checkout',()=>{
+  const api=backend(); const order=api.create(500,pngProof);
+  assert.equal(order.ok,true);assert.equal(order.paymentProofSaved,true);
+  assert.equal(api.files.length,1);assert.equal(api.files[0].mimeType,'image/png');
+  assert.equal(api.rows[2][10],'https://drive.google.com/file/d/proof_test/view');
+  assert.equal(api.rows[2][11],'Pending');
+  const before=api.rows[2].slice(0,11);assert.equal(api.post(proof).verified,true);
+  assert.deepEqual(api.rows[2].slice(0,11),before);assert.equal(api.rows.length,3);
+});
+test('invalid file content, missing Drive setup and failed uploads cannot open Checkout',()=>{
+  for(const [options,upload] of [[{}, {mimeType:'text/html',base64:pngProof.base64}], [{}, {mimeType:'application/pdf',base64:pngProof.base64}], [{}, {mimeType:'image/png',base64:'invalid%'}], [{noProofFolder:true},pngProof], [{driveFails:true},pngProof]]) {
+    const api=backend(options); const result=api.create(500,upload);
+    assert.equal(result.ok,false);assert.equal(api.calls.length,0);assert.equal(api.rows.length,2);
+  }
+});
+test('a missing proof URL in K is never acknowledged as an uploaded registration',()=>{
+  const api=backend({dropProof:true});const result=api.create(500,pngProof);
+  assert.equal(result.ok,false);assert.notEqual(result.paymentProofSaved,true);assert.equal(api.calls.length,0);
+});
+test('proof setup records a private folder without changing Sheet data or creating orders',()=>{
+  const api=backend({noProofFolder:true});const report=api.context.setupWorkshopProofUploads();
+  assert.equal(report.ready,true);assert.equal(api.properties.get('WORKSHOP_PROOF_FOLDER_ID'),'proof_folder');
+  assert.equal(JSON.stringify(api.rows),api.original);assert.equal(api.calls.length,0);assert.equal(api.files.length,0);
 });

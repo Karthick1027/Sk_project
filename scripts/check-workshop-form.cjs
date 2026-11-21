@@ -19,9 +19,10 @@ window.fetch = async (url, options = {}) => {
   if (payload.action === 'create_order') {
     qa.orders++;
     response = qa.mode === 'validation' ? { ok: false, code: 'VALIDATION_ERROR', fields: { email: 'Please check your email.' }, error: 'Check your fields.' }
-      : { ok: true, registrationSaved: true, saved: true, paymentVerification: 'AUTOMATIC', row: 3, orderId: 'order_123', keyId: 'rzp_test_123', amount: Number(payload.amount) * 100, currency: 'INR' };
+      : { ok: true, registrationSaved: true, paymentProofSaved: Boolean(payload.paymentProof), saved: true, paymentVerification: 'AUTOMATIC', row: 3, orderId: 'order_123', keyId: 'rzp_test_123', amount: Number(payload.amount) * 100, currency: 'INR' };
     qa.amount = Math.round(Number(payload.amount) * 100);
     if (qa.mode === 'unconfirmed-pending') delete response.registrationSaved;
+    if (qa.mode === 'unconfirmed-upload') delete response.paymentProofSaved;
     if (qa.mode === 'wrong-amount') response.amount = 500;
     if (qa.mode === 'pending-save-failed') response = { ok: false, code: 'PENDING_REGISTRATION_SAVE_FAILED', error: 'Your registration could not be saved, so Checkout was not opened.', stage: 'append_pending_row', reference: 'qa123456', saved: false };
   } else {
@@ -108,12 +109,29 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     await setField('amount', '250.50'); await submit();
     assert(document.getElementById('workshop-amount-error') && qa.orders === 0, 'Fractional rupee amounts are rejected before order creation');
     await setField('amount', '250');
+    const proofInput = document.getElementById('workshop-paymentScreenshot');
+    assert(proofInput.type === 'file' && !proofInput.required && proofInput.accept.includes('image/png'), 'Optional local payment proof picker is available');
+    const invalidTransfer = new DataTransfer();
+    invalidTransfer.items.add(new File(['invalid'], 'receipt.html', { type: 'text/html' }));
+    proofInput.files = invalidTransfer.files; proofInput.dispatchEvent(new Event('change', { bubbles: true })); await delay();
+    await submit();
+    assert(document.getElementById('workshop-paymentScreenshot-error') && qa.orders === 0, 'Unsupported proof files show inline validation and block submission');
+    [...document.querySelectorAll('button')].find(button => button.textContent === 'Remove proof').click(); await delay();
+    assert(proofInput.files.length === 0 && !document.getElementById('workshop-paymentScreenshot-error'), 'Removing proof clears selection and file error');
+    const proofTransfer = new DataTransfer();
+    const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII='), character => character.charCodeAt(0));
+    proofTransfer.items.add(new File([png], 'payment-confirmation.png', { type: 'image/png' }));
+    proofInput.files = proofTransfer.files; proofInput.dispatchEvent(new Event('change', { bubbles: true })); await delay();
+    assert(document.querySelector('img[alt="Selected payment proof preview"]')?.src.startsWith('blob:'), 'Selected local image displays a preview');
     await submit();
     assert(document.getElementById('workshop-email-error')?.textContent === 'Please check your email.' && !document.querySelector('dialog[open]') && qa.orders === 1 && qa.checkouts === 0, 'Backend field error stays inline and does not show payment failure');
     assert(qa.payloads[0].registration.email === 'student@example.com' && qa.payloads[0].registration.phone === '919876543210' && qa.payloads[0].registration.goal === 'Learn bridal makeup', 'Payload maps email, phone and goal correctly');
     assert(qa.payloads[0].amount === 250, 'Edited amount below INR 500 is sent to Apps Script');
+    assert(qa.payloads[0].paymentProof.mimeType === 'image/png' && qa.payloads[0].paymentProof.base64.length > 0, 'Selected proof content is included in the registration request');
     qa.mode = 'unconfirmed-pending'; await submit();
     assert(qa.checkouts === 0 && !document.querySelector('dialog[open]') && document.querySelector('[role="alert"]')?.textContent.includes('registration was saved'), 'Unconfirmed Pending save blocks Checkout and displays an actionable error');
+    qa.mode = 'unconfirmed-upload'; await submit();
+    assert(qa.checkouts === 0 && document.querySelector('[role="alert"]')?.textContent.includes('proof upload was not confirmed'), 'Missing proof persistence confirmation blocks Checkout');
     qa.mode = 'pending-save-failed'; await submit();
     assert(qa.checkouts === 0 && qa.verifications === 0 && !document.querySelector('dialog[open]') && document.querySelector('[role="alert"]')?.textContent.includes('qa123456'), 'Pending save rejection blocks Checkout, shows the stage/reference and releases the processing state');
     assert(!document.querySelector('form button[type="submit"]').disabled, 'Pending save failure allows a retry without leaving the form processing');
@@ -172,6 +190,7 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     assert(document.querySelector('dialog').textContent.includes('500'), 'Verified success displays the actual amount');
     [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Continue to Workshop').click(); await delay();
     assert(document.querySelector('[name="email"]').value === '' && document.querySelector('[name="amount"]').value === '500', 'Form resets after confirmed success is dismissed');
+    assert(proofInput.files.length === 0 && !document.querySelector('img[alt="Selected payment proof preview"]'), 'Confirmed form reset clears the local proof and preview');
     document.body.dataset.qa = 'passed';
   } catch (error) { results.push('FAILED: ' + error.message); document.body.dataset.qa = 'failed'; }
   const output = document.createElement('pre'); output.id = 'qa-result'; output.textContent = JSON.stringify(results); document.body.appendChild(output);

@@ -7,10 +7,18 @@ const ts = require('typescript');
 const exportsObject = {};
 const storage = new Map();
 let fetchHandler;
+class MockFileReader {
+  async readAsDataURL(file) {
+    try {
+      this.result = 'data:' + file.type + ';base64,' + Buffer.from(await file.arrayBuffer()).toString('base64');
+      this.onload();
+    } catch (_) { this.onerror(); }
+  }
+}
 vm.runInNewContext(ts.transpileModule(readFileSync(`${__dirname}/workshopPayment.ts`, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, {
   exports: exportsObject,
   fetch: (...args) => fetchHandler(...args),
-  setTimeout, clearTimeout, AbortController, Error, TypeError, SyntaxError,
+  setTimeout, clearTimeout, AbortController, Error, TypeError, SyntaxError, FileReader: MockFileReader,
   sessionStorage: { getItem: (key) => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
 });
 const { normalizePhone, validateRegistration, initialRegistration, storePendingPayment, readPendingPayment, createWorkshopOrder, verifyWorkshopPayment, WORKSHOP_API_URL } = exportsObject;
@@ -212,4 +220,27 @@ test('only explicit verification plus confirmed saving and matching payment can 
 test('captured payment and unconfirmed Sheet update is a saving error, never another charge', async () => {
   fetchHandler = async () => jsonResponse({ ok: false, verified: true, paymentCaptured: true, saved: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Payment was captured but saving failed. Contact SK Bridal Studio; do not pay again.' });
   await assert.rejects(verifyWorkshopPayment(validProof, 50000), error => error.kind === 'saving' && /do not pay again/i.test(error.message));
+});
+
+test('local payment proof is uploaded with create_order and needs explicit persistence acknowledgement', async () => {
+  const bytes = Buffer.from([137,80,78,71,13,10,26,10]);
+  const file = new File([bytes], 'receipt.png', { type: 'image/png' });
+  fetchHandler = async (_url, options) => {
+    const payload = JSON.parse(options.body);
+    assert.deepEqual(payload.paymentProof, { mimeType: 'image/png', base64: bytes.toString('base64') });
+    assert.equal(payload.registration.name, validRegistration.name);
+    return jsonResponse({ ...validOrder, paymentProofSaved: true });
+  };
+  assert.equal((await createWorkshopOrder({ registration: validRegistration, paymentProof: file })).amount, 50000);
+  fetchHandler = async () => jsonResponse(validOrder);
+  await assert.rejects(createWorkshopOrder({ registration: validRegistration, paymentProof: file }), error => error.diagnostics.code === 'PAYMENT_PROOF_NOT_CONFIRMED');
+});
+
+test('empty, unsupported and oversized local proofs fail inline without a backend request', async () => {
+  let requests = 0;
+  fetchHandler = async () => { requests++; return jsonResponse(validOrder); };
+  for (const paymentProof of [{ size: 0, type: 'image/png' }, { size: 10, type: 'text/html' }, { size: 5 * 1024 * 1024 + 1, type: 'image/png' }]) {
+    await assert.rejects(createWorkshopOrder({ registration: validRegistration, paymentProof }), error => error.fields.paymentScreenshot && error.name === 'RegistrationValidationError');
+  }
+  assert.equal(requests, 0);
 });

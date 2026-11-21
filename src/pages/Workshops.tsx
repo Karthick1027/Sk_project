@@ -12,7 +12,7 @@ import {
   verifyWorkshopPayment, loadCheckout, readPendingPayment, storePendingPayment,
   RegistrationValidationError, WorkshopApiError, WORKSHOP_COURSES,
   CheckoutLoadError, logWorkshopPayment,
-  DEFAULT_PAYMENT_AMOUNT, paymentAmountPaise, formatPaymentAmount,
+  DEFAULT_PAYMENT_AMOUNT, paymentAmountPaise, formatPaymentAmount, validatePaymentProofFile, PAYMENT_PROOF_TYPES, MAX_PAYMENT_PROOF_BYTES,
   type Registration, type RegistrationField, type RegistrationErrors, type PaymentStage, type PendingPayment, type Checkout,
 } from '../lib/workshopPayment';
 import heroImage from '../images/gallery/client_2151.jpg';
@@ -225,6 +225,9 @@ const Workshops: React.FC = () => {
     return amount == null ? DEFAULT_PAYMENT_AMOUNT : String(amount / 100);
   });
   const [submittedAmount, setSubmittedAmount] = useState(0);
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState('');
+  const paymentProofInput = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<RegistrationErrors>({});
   const [stage, setStage] = useState<PaymentStage>('idle');
   const [result, setResult] = useState<PaymentResult | null>(null);
@@ -232,7 +235,7 @@ const Workshops: React.FC = () => {
   const [formError, setFormError] = useState('');
   const busy = useRef(false);
   const checkout = useRef<Checkout | null>(null);
-  const reusableOrder = useRef<{ fingerprint: string; order: Awaited<ReturnType<typeof createWorkshopOrder>> } | null>(null);
+  const reusableOrder = useRef<{ fingerprint: string; paymentProofFile: File | null; order: Awaited<ReturnType<typeof createWorkshopOrder>> } | null>(null);
   const mounted = useRef(true);
   const processing = stage !== 'idle';
   const statusText: Record<PaymentStage, string> = {
@@ -241,6 +244,16 @@ const Workshops: React.FC = () => {
     verifying: 'Verifying payment and confirming registration...',
   };
   const day = days[active];
+
+  useEffect(() => {
+    if (!paymentProofFile || !paymentProofFile.type.startsWith('image/') || paymentProofFile.size > MAX_PAYMENT_PROOF_BYTES) {
+      setPaymentProofPreview('');
+      return;
+    }
+    const url = URL.createObjectURL(paymentProofFile);
+    setPaymentProofPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [paymentProofFile]);
 
   useEffect(() => {
     mounted.current = true;
@@ -312,6 +325,11 @@ const Workshops: React.FC = () => {
     try { paymentAmountPaise(paymentAmount); } catch (error) {
       if (error instanceof RegistrationValidationError) Object.assign(validationErrors, error.fields); else throw error;
     }
+    if (paymentProofFile) {
+      try { validatePaymentProofFile(paymentProofFile); } catch (error) {
+        if (error instanceof RegistrationValidationError) Object.assign(validationErrors, error.fields); else throw error;
+      }
+    }
     setErrors(validationErrors);
     const firstError = Object.keys(validationErrors)[0];
     if (firstError) {
@@ -329,8 +347,8 @@ const Workshops: React.FC = () => {
       // registration details and the exact amount so edited forms get a new one.
       const fingerprint = JSON.stringify([submitted, paymentAmountPaise(paymentAmount)]);
       const cached = reusableOrder.current;
-      const order = cached?.fingerprint === fingerprint ? cached.order : await createWorkshopOrder({ registration: submitted, amount: paymentAmount });
-      reusableOrder.current = { fingerprint, order };
+      const order = cached?.fingerprint === fingerprint && cached.paymentProofFile === paymentProofFile ? cached.order : await createWorkshopOrder({ registration: submitted, amount: paymentAmount, paymentProof: paymentProofFile });
+      reusableOrder.current = { fingerprint, paymentProofFile, order };
       orderCreated = true;
       logWorkshopPayment('order_ready', { amount: order.amount, currency: order.currency, mode: order.keyId.startsWith('rzp_test_') ? 'test' : 'live' });
       if (!mounted.current) return;
@@ -409,6 +427,8 @@ const Workshops: React.FC = () => {
       setRegistration({ ...initialRegistration });
       setPaymentAmount(DEFAULT_PAYMENT_AMOUNT);
       setSubmittedAmount(0);
+      setPaymentProofFile(null);
+      if (paymentProofInput.current) paymentProofInput.current.value = '';
       setErrors({});
     }
     setResult(null);
@@ -797,6 +817,30 @@ const Workshops: React.FC = () => {
                   <label htmlFor="workshop-question" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Additional comments or suggestions (optional)</label>
                   <textarea {...fieldAccessibility('question')} id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Any additional comments?" />
                   {fieldError('question')}
+                </div>
+                <div>
+                  <label htmlFor="workshop-paymentScreenshot" className="mb-1.5 block font-inter text-xs font-medium leading-relaxed text-cocoa">Please share a screenshot of your payment confirmation to secure your seat. 💳✨ (Optional)</label>
+                  <input {...fieldAccessibility('paymentScreenshot')} ref={paymentProofInput} id="workshop-paymentScreenshot" name="paymentScreenshot" type="file" accept={PAYMENT_PROOF_TYPES.join(',')} aria-describedby={errors.paymentScreenshot ? 'workshop-paymentScreenshot-error workshop-proof-help' : 'workshop-proof-help'} onChange={event => {
+                    const file = event.target.files?.[0] || null;
+                    setPaymentProofFile(file);
+                    setErrors(previous => ({ ...previous, paymentScreenshot: undefined }));
+                    setFormError('');
+                    if (file) {
+                      try { validatePaymentProofFile(file); } catch (error) {
+                        if (error instanceof RegistrationValidationError) setErrors(previous => ({ ...previous, ...error.fields }));
+                      }
+                    }
+                  }} className="field workshop-proof-input cursor-pointer file:rounded-md file:border-0 file:bg-beige file:font-medium file:text-chocolate" />
+                  <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <p id="workshop-proof-help" className="text-xs text-cocoa">JPG, PNG, WEBP or PDF · Max 5 MB</p>
+                    {paymentProofFile && <button type="button" className="shrink-0 text-xs font-medium text-red-700 underline underline-offset-2" onClick={() => {
+                        setPaymentProofFile(null);
+                        if (paymentProofInput.current) paymentProofInput.current.value = '';
+                        setErrors(previous => ({ ...previous, paymentScreenshot: undefined }));
+                      }}>Remove proof</button>}
+                  </div>
+                  {fieldError('paymentScreenshot')}
+                  {paymentProofPreview && !errors.paymentScreenshot && <img src={paymentProofPreview} alt="Selected payment proof preview" className="mt-2 max-h-24 max-w-full rounded-md object-contain" />}
                 </div>
                 <div>
                   <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Payment amount (₹) *</label>

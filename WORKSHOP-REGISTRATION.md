@@ -1,8 +1,8 @@
 # Workshop registration with automatic Razorpay verification
 
-The backend source of truth for this change is the supplied C:/Users/ASWIN/Downloads/WorkshopRegistrations_AutomaticVerification.gs (workshop-auto-verify-v3). Its active repository copy is google-apps-script/WorkshopRegistrations.gs, version workshop-auto-verify-v4. Do not deploy both full scripts into one Apps Script project: replace the old code to avoid duplicate function/CONFIG definitions.
+The backend source of truth for this change is the supplied C:/Users/ASWIN/Downloads/WorkshopRegistrations_AutomaticVerification.gs (workshop-auto-verify-v3). Its active repository copy is google-apps-script/WorkshopRegistrations.gs, version workshop-auto-verify-v5-proof-upload. Do not deploy both full scripts into one Apps Script project: replace the old code to avoid duplicate function/CONFIG definitions.
 
-The supplied createWorkshopOrder_, findFirstEmptyDataRow_ and appendPendingRegistration_ functions were copied unchanged. Field aliases, course validation, first-empty-row selection, Pending persistence, amount conversion, spreadsheet destination and the existing WhatsApp/edit-trigger workflow remain as supplied. The verification-only changes recheck duplicate callbacks against Razorpay, return amount/currency consistently, reject duplicate order rows/reused payments, and distinguish captured-payment Sheet failures. The verified update writes only L-R, does not require typed-column reformatting, retains a plain WhatsApp link if rich-link formatting fails and preserves an existing sent confirmation.
+The supplied findFirstEmptyDataRow_ and appendPendingRegistration_ functions remain unchanged. createWorkshopOrder_ additionally accepts an optional local payment-proof upload before saving the Pending row. Field aliases, course validation, first-empty-row selection, Pending persistence, amount conversion, spreadsheet destination and the existing WhatsApp/edit-trigger workflow remain as supplied. The verification-only changes recheck duplicate callbacks against Razorpay, return amount/currency consistently, reject duplicate order rows/reused payments, and distinguish captured-payment Sheet failures. The verified update writes only L-R, does not require typed-column reformatting, retains a plain WhatsApp link if rich-link formatting fails and preserves an existing sent confirmation.
 
 ## Complete request flow
 
@@ -64,7 +64,7 @@ https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzH
 3. In Project Settings > Script properties, keep the matching RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET pair. Start with Razorpay Test Mode keys. Do not put the secret into React, .env frontend variables or chat.
 4. Run setupWorkshopRegistration as the account with edit access to the existing spreadsheet and authorize the required Sheet/UrlFetch scopes. Keep the existing form and tab. The supplied setup prepares automation headers L-R only. If the edit trigger is not already installed, run setupEditTrigger once; it retains other Google Forms triggers.
 5. Choose Deploy > Manage deployments > edit the EXISTING deployment > New version > Deploy. Execute as Me (the spreadsheet editor account), access Anyone. Saving editor code alone does not publish /exec.
-6. Confirm the URL reports version workshop-auto-verify-v4 and ok true. The supplied health function also prepares L-R headers; it is not a completely read-only endpoint, and readiness alone does not prove a saved registration/payment.
+6. Confirm the URL reports version workshop-auto-verify-v5-proof-upload and ok true. The supplied health function also prepares L-R headers; it is not a completely read-only endpoint, and readiness alone does not prove a saved registration/payment.
 7. Keep WORKSHOP_API_URL unchanged if this deployment URL is retained. If you intentionally create a different deployment, update that constant in src/lib/workshopPayment.ts before building.
 8. Publish the frontend only after the backend supports automatic verification:
 
@@ -102,3 +102,13 @@ Perform these owner-run checks only after explicitly publishing Test Mode backen
 10. Reload after an unconfirmed callback receipt: Verify Existing Payment must retry that proof without another payment. Old manual receipts must show Payment Needs Review rather than automatic success.
 
 The same-row update is confirmed by automated integration tests. Production/Test Mode Sheet acceptance remains an owner-observed check; it has not been claimed from mocked results alone.
+
+## Optional local payment-proof upload
+
+The workshop form includes a compact file picker, local image preview and Remove proof control. It is optional because new customers pay through Checkout after submitting the form. JPG, PNG, WEBP and PDF files are accepted, up to 5 MB. Browser and backend validate type/size; the backend also checks the file signature. Proof upload does not verify a payment.
+
+The selected file is sent as base64 in paymentProof alongside create_order. Apps Script creates the file in the configured Drive folder and stores its URL in K on the new Pending row. That URL is checked before returning paymentProofSaved true; selected-file submissions without this acknowledgement cannot open Checkout. Existing Google Forms rows and headers are preserved. Upload bytes and original local filenames are not logged or stored in sessionStorage. Folder access is inherited; the app never enables public sharing.
+
+Before publishing this version, run setupWorkshopProofUploads() once as the Apps Script owner and authorize Drive access. It creates a folder named SK Bridal Studio - Workshop Payment Proofs and stores its ID in Script Property WORKSHOP_PROOF_FOLDER_ID. Alternatively, set that property to an existing folder the deployment owner can edit before running setup. Share the folder only with studio staff who should review proofs. Then publish a New version of the existing web app (Execute as Me, access Anyone), confirm workshop-auto-verify-v5-proof-upload, and deploy the rebuilt frontend. An unconfigured upload folder produces a clear error when a file is selected; registrations without a file continue to work. No real folder or file upload was performed by the agent.
+
+The upload implementation uses the [Drive folder file API](https://developers.google.com/apps-script/reference/drive/folder#createFile(BlobSource)) and [Apps Script binary utilities](https://developers.google.com/apps-script/reference/utilities/utilities). No Firebase Storage or paid Firebase service is introduced.

@@ -9,7 +9,7 @@ const CONFIG = {
   FIRST_DATA_ROW: 2,
   PAYMENT_AMOUNT: 50000,
   CURRENCY: "INR",
-  BACKEND_VERSION: "workshop-auto-verify-v4",
+  BACKEND_VERSION: "workshop-auto-verify-v5-proof-upload",
 
   // Registration columns
   COURSE_COL: 15,          // O
@@ -172,7 +172,7 @@ function doPost(event) {
     console.log("Workshop request action: " + action);
 
     if (action === "create_order" || action === "createworkshoporder") {
-      const result = createWorkshopOrder_(request.registration, request.amount);
+      const result = createWorkshopOrder_(request.registration, request.amount, request.paymentProof);
       console.log("Razorpay order created successfully.");
       return jsonResponse(result);
     }
@@ -241,13 +241,18 @@ function registrationHash_(registration) {
     .map(function(byte) { return (byte & 255).toString(16).padStart(2, "0"); }).join("");
 }
 
-function createWorkshopOrder_(data, requestedAmount) {
+function createWorkshopOrder_(data, requestedAmount, paymentProof) {
   const registration = validateRegistration_(data);
   const amount = paymentAmountPaise_(requestedAmount);
+  const proofUrl = paymentProof ? uploadWorkshopProof_(paymentProof) : "";
+  if (proofUrl) registration.paymentScreenshot = proofUrl;
 
   // Save the registration FIRST. Checkout must never open unless this row
   // has been written to and read back from Google Sheets successfully.
   const saved = appendPendingRegistration_(registration, amount);
+  if (proofUrl && String(getExistingResponseSheet_().getRange(saved.row, CONFIG.PAYMENT_SCREENSHOT_COL).getValue()) !== proofUrl) {
+    throw backendError_("REGISTRATION_SAVE_FAILED", "The payment proof link could not be confirmed in your registration. Checkout was not opened.");
+  }
 
   // Keep Razorpay Checkout enabled, but do not verify or capture payments here.
   // If order creation fails, the Pending registration remains in the Sheet.
@@ -283,6 +288,7 @@ function createWorkshopOrder_(data, requestedAmount) {
   return {
     ok: true,
     registrationSaved: true,
+    paymentProofSaved: Boolean(proofUrl),
     saved: true,
     row: saved.row,
     keyId: credentials.keyId,
@@ -291,6 +297,45 @@ function createWorkshopOrder_(data, requestedAmount) {
     currency: CONFIG.CURRENCY,
     paymentVerification: "AUTOMATIC"
   };
+}
+
+// Run once as the owner to authorize Drive and create/select the proof folder.
+// Uploads inherit this folder's existing access; no public sharing is enabled.
+function setupWorkshopProofUploads() {
+  const properties = PropertiesService.getScriptProperties();
+  const folderId = properties.getProperty("WORKSHOP_PROOF_FOLDER_ID");
+  const folder = folderId ? DriveApp.getFolderById(folderId) : DriveApp.createFolder("SK Bridal Studio - Workshop Payment Proofs");
+  properties.setProperty("WORKSHOP_PROOF_FOLDER_ID", folder.getId());
+  const report = { ready: true, folderId: folder.getId(), folderUrl: folder.getUrl() };
+  console.log(JSON.stringify(report));
+  return report;
+}
+
+function uploadWorkshopProof_(proof) {
+  const maxBytes = 5 * 1024 * 1024;
+  const types = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+  const invalid = function(message) { return backendError_("VALIDATION_ERROR", message, { paymentScreenshot: message }); };
+  if (!proof || typeof proof !== "object" || !Object.prototype.hasOwnProperty.call(types, proof.mimeType)) throw invalid("Choose a JPG, PNG, WEBP image or a PDF.");
+  const data = proof.base64;
+  if (typeof data !== "string" || !data.length || data.length > 4 * Math.ceil(maxBytes / 3) || data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) throw invalid("Choose a valid payment proof file up to 5 MB.");
+  let bytes;
+  try { bytes = Utilities.base64Decode(data); } catch (_) { throw invalid("The payment proof could not be read. Please choose it again."); }
+  if (!bytes.length || bytes.length > maxBytes) throw invalid("Choose a payment proof file up to 5 MB.");
+  const starts = function(offset, expected) { return expected.every(function(value, index) { return (bytes[offset + index] & 255) === value; }); };
+  const valid = proof.mimeType === "image/jpeg" ? starts(0, [255, 216, 255])
+    : proof.mimeType === "image/png" ? starts(0, [137, 80, 78, 71, 13, 10, 26, 10])
+    : proof.mimeType === "image/webp" ? starts(0, [82, 73, 70, 70]) && starts(8, [87, 69, 66, 80])
+    : starts(0, [37, 80, 68, 70, 45]);
+  if (!valid) throw invalid("The file content does not match the selected image or PDF type.");
+  const folderId = PropertiesService.getScriptProperties().getProperty("WORKSHOP_PROOF_FOLDER_ID");
+  if (!folderId) throw backendError_("PROOF_UPLOAD_NOT_CONFIGURED", "Payment proof uploads are unavailable. Contact SK Bridal Studio or remove the selected file to continue with Razorpay.");
+  try {
+    const filename = "payment-proof_" + Utilities.getUuid().replace(/-/g, "") + "." + types[proof.mimeType];
+    const file = DriveApp.getFolderById(folderId).createFile(Utilities.newBlob(bytes, proof.mimeType, filename));
+    return file.getUrl();
+  } catch (_) {
+    throw backendError_("PROOF_UPLOAD_FAILED", "Your payment proof could not be uploaded. Please try again or contact SK Bridal Studio. Checkout was not opened.");
+  }
 }
 
 /**
