@@ -42,6 +42,11 @@ export function formatPaymentAmount(amount: number): string {
   return amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 export const WORKSHOP_COURSES = ['2-Day Online Live Demo Workshop', '15-Day Bridal Makeup Masterclass', '30-Day Professional Bridal Makeup Masterclass'] as const;
+export const WORKSHOP_ADVANCES: Record<string, string> = {
+  '2-Day Online Live Demo Workshop': '500',
+  '15-Day Bridal Makeup Masterclass': '5000',
+  '30-Day Professional Bridal Makeup Masterclass': '10000',
+};
 export class RegistrationValidationError extends Error {
   constructor(public fields: RegistrationErrors, message = 'Please check the highlighted registration fields.') {
     super(message);

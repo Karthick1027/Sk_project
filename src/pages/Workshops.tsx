@@ -10,7 +10,7 @@ import WorkshopPaymentDialog, { type PaymentResult } from '../components/Worksho
 import {
   initialRegistration, normalizePhone, validateRegistration, createWorkshopOrder,
   verifyWorkshopPayment, loadCheckout, readPendingPayment, storePendingPayment,
-  RegistrationValidationError, WorkshopApiError, WORKSHOP_COURSES,
+  RegistrationValidationError, WorkshopApiError, WORKSHOP_COURSES, WORKSHOP_ADVANCES,
   CheckoutLoadError, logWorkshopPayment,
   DEFAULT_PAYMENT_AMOUNT, paymentAmountPaise, formatPaymentAmount, validatePaymentProofFile, PAYMENT_PROOF_TYPES, MAX_PAYMENT_PROOF_BYTES,
   type Registration, type RegistrationField, type RegistrationErrors, type PaymentStage, type PendingPayment, type Checkout,
@@ -775,7 +775,7 @@ const Workshops: React.FC = () => {
                       value={registration.course}
                       options={WORKSHOP_COURSES.map(course => ({ value: course, label: course }))}
                       disabled={processing || Boolean(pendingPayment)}
-                      onChange={course => { setRegistration(previous => ({ ...previous, course })); setErrors(previous => ({ ...previous, course: undefined })); setFormError(''); }}
+                      onChange={course => { setRegistration(previous => ({ ...previous, course })); setPaymentAmount(WORKSHOP_ADVANCES[course] ?? DEFAULT_PAYMENT_AMOUNT); setErrors(previous => ({ ...previous, course: undefined, amount: undefined })); setFormError(''); }}
                     />
                     {fieldError('course')}
                   </div>
@@ -869,7 +869,7 @@ const Workshops: React.FC = () => {
                   <div>
                   <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Registration advance (₹) *</label>
                   <input {...fieldAccessibility('amount')} id="workshop-amount" name="amount" type="number" inputMode="numeric" min="1" step="1" required value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value); setErrors(previous => ({ ...previous, amount: undefined })); setFormError(''); }} className="field" />
-                  <p className="mt-2 text-sm text-cocoa">₹500 suggested · Minimum ₹1. We’ll confirm any remaining balance separately.</p>
+                  <p className="mt-2 text-sm text-cocoa">{formatPaymentAmount(Number(WORKSHOP_ADVANCES[registration.course] ?? DEFAULT_PAYMENT_AMOUNT))} suggested · Minimum ₹1. We’ll confirm any remaining balance separately.</p>
                   {fieldError('amount')}
                 </div>
                 </div>

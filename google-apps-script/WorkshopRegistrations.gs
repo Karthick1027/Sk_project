@@ -9,7 +9,7 @@ const CONFIG = {
   FIRST_DATA_ROW: 2,
   PAYMENT_AMOUNT: 50000,
   CURRENCY: "INR",
-  BACKEND_VERSION: "workshop-auto-verify-v5-proof-upload",
+  BACKEND_VERSION: "workshop-auto-verify-v6-course-advances",
 
   // Registration columns
   COURSE_COL: 15,          // O
@@ -30,6 +30,17 @@ const CONFIG = {
   PAYMENT_COL: 12,         // L
   CONFIRMATION_COL: 13,    // M
   WHATSAPP_LINK_COL: 14    // N
+};
+
+const COURSE_FEES = {
+  "2-Day Online Live Demo Workshop": 3999,
+  "15-Day Bridal Makeup Masterclass": 29999,
+  "30-Day Professional Bridal Makeup Masterclass": 49999
+};
+const COURSE_ADVANCES = {
+  "2-Day Online Live Demo Workshop": 500,
+  "15-Day Bridal Makeup Masterclass": 5000,
+  "30-Day Professional Bridal Makeup Masterclass": 10000
 };
 
 const ALLOWED_COURSES = [
@@ -247,7 +258,7 @@ function registrationHash_(registration) {
 
 function createWorkshopOrder_(data, requestedAmount, paymentProof) {
   const registration = validateRegistration_(data);
-  const amount = paymentAmountPaise_(requestedAmount);
+  const amount = paymentAmountPaise_(requestedAmount, registration.course);
   const proofUrl = paymentProof ? uploadWorkshopProof_(paymentProof) : "";
   if (proofUrl) registration.paymentScreenshot = proofUrl;
 
@@ -450,8 +461,9 @@ function verifySignature_(orderId, paymentId, signature) {
   if (difference !== 0) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment signature could not be verified.");
 }
 
-function paymentAmountPaise_(value) {
-  const text = String(value === undefined ? 500 : value).trim();
+function paymentAmountPaise_(value, course) {
+  const suggestedAdvance = COURSE_ADVANCES[course] || CONFIG.PAYMENT_AMOUNT / 100;
+  const text = String(value === undefined || value === null || value === "" ? suggestedAdvance : value).trim();
   const parts = text.split('.');
   const amount = Number(parts[0]) * 100 + Number((parts[1] || '').padEnd(2, '0'));
   if (!/^\d+(?:\.\d{1,2})?$/.test(text) || !Number.isSafeInteger(amount) || amount < 100) throw backendError_("VALIDATION_ERROR", "Enter an amount of at least INR 1 with up to two decimal places.", { amount: "Enter an amount of at least INR 1 with up to two decimal places." });
@@ -644,7 +656,7 @@ function saveVerifiedRegistration_(row, registration, orderId, paymentId, amount
   const duplicate = status === "verified";
   const previousConfirmation = String(values[12] || "").trim();
   const confirmation = duplicate && /^(yes|sent|confirmation sent)$/i.test(previousConfirmation) ? previousConfirmation : "Ready to Send";
-  const whatsapp = "https://wa.me/" + registration.phone + "?text=" + encodeURIComponent(buildConfirmationMessage_(registration.name, amountPaise / 100));
+  const whatsapp = "https://wa.me/" + registration.phone + "?text=" + encodeURIComponent(buildConfirmationMessage_(registration.name, amountPaise / 100, registration.course));
   // Only L-R change. Keep A-K and the existing first-empty-row saver intact.
   // IDs are already text; do not require typed-column number-format changes.
   sheet.getRange(row, CONFIG.PAYMENT_COL, 1, 7).setValues([["Verified", confirmation, whatsapp, registration.course, paymentId, orderId, amountPaise / 100]]);
@@ -684,6 +696,8 @@ function doGet() {
     sheetError: sheetError,
     credentialsConfigured: credentialsConfigured,
     defaultAmount: CONFIG.PAYMENT_AMOUNT / 100,
+    courseFees: COURSE_FEES,
+    courseAdvances: COURSE_ADVANCES,
     minimumAmount: 1,
     currency: CONFIG.CURRENCY
   });
@@ -808,7 +822,8 @@ function createWhatsAppLink_(sheet, row) {
   }
 
   const advance = Number(sheet.getRange(row, CONFIG.ADVANCE_COL).getValue());
-  const message = buildConfirmationMessage_(name, advance);
+  const course = String(sheet.getRange(row, CONFIG.COURSE_COL).getDisplayValue()).trim();
+  const message = buildConfirmationMessage_(name, advance, course);
 
   // Encode complete message, including emojis.
   const encodedMessage = encodeURIComponent(message);
@@ -846,20 +861,69 @@ function createWhatsAppLink_(sheet, row) {
 // 8. WHATSAPP CONFIRMATION MESSAGE
 // =====================================================
 
-function buildConfirmationMessage_(name, advance) {
+function buildConfirmationMessage_(name, advance, course) {
+  // Build emojis from Unicode code points at runtime to avoid source-file
+  // encoding corruption when copied into the Apps Script editor.
+  const emoji = function() {
+    return Array.prototype.map.call(arguments, function(point) {
+      return String.fromCodePoint(point);
+    }).join("");
+  };
+
+  const studentName = String(name || "Student").trim();
+  const selectedCourse = String(course || "").trim();
+  const totalFee = COURSE_FEES[selectedCourse];
+  // Legacy saved courses may not have a configured total fee.
+  const paidValue = Number(advance);
+  const paid = Number.isFinite(paidValue) && paidValue >= 0 ? paidValue : 500;
+  const remaining = totalFee ? Math.max(0, totalFee - paid) : null;
+  const money = function(value) {
+    return String.fromCodePoint(0x20B9) + Number(value).toLocaleString("en-IN");
+  };
+
+  const party = emoji(0x1F389);
+  const heart = emoji(0x1F496);
+  const check = emoji(0x2705);
+  const makeup = emoji(0x1F484);
+  const sparkles = emoji(0x2728);
+  const books = emoji(0x1F4DA);
+  const calendar = emoji(0x1F4C5);
+  const globe = emoji(0x1F310);
+  const speaking = emoji(0x1F5E3, 0xFE0F);
+  const moneyBag = emoji(0x1F4B0);
+  const pin = emoji(0x1F4CC);
+  const redHeart = emoji(0x2764, 0xFE0F);
 
   return [
-    "Hi " + name + "! 💖",
+    party + " REGISTRATION CONFIRMED! " + party,
     "",
-    "Congratulations! 🎉",
+    "Hi " + studentName + "! " + heart,
     "",
-    "Your advance payment" + (Number.isFinite(advance) && advance >= 1 ? " of INR " + advance.toFixed(2) : "") + " has been successfully verified.",
+    "Congratulations! Your advance payment of " + money(paid) + " has been successfully verified. " + check,
     "",
-    "Your seat for the Professional Bridal Makeup & Hairstyle Course at SK BRIDAL STUDIO is officially CONFIRMED! 💄✨",
+    "Your seat for the following SK BRIDAL STUDIO course is confirmed: " + makeup + sparkles,
+    selectedCourse,
     "",
-    "Thank you for choosing us! ❤️",
+    books + " COURSE DETAILS:",
     "",
-    "SK BRIDAL STUDIO"
+    calendar + " Schedule: Details will be shared separately",
+    globe + " Mode: Online Live",
+    speaking + " Language: Tamil + English",
+    "",
+    moneyBag + " PAYMENT DETAILS:",
+    "",
+    "Advance Paid: " + money(paid),
+    "Remaining Balance: " + (remaining === null ? "Please contact SK Bridal Studio" : money(remaining)),
+    "Please pay the remaining balance as per the payment schedule shared by SK Bridal Studio.",
+    "",
+    pin + " The session details and joining instructions will be shared with you before the course.",
+    "",
+    "Thank you for choosing SK Bridal Studio! " + redHeart,
+    "",
+    "We're excited to be part of your makeup learning journey!",
+    "",
+    "Warm regards,",
+    "SK BRIDAL STUDIO " + heart
   ].join("\n");
 }
 
@@ -979,23 +1043,29 @@ function regenerateSelectedStudentLink() {
 // 12. TEST WHATSAPP EMOJI ENCODING
 // =====================================================
 
-function testWhatsAppEmojiLink() {
+function testWhatsAppEmojiEncoding() {
+  const message = buildConfirmationMessage_("Emoji Test", 500, "2-Day Online Live Demo Workshop");
+  const encoded = encodeURIComponent(message);
+  const replacementCharacterFound = message.indexOf(String.fromCharCode(0xFFFD)) !== -1;
+  const encodedEmojiFound = /%F0%9F/i.test(encoded);
+  const courseNameFound = message.indexOf("2-Day Online Live Demo Workshop") !== -1;
 
-  const emoji = "💖 🎉 💄 ✨ ❤️";
+  console.log("Generated message: " + message);
+  console.log("Encoded WhatsApp text: " + encoded);
+  console.log("Replacement character found: " + replacementCharacterFound);
+  console.log("Emoji UTF-8 encoding found: " + encodedEmojiFound);
 
-  const encoded = encodeURIComponent(emoji);
+  if (replacementCharacterFound || !encodedEmojiFound || !courseNameFound) {
+    throw new Error("Emoji generation or URL encoding failed.");
+  }
 
-  Logger.log("Original: " + emoji);
-  Logger.log("Encoded: " + encoded);
-
-  Logger.log(
-    "Replacement character exists: " +
-    emoji.includes("\uFFFD")
-  );
-
-  const testUrl =
-    "https://wa.me/918668038093?text=" +
-    encoded;
-
-  Logger.log("Test URL: " + testUrl);
+  return {
+    ok: true,
+    replacementCharacterFound: false,
+    encodedEmojiFound: true,
+    courseNameFound: courseNameFound
+  };
 }
+
+
+function testWhatsAppEmojiLink() { return testWhatsAppEmojiEncoding(); }

@@ -5,6 +5,24 @@ const vm = require('node:vm');
 const crypto = require('node:crypto');
 const ts = require('typescript');
 const registration = { name: 'Student', phone: '919876543210', email: 'student@example.com', gender: 'Female', goal: 'Learn bridal makeup', question: 'Keep my details', experience: 'Beginner', city: 'Chennai', course: '2-Day Online Live Demo Workshop' };
+
+test('each course defaults to its advance and generates the correct WhatsApp balance', () => {
+  for (const [course, advance, balance] of [
+    ['2-Day Online Live Demo Workshop', 500, '3,499'],
+    ['15-Day Bridal Makeup Masterclass', 5000, '24,999'],
+    ['30-Day Professional Bridal Makeup Masterclass', 10000, '39,999'],
+  ]) {
+    const api = backend();
+    const order = api.post({ action: 'create_order', registration: { ...registration, course } });
+    assert.equal(order.ok, true);
+    assert.equal(order.amount, advance * 100);
+    assert.equal(api.post(proof).verified, true);
+    const message = decodeURIComponent(api.rows[order.row - 1][13].split('?text=')[1]);
+    assert.ok(message.includes(course));
+    assert.ok(message.includes('Remaining Balance: ₹' + balance));
+    assert.equal(message.includes('\uFFFD'), false);
+  }
+});
 const signature = crypto.createHmac('sha256', 'test-secret').update('order_test|pay_test').digest('hex');
 const proof = { action: 'verify_payment', orderId: 'order_test', paymentId: 'pay_test', signature };
 function backend(options = {}) {
