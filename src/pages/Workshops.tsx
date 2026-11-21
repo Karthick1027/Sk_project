@@ -9,7 +9,7 @@ import WorkshopDropdown from '../components/WorkshopDropdown';
 import WorkshopPaymentDialog, { type PaymentResult } from '../components/WorkshopPaymentDialog';
 import {
   initialRegistration, normalizePhone, validateRegistration, createWorkshopOrder,
-  verifyWorkshopPayment, loadCheckout, readPendingPayment, storePendingPayment,
+  loadCheckout, readPendingPayment, storePendingPayment,
   RegistrationValidationError, WorkshopApiError, WORKSHOP_COURSES,
   CheckoutLoadError, logWorkshopPayment,
   DEFAULT_PAYMENT_AMOUNT, paymentAmountPaise, formatPaymentAmount,
@@ -224,7 +224,7 @@ const Workshops: React.FC = () => {
     const amount = readPendingPayment()?.amount;
     return amount == null ? DEFAULT_PAYMENT_AMOUNT : String(amount / 100);
   });
-  const [verifiedAmount, setVerifiedAmount] = useState(0);
+  const [submittedAmount, setSubmittedAmount] = useState(0);
   const [errors, setErrors] = useState<RegistrationErrors>({});
   const [stage, setStage] = useState<PaymentStage>('idle');
   const [result, setResult] = useState<PaymentResult | null>(null);
@@ -236,9 +236,8 @@ const Workshops: React.FC = () => {
   const mounted = useRef(true);
   const processing = stage !== 'idle';
   const statusText: Record<PaymentStage, string> = {
-    idle: '', creating: 'Creating Razorpay order...', opening: 'Opening payment gateway...',
+    idle: '', creating: 'Saving your registration...', opening: 'Opening payment gateway...',
     checkout: 'Complete your payment in the secure Razorpay checkout.',
-    verifying: 'Verifying payment and saving registration...', saving: 'Saving registration...',
   };
   const day = days[active];
 
@@ -274,32 +273,13 @@ const Workshops: React.FC = () => {
     setResult(outcome);
   };
 
-  const verifyPayment = async (pending: PendingPayment) => {
-    if (!mounted.current) return;
-    setStage('verifying');
-    try {
-      const advance = await verifyWorkshopPayment(pending.proof, pending.amount);
-      reusableOrder.current = null;
-      logWorkshopPayment('registration_saved', { amount: advance * 100, currency: 'INR' });
-      if (mounted.current) setVerifiedAmount(advance);
-      storePendingPayment(null);
-      if (mounted.current) setPendingPayment(null);
-      finishPayment('success');
-    } catch (error) {
-      logWorkshopPayment('verification_failed', { ...(error instanceof WorkshopApiError ? error.diagnostics : {}), code: error instanceof WorkshopApiError ? error.diagnostics.code || error.kind : 'COMMUNICATION_ERROR', stage: 'verifying' });
-      if (mounted.current) setResultDetail(error instanceof Error ? error.message : 'Payment verification is unavailable. Please try again.');
-      finishPayment(error instanceof WorkshopApiError && error.kind === 'saving' ? 'saving-failure' : 'failure');
-    }
-  };
-
   const startPayment = async () => {
     if (busy.current || result === 'success') return;
     setResultDetail('');
     setFormError('');
     if (pendingPayment) {
-      busy.current = true;
-      setResult(null);
-      await verifyPayment(pendingPayment);
+      setSubmittedAmount((pendingPayment.amount || 0) / 100);
+      finishPayment('success');
       return;
     }
     const validationErrors = validateRegistration(registration);
@@ -314,14 +294,11 @@ const Workshops: React.FC = () => {
     }
     busy.current = true;
     setResult(null);
-    setStage('opening');
+    setStage('creating');
     const submitted = { ...registration, phone: `91${registration.phone}` };
     let settled = false;
     let orderCreated = false;
     try {
-      await loadCheckout();
-      if (!mounted.current) return;
-      setStage('creating');
       // A cancelled/failed Checkout can retry the same order. Bind it to all
       // registration details and the exact amount so edited forms get a new one.
       const fingerprint = JSON.stringify([submitted, paymentAmountPaise(paymentAmount)]);
@@ -332,6 +309,8 @@ const Workshops: React.FC = () => {
       logWorkshopPayment('order_ready', { amount: order.amount, currency: order.currency, mode: order.keyId.startsWith('rzp_test_') ? 'test' : 'live' });
       if (!mounted.current) return;
       setStage('opening');
+      await loadCheckout();
+      if (!mounted.current) return;
       if (!window.Razorpay || order.amount !== paymentAmountPaise(paymentAmount) || order.currency !== 'INR' || !order.orderId || !order.keyId) throw new Error('Invalid payment order.');
       const instance = new window.Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
@@ -347,11 +326,13 @@ const Workshops: React.FC = () => {
         handler: (proof) => {
           if (settled) return;
           settled = true;
-          const pending = { proof, registration: submitted, amount: order.amount };
+          const pending = { paymentId: proof.razorpay_payment_id, registration: submitted, amount: order.amount, registrationSaved: true };
           storePendingPayment(pending);
           setPendingPayment(pending);
           instance.close();
-          void verifyPayment(pending);
+          setSubmittedAmount(order.amount / 100);
+          logWorkshopPayment('manual_review_pending', { amount: order.amount, currency: order.currency });
+          finishPayment('success');
         },
       });
       checkout.current = instance;
@@ -374,7 +355,7 @@ const Workshops: React.FC = () => {
         return;
       }
       if (!orderCreated) {
-        logWorkshopPayment('order_failed', { code: error instanceof RegistrationValidationError ? 'VALIDATION_FAILED' : 'ORDER_REQUEST_FAILED', stage: 'creating' });
+        logWorkshopPayment('order_failed', { ...(error instanceof WorkshopApiError ? error.diagnostics : {}), code: error instanceof WorkshopApiError ? error.diagnostics.code || 'ORDER_REQUEST_FAILED' : error instanceof RegistrationValidationError ? 'VALIDATION_FAILED' : 'ORDER_REQUEST_FAILED', stage: 'creating' });
         busy.current = false;
         setStage('idle');
         setResult(null);
@@ -401,9 +382,7 @@ const Workshops: React.FC = () => {
 
   const closeResult = () => {
     if (result === 'success') {
-      setRegistration({ ...initialRegistration });
-      setPaymentAmount(DEFAULT_PAYMENT_AMOUNT);
-      setVerifiedAmount(0);
+      // Keep the receipt and details while the owner checks the Dashboard.
       setErrors({});
     }
     setResult(null);
@@ -724,10 +703,10 @@ const Workshops: React.FC = () => {
               <p className="eyebrow">Course Registration</p>
               <h2 className="mt-2 font-playfair text-3xl font-medium text-chocolate">Save your seat</h2>
               <p className="mt-2 font-inter text-sm leading-relaxed text-ink">
-                The suggested advance is ₹500. You can pay a lower or higher amount. Your registration is confirmed only after your payment is verified and your details are saved. We’ll confirm the remaining balance separately.
+                The suggested advance is ₹500. You can pay a lower or higher amount. Your details are saved before payment opens. SK Bridal Studio will check your payment manually before confirming your seat. We’ll confirm the remaining balance separately.
               </p>
 
-              {pendingPayment && !processing && <p role="status" className="mt-5 rounded-xl border border-champagne bg-ivory p-4 text-sm text-cocoa">Your previous payment needs confirmation. Continue below to recheck it without making another payment. Payment ID: <span className="break-all font-semibold">{pendingPayment.proof.razorpay_payment_id}</span></p>}
+              {pendingPayment && !processing && <p role="status" className="mt-5 rounded-xl border border-champagne bg-ivory p-4 text-sm text-cocoa">Your payment confirmation is pending manual review by SK Bridal Studio. Do not pay again. Payment ID: <span className="break-all font-semibold">{pendingPayment.paymentId}</span></p>}
 
               <form onSubmit={handleRegistrationSubmit} noValidate className="mt-6 space-y-5" aria-busy={processing}>
                 <fieldset disabled={processing || Boolean(pendingPayment)} className="min-w-0 space-y-5 disabled:opacity-75">
@@ -804,7 +783,7 @@ const Workshops: React.FC = () => {
                   {formError && <p role="alert" className="w-full rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{formError}</p>}
                   <button type="submit" disabled={processing} className="btn-primary w-full !whitespace-normal text-center leading-snug">
                     {processing ? <Loader2 aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" /> : <LockKeyhole aria-hidden="true" className="h-4 w-4 shrink-0" />}
-                    {stage === 'verifying' || stage === 'saving' ? 'Verifying Payment...' : processing ? 'Processing Payment...' : pendingPayment ? 'Verify Existing Payment' : `Pay ${Number(paymentAmount) > 0 && Number.isFinite(Number(paymentAmount)) ? formatPaymentAmount(Number(paymentAmount)) : 'Selected Amount'} & Register`}
+                    {processing ? 'Processing Payment...' : pendingPayment ? 'View Registration Status' : `Pay ${Number(paymentAmount) > 0 && Number.isFinite(Number(paymentAmount)) ? formatPaymentAmount(Number(paymentAmount)) : 'Selected Amount'} & Register`}
                   </button>
                   <p className="flex items-center justify-center gap-1.5 text-center font-inter text-xs leading-relaxed text-cocoa"><LockKeyhole aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />Secure advance payment via Razorpay</p>
                   <p role="status" aria-live="polite" className="text-center text-sm text-cocoa">{statusText[stage]}</p>
@@ -815,7 +794,7 @@ const Workshops: React.FC = () => {
         </div>
       </section>
 
-      {result && <WorkshopPaymentDialog result={result} detail={resultDetail} course={registration.course} amount={verifiedAmount} pending={Boolean(pendingPayment)} onClose={closeResult} onRetry={() => { void startPayment(); }} />}
+      {result && <WorkshopPaymentDialog result={result} detail={resultDetail} course={registration.course} amount={submittedAmount} pending={Boolean(pendingPayment)} registrationSaved={pendingPayment?.registrationSaved !== false} onClose={closeResult} onRetry={() => { void startPayment(); }} />}
 
       <CtaBanner
         eyebrow="Learn With Me"

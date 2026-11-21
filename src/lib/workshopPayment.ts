@@ -31,13 +31,13 @@ export class WorkshopApiError extends Error {
     this.name = 'WorkshopApiError';
   }
 }
-export type PaymentStage = 'idle' | 'creating' | 'opening' | 'checkout' | 'verifying' | 'saving';
+export type PaymentStage = 'idle' | 'creating' | 'opening' | 'checkout';
 export interface PaymentProof {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
 }
-export interface PendingPayment { proof: PaymentProof; registration: Registration; amount?: number }
+export interface PendingPayment { paymentId: string; registration: Registration; amount?: number; registrationSaved?: boolean }
 interface WorkshopOrder { orderId: string; amount: number; currency: string; keyId: string }
 interface CheckoutOptions {
   key: string; amount: number; currency: string; order_id: string;
@@ -64,7 +64,7 @@ declare global {
   interface Window { Razorpay?: new (options: CheckoutOptions) => Checkout }
 }
 
-export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec';
+export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec';
 
 export class WorkshopCommunicationError extends Error {
   constructor() {
@@ -148,19 +148,14 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
   if (data.registrationSaved !== true || typeof data.row !== 'number' || !Number.isSafeInteger(data.row) || data.row < 2) {
     throw new WorkshopApiError('order', 'We could not confirm that your registration was saved. Checkout was not opened. Please contact SK Bridal Studio before trying again.', { code: 'PENDING_SAVE_NOT_CONFIRMED' });
   }
+  // The deployed Apps Script uses paymentVerification: "MANUAL"; the repo
+  // backend uses verificationMode: "manual". Require every supplied mode to
+  // be manual so conflicting/automatic responses still cannot open Checkout.
+  const modes = [data.verificationMode, data.paymentVerification].filter(value => value !== undefined);
+  if (!modes.length || !modes.every(value => typeof value === 'string' && value.trim().toLowerCase() === 'manual')) {
+    throw new WorkshopApiError('order', 'Registration could not continue. Please contact SK Bridal Studio before trying again.', { code: 'MANUAL_WORKFLOW_REQUIRED' });
+  }
   return { orderId: data.orderId, keyId: data.keyId, amount: data.amount, currency: data.currency };
-}
-
-export async function verifyWorkshopPayment(proof: PaymentProof, expectedPaise?: number): Promise<number> {
-  const result = await postWorkshopAction({
-    action: 'verify_payment', orderId: proof.razorpay_order_id,
-    paymentId: proof.razorpay_payment_id, signature: proof.razorpay_signature,
-  });
-  // Require the action-specific confirmation, not a generic health-check ok.
-  if (result.verified === true && result.saved !== true) throw new WorkshopApiError('saving', 'Your payment was verified, but registration saving was not confirmed. Retry the existing payment without paying again.');
-  if (result.verified !== true || result.saved !== true) throw new WorkshopApiError('payment', 'Payment verification and registration saving have not been confirmed. Please retry the existing payment.');
-  if (typeof result.amount !== 'number' || !Number.isSafeInteger(result.amount) || result.amount < 100 || result.currency !== 'INR' || (expectedPaise != null && result.amount !== expectedPaise)) throw new WorkshopApiError('payment', 'The verified payment amount does not match your order. Please contact SK Bridal Studio.');
-  return result.amount / 100;
 }
 
 let checkoutScript: Promise<void> | undefined;
@@ -247,16 +242,20 @@ export function validateRegistration(registration: Registration) {
 const pendingKey = 'sk-workshop-pending-payment';
 export function readPendingPayment(): PendingPayment | null {
   try {
-    const pending = JSON.parse(sessionStorage.getItem(pendingKey) || 'null') as PendingPayment | null;
-    if (!pending?.proof || !pending.registration) return null;
-    const validProof = Object.values(pending.proof).length === 3 &&
-      ['razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature'].every((key) => typeof pending.proof[key as keyof PaymentProof] === 'string' && pending.proof[key as keyof PaymentProof].length > 0);
-    const validRegistration = Object.keys(initialRegistration).every((key) => typeof pending.registration[key as keyof Registration] === 'string');
-    return validProof && validRegistration ? pending : null;
+    const raw = JSON.parse(sessionStorage.getItem(pendingKey) || 'null');
+    const paymentId = raw?.paymentId || raw?.proof?.razorpay_payment_id;
+    if (typeof paymentId !== 'string' || !/^pay_[A-Za-z0-9]+$/.test(paymentId) || !raw.registration) return null;
+    if (!Object.keys(initialRegistration).every(key => typeof raw.registration[key] === 'string')) return null;
+    const amount = Number.isSafeInteger(raw.amount) && raw.amount >= 100 ? raw.amount : undefined;
+    const pending: PendingPayment = { paymentId, registration: raw.registration, amount, registrationSaved: raw.registrationSaved === true };
+    // Migrate old receipts without replaying verification or retaining signatures.
+    storePendingPayment(pending);
+    return pending;
   } catch { return null; }
 }
 export function storePendingPayment(pending: PendingPayment | null) {
-  // The signature is a payment receipt, never a Razorpay API secret. The backend revalidates it on every retry.
+  // A receipt only prevents another payment while manual review is pending.
+  // It never changes the Sheet status or confirms payment.
   try {
     if (pending) sessionStorage.setItem(pendingKey, JSON.stringify(pending));
     else sessionStorage.removeItem(pendingKey);

@@ -13,7 +13,7 @@ vm.runInNewContext(ts.transpileModule(readFileSync(`${__dirname}/workshopPayment
   setTimeout, clearTimeout, AbortController, Error, TypeError, SyntaxError,
   sessionStorage: { getItem: (key) => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
 });
-const { normalizePhone, validateRegistration, initialRegistration, storePendingPayment, readPendingPayment, createWorkshopOrder, verifyWorkshopPayment, WORKSHOP_API_URL } = exportsObject;
+const { normalizePhone, validateRegistration, initialRegistration, storePendingPayment, readPendingPayment, createWorkshopOrder, WORKSHOP_API_URL } = exportsObject;
 const validRegistration = { ...initialRegistration, name: 'Student', email: 'student@example.com', phone: '9876543210', gender: 'Female', experience: 'Beginner', mainGoal: 'Learn bridal makeup' };
 
 test('phone accepts national numbers and strips exactly one pasted India prefix', () => {
@@ -34,15 +34,15 @@ test('only ten-digit Indian mobile numbers pass validation', () => {
   for (const phone of ['987654321', '919876543210', '1234567890', '98765abcde']) assert.ok(validateRegistration({ ...valid, phone }).phone);
 });
 
-test('payment receipt survives reload for verification retry and clears after confirmation', () => {
-  const pending = { proof: { razorpay_order_id: 'order_test', razorpay_payment_id: 'pay_test', razorpay_signature: 'signature' }, registration: { ...initialRegistration } };
+test('receipt survives reload for manual review without another payment', () => {
+  const pending = { paymentId: 'pay_test', registration: { ...initialRegistration }, amount: 50000 };
   storePendingPayment(pending);
-  assert.equal(readPendingPayment().proof.razorpay_payment_id, 'pay_test');
+  assert.equal(readPendingPayment().paymentId, 'pay_test');
   storePendingPayment(null);
   assert.equal(readPendingPayment(), null);
 });
 
-const validOrder = { ok: true, registrationSaved: true, row: 3, keyId: 'rzp_test_123', orderId: 'order_123', amount: 50000, currency: 'INR' };
+const validOrder = { ok: true, registrationSaved: true, verificationMode: 'manual', row: 3, keyId: 'rzp_test_123', orderId: 'order_123', amount: 50000, currency: 'INR' };
 const jsonResponse = (data) => ({ ok: true, type: 'cors', json: async () => data });
 
 test('create_order sends goal and international phone using a readable simple CORS POST', async () => {
@@ -61,14 +61,6 @@ test('create_order sends goal and international phone using a readable simple CO
   const order = await createWorkshopOrder({ registration });
   assert.equal(order.orderId, validOrder.orderId);
   assert.equal(order.amount, 50000);
-});
-
-test('verify_payment sends only action, orderId, paymentId and signature', async () => {
-  fetchHandler = async (_url, options) => {
-    assert.deepEqual(JSON.parse(options.body), { action: 'verify_payment', orderId: 'order_123', paymentId: 'pay_123', signature: 'signed-proof' });
-    return jsonResponse({ ok: true, verified: true, saved: true, amount: 50000, currency: 'INR' });
-  };
-  await verifyWorkshopPayment({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'signed-proof' });
 });
 
 test('HTTP 200 with backend rejection does not create a usable order', async () => {
@@ -110,14 +102,6 @@ test('registrationSaved cannot override a false or missing ok acknowledgement', 
   }
 });
 
-test('verify requires explicit backend confirmation and rejects incomplete saving', async () => {
-  const proof = { razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'signature' };
-  for (const result of [{}, { ok: false }, { ok: true }, { ok: true, verified: false }, { ok: true, saved: false }]) {
-    fetchHandler = async () => jsonResponse(result);
-    await assert.rejects(verifyWorkshopPayment(proof));
-  }
-});
-
 test('missing or invalid email never sends an order request', async () => {
   let requests = 0;
   fetchHandler = async () => { requests++; return jsonResponse(validOrder); };
@@ -155,14 +139,6 @@ test('backend validation fields map goal back to the form mainGoal field', async
   await assert.rejects(createWorkshopOrder({ registration: validRegistration }), (error) => error.name === 'RegistrationValidationError' && error.fields.mainGoal === 'Please describe your goal.' && error.fields.email === 'Invalid email address.');
 });
 
-test('Google Sheets saving failures are distinct from unverified payment failures', async () => {
-  const proof = { razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'signed-proof' };
-  fetchHandler = async () => jsonResponse({ ok: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Payment was received, but registration could not be saved.' });
-  await assert.rejects(verifyWorkshopPayment(proof), (error) => error.kind === 'saving');
-  fetchHandler = async () => jsonResponse({ ok: false, code: 'PAYMENT_VERIFICATION_FAILED', error: 'Payment signature could not be verified.' });
-  await assert.rejects(verifyWorkshopPayment(proof), (error) => error.kind === 'payment');
-});
-
 test('invalid amounts never send an order request', async () => {
   let requests = 0;
   fetchHandler = async () => { requests++; return jsonResponse(validOrder); };
@@ -179,17 +155,6 @@ test('valid Apps Script order without undocumented backend/version metadata is a
   assert.equal(order.amount, 50000);
 });
 
-test('success requires the actual backend-verified amount to match the order', async () => {
-  const proof = { razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'signed-proof' };
-  fetchHandler = async () => jsonResponse({ ok: true, verified: true, saved: true, amount: 50000, currency: 'INR' });
-  assert.equal(await verifyWorkshopPayment(proof, 50000), 500);
-  await assert.rejects(verifyWorkshopPayment(proof, 25000), /amount does not match/);
-  fetchHandler = async () => jsonResponse({ ok: true, verified: true, saved: true, amount: 25000, currency: 'INR' });
-  assert.equal(await verifyWorkshopPayment(proof, 25000), 250);
-  fetchHandler = async () => jsonResponse({ ok: true, verified: true, saved: true });
-  await assert.rejects(verifyWorkshopPayment(proof), /amount does not match/);
-});
-
 test('chosen amount is sent to Apps Script and checked before opening Checkout', async () => {
   for (const amount of ['1', '250', '500', '750', '1000']) {
     fetchHandler = async (_url, options) => {
@@ -202,14 +167,37 @@ test('chosen amount is sent to Apps Script and checked before opening Checkout',
   await assert.rejects(createWorkshopOrder({ registration: validRegistration, amount: '250' }), /invalid payment order/);
 });
 
-test('saving errors retain safe backend stage and reference in the customer message', async () => {
-  fetchHandler = async () => jsonResponse({ ok: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Registration could not be saved.', reference: 'abc12345', saveStage: 'append_row', saveCause: 'SHEET_WRITE_ERROR', registration: validRegistration, signature: 'must-not-appear' });
-  await assert.rejects(verifyWorkshopPayment({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'proof' }), error => {
-    assert.equal(error.kind, 'saving');
-    assert.equal(error.diagnostics.reference, 'abc12345');
-    assert.match(error.message, /REGISTRATION_SAVE_FAILED.*append_row.*abc12345/);
-    assert.equal(error.message.includes('must-not-appear'), false);
-    assert.equal(error.message.includes(validRegistration.email), false);
-    return true;
-  });
+test('an automatic or unspecified backend workflow cannot open Checkout', async () => {
+  for (const verificationMode of [undefined, 'automatic', false]) {
+    fetchHandler = async () => jsonResponse({ ...validOrder, verificationMode });
+    await assert.rejects(createWorkshopOrder({ registration: validRegistration }), error => error.diagnostics.code === 'MANUAL_WORKFLOW_REQUIRED');
+  }
+});
+
+test('deployed MANUAL response with a saved row opens a usable order for INR 5', async () => {
+  fetchHandler = async (_url, options) => {
+    assert.equal(JSON.parse(options.body).amount, 5);
+    return jsonResponse({ ok: true, registrationSaved: true, saved: true, row: 50545,
+      keyId: 'rzp_test_123', orderId: 'order_123', amount: 500, currency: 'INR', paymentVerification: 'MANUAL' });
+  };
+  const order = await createWorkshopOrder({ registration: validRegistration, amount: '5' });
+  assert.equal(order.amount, 500);
+  assert.equal(order.orderId, 'order_123');
+});
+
+test('manual field aliases cannot bypass persistence, amount, or conflicting mode checks', async () => {
+  for (const overrides of [{ registrationSaved: false }, { row: undefined }, { amount: 500 }, { verificationMode: 'automatic' }, { paymentVerification: 'AUTOMATIC' }]) {
+    fetchHandler = async () => jsonResponse({ ...validOrder, verificationMode: undefined, paymentVerification: 'MANUAL', ...overrides });
+    await assert.rejects(createWorkshopOrder({ registration: validRegistration }));
+  }
+});
+
+test('legacy receipts migrate to manual review without any verification request or stored signature', () => {
+  storage.set('sk-workshop-pending-payment', JSON.stringify({ proof: { razorpay_order_id: 'order_old', razorpay_payment_id: 'pay_old', razorpay_signature: 'old-signature' }, registration: validRegistration, amount: 50000 }));
+  fetchHandler = () => { throw new Error('Receipt reading must not send network requests'); };
+  const receipt = readPendingPayment();
+  assert.equal(receipt.paymentId, 'pay_old');
+  assert.equal(receipt.amount, 50000);
+  assert.equal(storage.get('sk-workshop-pending-payment').includes('old-signature'), false);
+  storePendingPayment(null);
 });

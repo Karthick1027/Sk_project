@@ -3,22 +3,22 @@ import { AlertCircle, Check, X } from 'lucide-react';
 import './WorkshopPaymentDialog.css';
 import { formatPaymentAmount } from '../lib/workshopPayment';
 
-export type PaymentResult = 'success' | 'failure' | 'cancelled' | 'saving-failure' | 'gateway-unavailable';
+export type PaymentResult = 'success' | 'failure' | 'cancelled' | 'gateway-unavailable';
 interface Props {
   result: PaymentResult;
   detail?: string;
   course: string;
   amount: number;
   pending: boolean;
+  registrationSaved?: boolean;
   onClose: () => void;
   onRetry: () => void;
 }
 
-export default function WorkshopPaymentDialog({ result, detail, course, amount, pending, onClose, onRetry }: Props) {
+export default function WorkshopPaymentDialog({ result, detail, course, amount, pending, registrationSaved = true, onClose, onRetry }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const success = result === 'success';
   const cancelled = result === 'cancelled';
-  const savingFailed = result === 'saving-failure';
   const gatewayUnavailable = result === 'gateway-unavailable';
   useEffect(() => {
     const element = dialog.current;
@@ -36,19 +36,19 @@ export default function WorkshopPaymentDialog({ result, detail, course, amount, 
       <div className={`workshop-result-icon mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border ${success ? 'border-champagne bg-beige text-cocoa' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
         {success ? <Check className="workshop-check h-10 w-10" strokeWidth={2} /> : <AlertCircle className="h-10 w-10" />}
       </div>
-      <h2 id="payment-result-title" className="font-playfair text-3xl">{success ? 'Registration Successful!' : cancelled ? 'Payment Cancelled' : savingFailed ? 'Registration Not Saved' : gatewayUnavailable ? 'Unable to Open Payment' : 'Payment Not Completed'}</h2>
+      <h2 id="payment-result-title" className="font-playfair text-3xl">{success ? registrationSaved ? 'Registration Saved' : 'Payment Awaiting Review' : cancelled ? 'Payment Cancelled' : gatewayUnavailable ? 'Unable to Open Payment' : 'Payment Not Completed'}</h2>
       <p id="payment-result-description" className="mt-4 text-sm leading-relaxed text-cocoa">
-        {success ? `Your ${formatPaymentAmount(amount)} advance payment has been verified successfully.` : cancelled ? 'Checkout was closed before payment was completed. Your form details have been kept so you can try again.' : savingFailed ? 'We could not confirm that your registration was saved. Try Again will recheck your existing payment and registration without charging you again.' : gatewayUnavailable ? 'The payment window did not open. Your registration details have been kept so you can try again.' : "We couldn't confirm your payment. Please try again."}
+        {success ? `${registrationSaved ? 'Your registration details are saved.' : 'Your previous payment details have been kept on this device.'} SK Bridal Studio will check your payment manually and contact you with confirmation. Do not pay again.` : cancelled ? 'Your registration details are saved and remain Pending. Checkout was closed. If you were charged, contact SK Bridal Studio before trying again.' : gatewayUnavailable ? 'The payment window did not open. Your form details have been kept so you can try again.' : 'Your registration details are saved and remain Pending. If you were charged, contact SK Bridal Studio before trying again.'}
       </p>
       {!success && !cancelled && detail && <p role="alert" className="mt-3 break-words text-sm leading-relaxed text-red-800">{detail}</p>}
       {success ? <>
-        <p className="mt-3 text-sm text-cocoa">Your seat at SK Bridal Studio is confirmed!</p>
+        <p className="mt-3 text-sm text-cocoa">Your seat will be confirmed after our manual payment review.</p>
         <dl className="my-6 space-y-3 rounded-xl border border-champagne bg-beige p-4 text-left text-sm">
           <div><dt className="text-mocha">Selected course</dt><dd className="mt-1 break-words font-semibold">{course}</dd></div>
-          <div className="flex justify-between gap-3"><dt>Advance paid</dt><dd className="font-semibold">{formatPaymentAmount(amount)}</dd></div>
-          <div className="flex justify-between gap-3"><dt>Payment status</dt><dd className="font-semibold">Verified</dd></div>
+          <div className="flex justify-between gap-3"><dt>Selected advance</dt><dd className="font-semibold">{amount > 0 ? formatPaymentAmount(amount) : 'For manual review'}</dd></div>
+          <div className="flex justify-between gap-3"><dt>Payment status</dt><dd className="font-semibold">Pending manual review</dd></div>
         </dl>
-      </> : pending && <p className="mt-3 text-sm leading-relaxed text-cocoa">If you were charged, do not pay again. Try Again will recheck your existing payment and save your registration. Contact us with your payment ID if this continues.</p>}
+      </> : pending && <p className="mt-3 text-sm leading-relaxed text-cocoa">Payment confirmation is pending manual review. Contact SK Bridal Studio with your payment ID; do not pay again.</p>}
       <div className="relative mt-6 flex flex-col gap-3">
         {success ? <button type="button" className="btn-primary w-full !whitespace-normal" onClick={onClose}>Continue to Workshop</button> : <>
           <button type="button" className="btn-primary w-full" onClick={onRetry}>Try Again</button>

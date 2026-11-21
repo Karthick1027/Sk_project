@@ -32,7 +32,7 @@ function backend(options = {}) {
   let order;
   const sheet = {
     getName: () => 'Form Responses 1',
-    getSheetId: () => 1885927180,
+    getSheetId: () => options.sheetId === undefined ? 1885927180 : options.sheetId,
     getFilter: () => options.filtered ? {} : null,
     getMaxColumns: () => columns,
     insertColumnsAfter(after, count) { assert.equal(after, columns); columns += count; },
@@ -41,8 +41,10 @@ function backend(options = {}) {
       assert.equal(locked, true);
       if (failAppend) throw new Error('Sheet access denied');
       rows.push(Array.from(values));
+      if (options.numericPhone) rows[rows.length - 1][2] = Number(values[2]);
       if (options.missingOrderAfterAppend) rows[rows.length - 1][16] = '';
       if (options.corruptPendingConfirmation) rows[rows.length - 1][12] = 'Ready to Send';
+      if (options.corruptCity) rows[rows.length - 1][8] = '';
       if (options.concurrentForm) rows.push(['later Google Form timestamp', 'Concurrent Form Student', '918888888888']);
     },
     getRange(row, column, count = 1, width = 1) {
@@ -64,7 +66,10 @@ function backend(options = {}) {
           if (row > 1 && column === 12 && matrix[0][0] === 'Verified') verifiedWrite = true;
           matrix.forEach((line, r) => line.forEach((value, c) => write(row + r, column + c, value)));
         },
-        setNumberFormat() { return this; },
+        setNumberFormat() {
+          if (options.typedColumns) throw new Error('You cannot set the number format of cells in a typed column.');
+          return this;
+        },
         setRichTextValue: value => write(row, column, value.url), clearContent: () => write(row, column, ''),
       };
     },
@@ -102,6 +107,7 @@ function backend(options = {}) {
       assert.ok(url.startsWith('https://api.razorpay.com/v1/'), 'Apps Script must never call Firebase Functions');
       assert.equal(request.headers.Authorization, `Basic ${Buffer.from('rzp_test_123:test-secret').toString('base64')}`);
       calls.push({ url, request });
+      if (options.orderFails) throw new Error('Payment service unavailable');
       let result;
       let code = 200;
       if (url.endsWith('/orders')) {
@@ -110,15 +116,7 @@ function backend(options = {}) {
         assert.equal(body.currency, 'INR');
         order = { id: 'order_test', ...body };
         result = order;
-      } else if (url.endsWith('/orders/order_test')) {
-        result = { ...order, ...options.order };
-      } else if (url.endsWith('/capture')) {
-        assert.equal(JSON.parse(request.payload).amount, order.amount);
-        if (options.captureFails) { code = 400; result = { error: 'Capture failed' }; }
-        else { status = 'captured'; result = { status }; }
-      } else {
-        result = { id: 'pay_test', order_id: 'order_test', amount: order.amount, currency: 'INR', status, captured: status === 'captured', ...options.payment };
-      }
+      } else { throw new Error('Manual workflow must only create Razorpay orders'); }
       return { getResponseCode: () => code, getContentText: () => JSON.stringify(result) };
     } },
   };
@@ -139,7 +137,7 @@ function backend(options = {}) {
 test('creates the suggested INR 500 order and saves its pending row before checkout', () => {
   const api = backend();
   const order = api.create();
-  assert.deepEqual(order, { ok: true, registrationSaved: true, pendingSaved: true, row: 3, keyId: 'rzp_test_123', orderId: 'order_test', amount: 50000, currency: 'INR' });
+  assert.deepEqual(order, { ok: true, registrationSaved: true, saved: true, pendingSaved: true, verificationMode: 'manual', paymentVerification: 'MANUAL', spreadsheetId: '1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows', sheetId: 1885927180, row: 3, keyId: 'rzp_test_123', orderId: 'order_test', amount: 50000, currency: 'INR' });
   assert.equal(api.rows.length, 3);
   assert.equal(api.rows[2][11], 'Pending');
   assert.equal(api.rows[2][12], 'No');
@@ -159,24 +157,6 @@ test('rejects missing email, bad course and invalid amounts before contacting Ra
   }
   assert.equal(api.calls.length, 0);
   assert.equal(JSON.stringify(api.rows), api.original);
-});
-
-test('editable amounts below and above INR 500 are captured, saved and retried without another charge', () => {
-  for (const amount of ['1', '250', '500', '750', '1000']) {
-    const api = backend({ status: 'authorized' });
-    const order = api.create({ amount });
-    assert.equal(order.amount, Math.round(Number(amount) * 100));
-    const result = api.post({ ...proof, amount: '1' });
-    assert.equal(result.ok, true);
-    assert.equal(result.amount, order.amount);
-    assert.equal(result.saved, true);
-    assert.equal(api.rows[2][17], Number(amount));
-    assert.ok(api.rows[2][13].startsWith('https://wa.me/919876543210?text='));
-    assert.equal(api.rows[2][12], 'Ready to Send');
-    assert.equal(api.post(proof).duplicate, true);
-    assert.equal(api.rows.length, 3);
-    assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, 1);
-  }
 });
 
 for (const options of [{ noTab: true }, { noSheetAccess: true }, { noCredentials: true }]) {
@@ -200,186 +180,10 @@ test('only fills missing L-R headers; preserves Google Form headers and all old 
   assert.equal(api.rows[0][11], 'Existing payment header');
 });
 
-test('invalid HMAC is rejected before Razorpay calls or sheet writes', () => {
-  const api = backend(); api.create();
-  const calls = api.calls.length;
-  const writes = api.writes.length;
-  assert.equal(api.post({ ...proof, signature: '0'.repeat(64) }).code, 'PAYMENT_VERIFICATION_FAILED');
-  assert.equal(api.calls.length, calls);
-  assert.equal(api.writes.length, writes);
-  assert.equal(api.rows[2][11], 'Pending');
-});
-
-for (const options of [
-  { payment: { amount: 25000 } }, { payment: { currency: 'USD' } },
-  { payment: { order_id: 'order_other' } }, { payment: { captured: false } },
-  { status: 'failed' }, { order: { amount: 25000 } }, { order: { currency: 'USD' } },
-  { status: 'authorized', captureFails: true },
-]) {
-  test(`unverified payment leaves the pending row unchanged: ${JSON.stringify(options)}`, () => {
-    const api = backend(options); api.create();
-    const before = JSON.stringify(api.rows[2]);
-    assert.equal(api.post(proof).code, 'PAYMENT_VERIFICATION_FAILED');
-    assert.equal(api.rows.length, 3);
-    assert.equal(JSON.stringify(api.rows[2]), before);
-  });
-}
-
-test('verified payment updates the existing pending row and preserves A-K', () => {
-  const api = backend(); api.create();
-  const result = api.post(proof);
-  assert.equal(result.ok, true); assert.equal(result.verified, true); assert.equal(result.saved, true);
-  assert.equal(result.paymentId, 'pay_test');
-  assert.equal(result.orderId, 'order_test');
-  assert.equal(result.amount, 50000);
-  assert.equal(result.currency, 'INR');
-  assert.equal(result.row, 3);
-  assert.deepEqual(api.rows[1], JSON.parse(api.original)[1]);
-  const row = api.rows[2];
-  assert.ok(row[0] instanceof Date || Object.prototype.toString.call(row[0]) === '[object Date]');
-  assert.deepEqual(row.slice(1, 11), ['Student', '919876543210', 'Female', 'Learn bridal makeup', 'Please keep existing responses', 'Beginner', 'student@example.com', 'Chennai', '', '']);
-  assert.equal(row[11], 'Verified');
-  assert.equal(row[12], 'Ready to Send');
-  assert.match(row[13], /^https:\/\/wa\.me\/919876543210\?text=/);
-  assert.deepEqual(row.slice(14), ['Full 2-day masterclass', 'pay_test', 'order_test', 500]);
-  assert.equal(api.properties.has('WORKSHOP_ORDER_order_test'), false);
-});
-
-test('authorized payment is captured and fetched again before saving', () => {
-  const api = backend({ status: 'authorized' }); api.create();
-  assert.equal(api.post(proof).ok, true);
-  const capture = api.calls.findIndex(call => call.url.endsWith('/capture'));
-  assert.ok(capture > 0);
-  assert.equal(api.calls[capture + 1].url.endsWith('/payments/pay_test'), true);
-});
-
-test('duplicate retries reverify payment and save exactly one row, even after pending data is deleted', () => {
-  const api = backend(); api.create();
-  assert.equal(api.post(proof).duplicate, false);
-  const calls = api.calls.length;
-  assert.equal(api.post(proof).duplicate, true);
-  assert.equal(api.calls.length, calls + 2);
-  assert.equal(api.rows.length, 3);
-});
-
-test('saving failure is not success; retry updates the same pending row without another order', () => {
-  const api = backend({ failUpdate: true }); api.create();
-  const failed = api.post(proof);
-  assert.equal(failed.ok, false); assert.equal(failed.code, 'REGISTRATION_SAVE_FAILED');
-  assert.equal(failed.verified, true); assert.equal(failed.saved, false);
-  assert.equal(api.rows.length, 3);
-  assert.equal(api.rows[2][11], 'Pending');
-  assert.equal(api.properties.has('WORKSHOP_ORDER_order_test'), false);
-  api.allowUpdate();
-  assert.equal(api.post(proof).ok, true);
-  assert.equal(api.rows.length, 3);
-  assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, 1);
-});
-
-test('lost verification acknowledgement is recovered without appending twice', () => {
-  const api = backend({ failVerifiedFlush: true }); api.create();
-  assert.equal(api.post(proof).code, 'REGISTRATION_SAVE_FAILED');
-  assert.equal(api.rows.length, 3);
-  assert.equal(api.rows[2][11], 'Verified');
-  assert.equal(api.post(proof).duplicate, true);
-  assert.equal(api.rows.length, 3);
-});
-
-test('concurrent Google Form append cannot redirect the website WhatsApp update to the wrong row', () => {
-  const api = backend({ concurrentForm: true }); api.create();
-  assert.equal(api.post(proof).row, 3);
-  assert.equal(api.rows[3][1], 'Concurrent Form Student');
-  assert.equal(api.rows[3][13], undefined);
-  assert.ok(api.rows[2][13]);
-});
-
-test('public requests cannot bypass signature verification with the old private token callback', () => {
+test('public requests cannot mark payments Verified through an old callback', () => {
   const api = backend();
   assert.equal(api.post({ ...registration, paymentId: 'pay_test', orderId: 'order_test', advance: 500, apiToken: 'anything' }).code, 'UNKNOWN_ACTION');
   assert.equal(api.rows.length, 2);
-});
-
-test('a saved registration cannot reuse a payment ID with a different order ID', () => {
-  const api = backend(); api.create();
-  api.context.setupWorkshopRegistration();
-  api.rows.push(['old', 'Other Student', '', '', '', '', '', '', '', '', '', 'Verified', '', '', registration.course, 'pay_test', 'order_other', 500]);
-  const result = api.post(proof);
-  assert.equal(result.code, 'PAYMENT_ALREADY_USED');
-  assert.equal(api.rows.length, 4);
-  assert.equal(api.rows[3][1], 'Other Student');
-});
-
-test('tampered pending row cannot be saved against an existing payment', () => {
-  const api = backend(); api.create();
-  api.rows[2][1] = 'Someone else';
-  assert.equal(api.post(proof).code, 'PAYMENT_VERIFICATION_FAILED');
-  assert.equal(api.rows.length, 3);
-});
-
-test('verification recovers from the pending row when its Script Property is missing', () => {
-  const api = backend(); api.create({ amount: 750 });
-  api.properties.delete('WORKSHOP_ORDER_order_test');
-  const result = api.post(proof);
-  assert.equal(result.ok, true);
-  assert.equal(result.saved, true);
-  assert.equal(api.rows[2][17], 750);
-});
-
-test('owner recovery verifies a captured payment from its pending row without Script Properties or a new order', () => {
-  const api = backend();
-  api.create({ amount: 10 });
-  api.properties.delete('WORKSHOP_ORDER_order_test');
-  const orderCount = api.calls.filter(call => call.url.endsWith('/orders')).length;
-  const result = api.context.recoverCapturedWorkshopPayment('pay_test');
-  assert.equal(result.ok, true);
-  assert.equal(result.verified, true);
-  assert.equal(result.saved, true);
-  assert.equal(result.paymentId, 'pay_test');
-  assert.equal(result.orderId, 'order_test');
-  assert.equal(api.rows[2][17], 10);
-  assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, orderCount);
-  assert.equal(api.rows.length, 3);
-});
-
-test('owner recovery refuses to invent registration data when both the pending row and Script Property are missing', () => {
-  const api = backend();
-  api.create({ amount: 10 });
-  api.rows.splice(2, 1);
-  api.properties.delete('WORKSHOP_ORDER_order_test');
-  assert.throws(() => api.context.recoverCapturedWorkshopPayment('pay_test'), /original registration is missing/i);
-  assert.equal(api.rows.length, 2);
-  assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, 1);
-});
-
-test('mismatched pending-row amount is rejected before capture or saving', () => {
-  const api = backend({ status: 'authorized' }); api.create({ amount: 250 });
-  api.rows[2][17] = 500;
-  assert.equal(api.post(proof).code, 'PAYMENT_VERIFICATION_FAILED');
-  assert.equal(api.calls.some(call => call.url.endsWith('/capture')), false);
-  assert.equal(api.rows.length, 3);
-});
-
-test('a legacy property cannot cause verification to append a missing registration row', () => {
-  const remoteOrder = {};
-  const api = backend({ order: remoteOrder }); api.create();
-  const legacy = {
-    name: registration.name, email: registration.email, phone: registration.phone, course: registration.course,
-    city: registration.city, gender: registration.gender, mainGoal: registration.goal,
-    experience: registration.experience, question: registration.question, paymentScreenshot: '',
-  };
-  api.properties.set('WORKSHOP_ORDER_order_test', JSON.stringify({ registration: legacy, amount: 50000, currency: 'INR' }));
-  api.rows.splice(2, 1);
-  remoteOrder.notes = { type: 'workshop_advance', course: registration.course, registration_hash: crypto.createHash('sha256').update(JSON.stringify(legacy)).digest('hex') };
-  const result = api.post(proof);
-  assert.equal(result.ok, false);
-  assert.equal(result.verified, true);
-  assert.equal(result.saved, false);
-  assert.equal(result.code, 'REGISTRATION_SAVE_FAILED');
-  assert.equal(result.saveCause, 'ORDER_NOT_FOUND');
-  assert.equal(result.saveStage, 'locate_pending_row');
-  assert.equal(api.rows.length, 2);
-  assert.equal(api.properties.has('WORKSHOP_ORDER_order_test'), true);
-  assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, 1);
 });
 
 test('read-only diagnostics identify Apps Script backend and do not expose credentials or change rows', () => {
@@ -392,42 +196,13 @@ test('read-only diagnostics identify Apps Script backend and do not expose crede
   assert.equal(api.writes.length, 0);
 });
 
-test('verification save failures identify the failing stage and sanitized exception', () => {
-  const api = backend({ failUpdate: true }); api.create();
-  const result = api.post(proof);
-  assert.equal(result.code, 'REGISTRATION_SAVE_FAILED');
-  assert.equal(result.saveStage, 'update_verified_row');
-  assert.ok(result.reference);
-  assert.equal(result.saved, false);
-  const log = api.logs.map(entry => JSON.parse(entry)).find(entry => entry.event === "workshop_registration_save_failed");
-  assert.equal(log.reference, result.reference);
-  assert.equal(log.cause, 'SHEET_WRITE_ERROR');
-  assert.equal(log.stage, 'update_verified_row');
-  assert.equal(log.message, undefined);
-  assert.equal(log.exceptionClass, 'Error');
-  assert.equal(log.exceptionMessage, 'Sheet update denied');
-  assert.equal(log.spreadsheetId, '1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows');
-  assert.equal(JSON.stringify(result).includes('Sheet access denied'), false);
-  assert.equal(JSON.stringify(result).includes('test-secret'), false);
-});
-
-test('missing pending registration and property is rejected without creating a payment record', () => {
-  const api = backend(); api.create();
-  api.rows.splice(2, 1);
-  api.properties.delete('WORKSHOP_ORDER_order_test');
-  const result = api.post(proof);
-  assert.equal(result.code, 'ORDER_NOT_FOUND');
-  assert.equal(result.saved, false);
-  assert.equal(api.rows.length, 2);
-});
-
 test('pending save lock failure blocks checkout and logs no personal data', () => {
   const api = backend({ lockTimeout: true });
   const result = api.create();
   assert.equal(result.ok, false);
   assert.equal(result.code, 'PENDING_REGISTRATION_SAVE_FAILED');
   assert.equal(result.saveStage, 'acquire_lock');
-  assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, 1);
+  assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, 0);
   assert.equal(api.rows.length, 2);
 });
 
@@ -441,23 +216,6 @@ test('pending row save failure blocks checkout and does not change A-K', () => {
   assert.deepEqual(api.rows.slice(0, 2).map(row => row.slice(0, 11)), JSON.parse(api.original));
 });
 
-test('verification lock and sheet flush failures are reported as verified but unsaved', () => {
-  const lockApi = backend({ lockTimeout: true, lockTimeoutAfterCreate: true });
-  lockApi.create();
-  const lockFailure = lockApi.post(proof);
-  assert.equal(lockFailure.code, 'REGISTRATION_SAVE_FAILED');
-  assert.equal(lockFailure.verified, true);
-  assert.equal(lockFailure.saved, false);
-  assert.equal(lockFailure.saveStage, 'acquire_lock');
-
-  const flushApi = backend({ failVerifiedFlush: true });
-  flushApi.create();
-  const flushFailure = flushApi.post(proof);
-  assert.equal(flushFailure.code, 'REGISTRATION_SAVE_FAILED');
-  assert.equal(flushFailure.saved, false);
-  assert.equal(flushFailure.saveStage, 'flush_verified_row');
-});
-
 test('manual destination diagnostics report the exact tab and filter state without changing data', () => {
   const api = backend({ filtered: true });
   const report = api.context.diagnoseWorkshopSaving();
@@ -469,30 +227,6 @@ test('manual destination diagnostics report the exact tab and filter state witho
   assert.equal(api.writes.length, 0);
   assert.equal(api.calls.length, 0);
   assert.equal(JSON.stringify(api.rows), api.original);
-});
-
-test('caught verification rejection logs its action/reference without pretending the row was saved', () => {
-  const api = backend(); api.create();
-  const result = api.post({ ...proof, signature: '0'.repeat(64) });
-  assert.equal(result.ok, false); assert.equal(result.saved, false);
-  assert.ok(result.reference);
-  const event = JSON.parse(api.logs.at(-1));
-  assert.equal(event.event, 'workshop_request_failed');
-  assert.equal(event.action, 'verify_payment');
-  assert.equal(event.reference, result.reference);
-  assert.equal(event.code, 'PAYMENT_VERIFICATION_FAILED');
-  const logs = JSON.stringify(api.logs);
-  for (const secret of ['test-secret', registration.email, registration.phone, proof.signature]) assert.equal(logs.includes(secret), false);
-});
-
-test('successful verification logs saving only after the exact row is confirmed', () => {
-  const api = backend(); api.create();
-  const result = api.post(proof);
-  const event = JSON.parse(api.logs.at(-1));
-  assert.equal(event.event, 'workshop_request_completed');
-  assert.equal(event.action, 'verify_payment');
-  assert.equal(event.saved, true); assert.equal(event.verified, true);
-  assert.equal(event.row, result.row);
 });
 
 test('failed flush or order lookup after append never acknowledges a Pending save', () => {
@@ -590,46 +324,13 @@ test('exception diagnostics redact registration values, credentials, signatures 
 test('destination permission errors are diagnosed before any Razorpay order is created', () => {
   const api = backend({ noSheetAccess: true });
   const result = api.create();
-  const failure = api.logs.map(entry => JSON.parse(entry)).find(event => event.event === 'workshop_destination_check_failed');
+  const failure = api.logs.map(entry => JSON.parse(entry)).find(event => event.event === 'workshop_pending_save_failed');
   assert.equal(failure.exceptionClass, 'Error');
   assert.equal(failure.exceptionMessage, 'Permission denied');
-  assert.equal(result.stage, 'check_destination');
-  assert.equal(result.code, 'SHEET_ACCESS_FAILED');
+  assert.equal(result.stage, 'prepare_sheet');
+  assert.equal(result.saveCause, 'SHEET_WRITE_ERROR');
   assert.equal(api.calls.length, 0);
   assert.equal(api.writes.length, 0);
-});
-
-test('a row removed after payment checks is not recreated by verification', () => {
-  const api = backend(); api.create();
-  const save = api.context.saveVerifiedRegistration_;
-  api.context.saveVerifiedRegistration_ = (...args) => {
-    api.rows.splice(2, 1);
-    return save(...args);
-  };
-  const result = api.post(proof);
-  assert.equal(result.ok, false);
-  assert.equal(result.verified, true);
-  assert.equal(result.saved, false);
-  assert.equal(result.saveCause, 'ORDER_NOT_FOUND');
-  assert.equal(result.saveStage, 'locate_pending_row');
-  assert.equal(api.rows.length, 2);
-  assert.equal(api.calls.filter(call => call.url.endsWith('/orders')).length, 1);
-});
-
-test('a pending amount changed after payment checks cannot be overwritten during saving', () => {
-  const api = backend(); api.create();
-  const save = api.context.saveVerifiedRegistration_;
-  api.context.saveVerifiedRegistration_ = (...args) => {
-    api.rows[2][17] = 750;
-    return save(...args);
-  };
-  const result = api.post(proof);
-  assert.equal(result.ok, false);
-  assert.equal(result.saved, false);
-  assert.equal(result.saveCause, 'SHEET_ROW_CONFLICT');
-  assert.equal(api.rows[2][11], 'Pending');
-  assert.equal(api.rows[2][17], 750);
-  assert.equal(api.rows.length, 3);
 });
 
 test('duplicate Pending persistence cannot create a second row for the same order', () => {
@@ -652,10 +353,10 @@ test('real frontend helper and Apps Script agree on INR 500, paise and confirmed
         const payload = JSON.parse(options.body);
         assert.equal(payload.amount, 500, 'request uses whole rupees, not 5 or 50000');
         const result = api.post(payload);
-        const razorpayOrder = api.calls.find(call => call.url.endsWith('/orders'));
-        assert.equal(JSON.parse(razorpayOrder.request.payload).amount, 50000);
         assert.equal(result.registrationSaved, !failAppend);
         if (!failAppend) {
+          const razorpayOrder = api.calls.find(call => call.url.endsWith('/orders'));
+          assert.equal(JSON.parse(razorpayOrder.request.payload).amount, 50000);
           assert.equal(api.rows[2][11], 'Pending', 'row exists before response reaches the frontend');
           assert.equal(api.rows[2][16], result.orderId);
           assert.equal(api.rows[2][17], 500);
@@ -675,4 +376,169 @@ test('real frontend helper and Apps Script agree on INR 500, paise and confirmed
       assert.equal(order.currency, 'INR');
     }
   }
+});
+
+test('order creation requests manual capture and leaves the durable row Pending', () => {
+  for (const amount of ['1', '250', '500', '750']) {
+    const api = backend();
+    const result = api.create({ amount });
+    assert.equal(result.registrationSaved, true);
+    assert.equal(result.verificationMode, 'manual');
+    assert.equal(api.calls.length, 1);
+    const order = JSON.parse(api.calls[0].request.payload);
+    assert.equal(order.amount, Number(amount) * 100);
+    assert.equal(order.payment.capture, 'manual');
+    assert.equal(api.rows[2][11], 'Pending');
+    assert.equal(api.rows[2][12], 'No');
+    assert.equal(api.rows[2][13], '');
+    assert.equal(api.rows[2][15], '');
+    assert.equal(api.rows[2][17], Number(amount));
+  }
+});
+
+test('Pending append stores every supplied registration field in its correct A-K column', () => {
+  const api = backend();
+  const result = api.create({ registration: { ...registration, paymentScreenshot: 'https://example.com/payment.png' } });
+  assert.equal(result.registrationSaved, true);
+  assert.deepEqual(api.rows[2].slice(1, 11), [registration.name, registration.phone, registration.gender,
+    registration.goal, registration.question, registration.experience, registration.email, registration.city,
+    '', 'https://example.com/payment.png']);
+  assert.deepEqual(api.rows[0].slice(0, 11), JSON.parse(api.original)[0]);
+  assert.deepEqual(api.rows[1], JSON.parse(api.original)[1]);
+});
+
+test('a different tab ID is rejected before creating an order or writing a registration', () => {
+  const api = backend({ sheetId: 12345 });
+  const result = api.create();
+  assert.equal(result.ok, false);
+  assert.equal(result.saveCause, 'SHEET_DESTINATION_MISMATCH');
+  assert.equal(result.registrationSaved, false);
+  assert.equal(api.calls.length, 0);
+  assert.equal(api.writes.length, 0);
+  assert.equal(JSON.stringify(api.rows), api.original);
+});
+
+test('old browser verification requests cannot fetch, capture, confirm or append payments', () => {
+  const api = backend(); api.create();
+  const before = JSON.stringify(api.rows);
+  const calls = api.calls.length;
+  const result = api.post(proof);
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'MANUAL_VERIFICATION_REQUIRED');
+  assert.equal(result.verified, false);
+  assert.equal(JSON.stringify(api.rows), before);
+  assert.equal(api.calls.length, calls);
+  for (const name of ['verifyWorkshopPayment_', 'verifySignature_', 'saveVerifiedRegistration_', 'recoverCapturedWorkshopPayment']) assert.equal(typeof api.context[name], 'undefined');
+});
+
+test('owner edit to Verified creates a WhatsApp link on the same row and keeps A-K unchanged', () => {
+  const api = backend(); api.create();
+  const original = JSON.stringify(api.rows[2].slice(0, 11));
+  api.rows[2][11] = 'Verified'; // Simulate the owner's Dashboard review and Sheet edit.
+  api.context.handlePaymentStatusEdit({ range: {
+    getSheet: () => api.sheet, getColumn: () => 12, getRow: () => 3, getNumRows: () => 1, getNumColumns: () => 1,
+  } });
+  assert.equal(api.rows.length, 3);
+  assert.equal(api.rows[2][12], 'Ready to Send');
+  assert.ok(api.rows[2][13].startsWith('https://wa.me/919876543210?text='));
+  assert.equal(JSON.stringify(api.rows[2].slice(0, 11)), original);
+  assert.equal(api.calls.length, 1);
+  api.rows[2][11] = 'Pending';
+  api.context.createWhatsAppLink_(api.sheet, 3);
+  assert.equal(api.rows[2][13], '');
+  assert.equal(api.rows[2][12], 'No');
+});
+
+test('Pending rows have no WhatsApp confirmation and non-status edits cannot generate one', () => {
+  const api = backend(); api.create();
+  api.context.handlePaymentStatusEdit({ range: {
+    getSheet: () => api.sheet, getColumn: () => 12, getRow: () => 3, getNumRows: () => 1, getNumColumns: () => 1,
+  } });
+  assert.equal(api.rows[2][12], 'No');
+  assert.equal(api.rows[2][13], '');
+  api.rows[2][11] = 'Verified';
+  api.context.handlePaymentStatusEdit({ range: { getSheet: () => api.sheet, getColumn: () => 16 } });
+  assert.equal(api.rows[2][13], '');
+});
+
+test('Razorpay failure leaves a complete Pending registration saved before the network call', () => {
+  const api = backend({ orderFails: true });
+  const result = api.create();
+  assert.equal(result.ok, false);
+  assert.equal(result.registrationSaved, true);
+  assert.equal(result.row, 3);
+  assert.equal(result.code, 'ORDER_AFTER_REGISTRATION_SAVE_FAILED');
+  assert.equal(api.rows[2][1], registration.name);
+  assert.equal(api.rows[2][7], registration.email);
+  assert.equal(api.rows[2][11], 'Pending');
+  assert.equal(api.rows[2][12], 'No');
+  assert.match(api.rows[2][16], /^registration_/);
+  assert.equal(api.calls.length, 1);
+});
+
+test('missing customer fields fail full read-back before any Razorpay order is created', () => {
+  const api = backend({ corruptCity: true });
+  const result = api.create();
+  assert.equal(result.ok, false);
+  assert.equal(result.saveStage, 'read_back_pending_row');
+  assert.equal(result.registrationSaved, false);
+  assert.equal(api.calls.length, 0);
+  const check = api.logs.map(entry => JSON.parse(entry)).find(event => event.event === 'workshop_pending_read_back');
+  assert.equal(check.valid, false);
+  assert.equal(check.matchedColumns[8], false);
+});
+
+test('a concurrent Form append cannot redirect the order reference to another row', () => {
+  const api = backend({ concurrentForm: true });
+  const result = api.create();
+  assert.equal(result.ok, true);
+  assert.equal(result.row, 3);
+  assert.equal(api.rows[2][16], 'order_test');
+  assert.equal(api.rows[3][1], 'Concurrent Form Student');
+  assert.equal(api.rows[3][16], undefined);
+});
+
+test('owner lookup finds a registration after a row insertion without exposing customer details or writing data', () => {
+  const api = backend(); api.create();
+  api.rows.splice(2, 0, ['new Form timestamp', 'Other Form Student', '918888888888']);
+  const before = JSON.stringify(api.rows);
+  const calls = api.calls.length;
+  const report = api.context.locateWorkshopRegistration('order_test');
+  assert.equal(report.matches, 1);
+  assert.equal(report.sheetId, 1885927180);
+  assert.equal(report.rows[0].row, 4);
+  assert.equal(report.rows[0].hasName, true);
+  assert.ok(report.rows[0].sheetUrl.endsWith('&range=A4:R4'));
+  assert.equal(JSON.stringify(report).includes(registration.email), false);
+  assert.equal(JSON.stringify(report).includes(registration.phone), false);
+  assert.equal(JSON.stringify(api.rows), before);
+  assert.equal(api.calls.length, calls);
+  assert.equal(api.context.locateWorkshopRegistration('order_absent').matches, 0);
+});
+
+test('escaped literal names and aliases from the attached manual backend save successfully', () => {
+  const api = backend();
+  const { name, goal, ...rest } = registration;
+  const result = api.create({ registration: { ...rest, fullName: '=Literal name', mainGoal: goal } });
+  assert.equal(result.ok, true);
+  assert.equal(api.rows[2][1], "'=Literal name");
+  assert.equal(api.rows[2][4], goal);
+});
+
+test('typed Form response columns cannot prevent Checkout after a successful registration write', () => {
+  const api = backend({ typedColumns: true, numericPhone: true });
+  const result = api.create();
+  assert.equal(result.ok, true);
+  assert.equal(result.registrationSaved, true);
+  assert.equal(result.row, 3);
+  assert.equal(String(api.rows[2][2]), registration.phone);
+  assert.equal(api.rows[2][11], 'Pending');
+  assert.equal(api.rows[2][15], '');
+  assert.equal(api.rows[2][16], result.orderId);
+  assert.equal(api.rows[2][17], 500);
+  assert.equal(api.rows.length, 3);
+  assert.equal(api.calls.length, 1);
+  api.rows[2][11] = 'Verified';
+  api.context.createWhatsAppLink_(api.sheet, 3);
+  assert.ok(api.rows[2][13].startsWith('https://wa.me/919876543210?text='));
 });

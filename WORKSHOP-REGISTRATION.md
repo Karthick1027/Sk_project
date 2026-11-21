@@ -1,166 +1,127 @@
-# Workshop registration: Firebase Spark + Google Apps Script
+# Workshop registration with manual payment review
 
-The active payment backend is `google-apps-script/WorkshopRegistrations.gs`. Firebase is used for Hosting and the existing analytics setup only. No Cloud Functions, Secret Manager, paid Firebase services, or new spreadsheet/tab are used.
+The active backend is the complete file google-apps-script/WorkshopRegistrations.gs. The frontend uses src/lib/workshopPayment.ts, src/pages/Workshops.tsx and src/components/WorkshopPaymentDialog.tsx. Firebase is Hosting only; no Cloud Functions, Secret Manager or Blaze services are required.
 
-The amount is editable: INR 500 is the default suggestion, students may pay below or above it, and the minimum is INR 1. The chosen rupee amount must be a positive integer (no decimals). Checkout, verification, the pending row and the confirmation all use the chosen order amount.
+## Business workflow
 
-## What was wrong
+1. The customer fills the existing form and selects a whole-rupee advance (default INR 500, minimum INR 1).
+2. React sends create_order with the validated registration and amount in rupees.
+3. Apps Script first appends a complete Pending registration with a unique temporary registration reference in Q under a script lock. It flushes, locates the reference and reads all A-R values back. It never relies only on Script Properties for registration storage.
+4. It then creates a Razorpay order with payment.capture = manual. Under a new lock it finds the saved registration by its unique reference, replaces only Q with the Razorpay order ID, flushes, locates the order again and verifies the complete row. If Razorpay fails, the already saved registration remains Pending. Contact the studio before retrying an order-after-save error to avoid another submission.
+5. Only after successful persistence does it return ok: true, registrationSaved: true, verificationMode: manual, row, orderId, keyId, amount and currency. The response amount is paise.
 
-Investigation on 20 November 2026: a read-only fetch of the production JavaScript bundle confirmed that its Apps Script URL exactly matches `WORKSHOP_API_URL` and the supplied `/exec` URL. That endpoint returned `ok: true`, version `workshop-spark-v3-sheet-pending`, `sheetAccessible: true` and `credentialsConfigured: true`. This rules out an observed URL mismatch, but does not prove write permission or identify the source of the reported missing row. Deployment source, execution history and private sheet rows were not available to this investigation. A matching version label does not prove identical deployed source.
+   The currently deployed manual backend may instead return paymentVerification: MANUAL and saved: true. React accepts either manual-mode field (case-insensitive), while still requiring registrationSaved: true, a valid row and the exact paise amount. If both mode fields are present, both must say manual; an automatic or conflicting mode is rejected. This compatibility change does not require changing the working deployed Apps Script.
+6. React checks that confirmation, row, manual mode, amount, currency and order fields before loading/opening Checkout. A failed save blocks Checkout. An SDK load failure occurs after the Pending registration has been saved.
+7. Checkout completion shows Registration Saved / Pending manual review. It sends no verify_payment or payment-status request, stores no signature, and makes no automatic seat-confirmation claim.
+8. Closing or failing Checkout leaves the saved row Pending. An unchanged form retry reuses the saved order during the mounted page session; reloading after cancellation can start a new registration. A completed Checkout receipt survives reload in sessionStorage and blocks a second payment while manual review is pending. Old automatic-flow receipts migrate to manual-review status without replaying verification; their Sheet persistence is not assumed.
+9. The owner checks the actual Razorpay Dashboard record and manually captures it there when required. The owner can enter the Payment ID in P, then manually changes L from Pending to Verified.
+10. The installed edit trigger generates a WhatsApp link in N and sets M to Ready to Send. This creates a link only; the owner clicks it and sends the message manually. No customer message is sent automatically.
 
-The current repository already contains `savePendingRegistration_`, `appendPendingRow_` and an order-ID lookup in column Q. Its `create_order` handler waits for a Pending row read-back before returning an order. The frontend requires `ok: true`, `registrationSaved: true`, an integer `row >= 2`, a matching paise amount, INR currency and valid public key/order fields before opening Checkout. The backend emits `registrationSaved: true` only after validating all L-R Pending values. It also returns `pendingSaved: true` for compatibility with the preceding frontend, but the current frontend requires the canonical `registrationSaved` field. Missing acknowledgement blocks Checkout. This guard does not by itself establish the runtime cause of missing production rows.
+The old public verify_payment action returns MANUAL_VERIFICATION_REQUIRED without fetching, capturing or writing any payment. Automatic signature verification, payment fetching/capture helpers, automatic Verified-row updates and automatic captured-payment recovery are removed. Manual Dashboard review replaces them.
 
-Version `workshop-spark-v6-registration-saved` preserves the Pending-before-Checkout flow and requires the explicit `registrationSaved` acknowledgement. Verification and owner recovery update only an existing row matched by Q. A missing row returns an unsaved-payment error for owner reconciliation; neither a browser retry nor a legacy Script Property can append another row. The amount is rechecked under the write lock before updating L-R. Save failures log the original exception class and redacted message in owner-only logs, alongside stage/reference diagnostics. No customer row contents, credentials or signatures are logged. Deploy Apps Script first: the frontend requires explicit Pending-save confirmation.
+## Existing Google Sheet
 
-Modified frontend runtime files for this change: `src/lib/workshopPayment.ts` (Pending-save acknowledgement and stage diagnostics), `src/App.tsx` (remove an existing unused React import found by TypeScript), and `src/vite-env.d.ts` (declare the existing uppercase `.JPEG` asset imports). The workshop page, dialog, course options, validation and editable amount UI are preserved. Regression coverage is in `google-apps-script/WorkshopRegistrations.test.cjs`, `src/lib/workshopPayment.test.cjs` and `scripts/check-workshop-form.cjs`. The complete deployable backend is `google-apps-script/WorkshopRegistrations.gs`.
+Spreadsheet ID: 1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows
 
-No production deployment, credential changes, authenticated Razorpay requests, new orders, payment captures or sheet writes were made during this investigation. Local tests use mocked Razorpay and Sheets. Final acceptance of live Pending persistence and in-place verification is still pending deployment and owner-observed evidence. For the reported failed request, inspect Apps Script **Executions** for `create_order`, correlate the returned reference and inspect its last Pending-save stage. Check the exact tab with filters removed and rows unhidden; a filter can hide a persisted Pending row. If the response lacks `registrationSaved: true`, confirm the deployment contains the complete v6 file rather than relying solely on a version label.
+Existing tab: Form Responses 1
 
-The repository's old Apps Script action handlers called Firebase Functions to create orders and verify/save payments. That was not a Spark-only backend. The old sheet helper also recreated a missing response tab and rewrote headers A-R, including the Google Form-owned columns A-K. Finally, using `getLastRow()` after a website append could update the wrong student's WhatsApp cell if Google Forms appended concurrently.
+Required tab ID (gid): 1885927180. The backend checks this ID as well as the spreadsheet ID and tab name, and rejects a mismatch before creating an order or writing a row.
 
-The deployed URL's old generic `ok: true` status only proved that a web app was reachable. It did not prove sheet permissions, credential configuration, payment verification, or saving. The updated status identifies the backend version and reports sheet access and whether credentials are configured. Live saving still needs the updated script to be deployed and a real Razorpay test-mode registration.
+No new sheet or spreadsheet is created. Existing Forms headers and existing data A-K are never renamed, reordered, cleared or overwritten. A website registration is appended as a new row with the same 18-column structure. Only blank L-R headers are filled; the same tab is extended to R if needed.
 
-The later error “The registration server needs the Apps Script-only update before payments can be accepted” was produced by an extra frontend `backend`/`version` response check. The frontend was already POSTing directly to the configured Apps Script URL; this message did not establish that Firebase was being called. That check has been removed. Order responses require the documented public key, order ID, matching chosen amount and INR currency, plus the API's `ok: true` acknowledgement. The diagnostic backend/version labels are not prerequisites for opening Checkout. During local Vite Fast Refresh, the page clears obsolete development notices while retaining entered registration fields.
-
-## Existing destination and column preservation
-
-Spreadsheet: `1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows`
-
-Existing tab: `Form Responses 1`
-
-The script opens that exact spreadsheet and tab. If the tab is absent or inaccessible, Checkout is blocked; no replacement tab is created. Existing Google Form headers A-K and all existing response rows are preserved. Only blank L-R header cells are filled, and columns are extended to R in that same tab only if necessary.
-
-| Column | Website value |
+| Column | Website registration value |
 | --- | --- |
 | A | Timestamp |
-| B | Name |
-| C | International phone (`91XXXXXXXXXX`) |
+| B | Full name |
+| C | International WhatsApp number |
 | D | Gender |
-| E | Goal (`mainGoal` in React, `goal` in the API) |
-| F | Question |
-| G | Experience |
+| E | Main goal |
+| F | Additional comments |
+| G | Makeup experience |
 | H | Email |
 | I | City |
-| J | Blank score |
-| K | Screenshot URL if supplied; otherwise blank |
-| L | Pending before payment; Verified after capture |
-| M | No before payment; Ready to Send after verification |
-| N | Mobile-compatible WhatsApp confirmation link after verification |
-| O | Exact selected course |
-| P | Razorpay payment ID |
-| Q | Razorpay order ID |
-| R | Actual verified payment in rupees |
+| J | Blank |
+| K | Screenshot URL if supplied, otherwise blank; no screenshot field is added to the existing website form |
+| L | Pending; only the owner changes it to Verified |
+| M | No; Ready to Send after owner verification |
+| N | Blank; WhatsApp link only after owner verification |
+| O | Selected course |
+| P | Blank; owner may enter the Payment ID later |
+| Q | Unique internal registration reference before the gateway request, replaced by the Razorpay Order ID before Checkout |
+| R | Selected advance in INR |
 
-Before Checkout opens, the website registration is appended once with `Pending` in L, `No` in M, a blank P, the Razorpay order ID in Q, and the selected advance in R. The phone, payment ID and order ID cells are formatted as text. After capture, the exact row is located using Q and updated in place; A-K are not touched. Duplicate order IDs and payment IDs are rejected or return the already verified row rather than creating another registration. Google Forms continues to submit normally. The existing payment-status edit trigger and WhatsApp helpers remain available.
+The lookup scans P-Q and matches Q for order identity. A duplicate order is rejected. Read-back validation checks all A-R Pending values. The app never creates another row after Checkout success or during payment verification. A Pending status edit clears N and restores M to No. Existing sent confirmations are preserved when regenerating a Verified link.
 
-## Configure and deploy the existing Apps Script project
+For INR 500: form/request amount = 500 rupees; Razorpay order/response/Checkout amount = 50000 paise; Sheet R/display = 500 rupees. Only Apps Script converts the request amount to paise. React passes the validated returned paise amount directly to Checkout. Editable amounts remain supported; an input of 5 means INR 5, not INR 500.
 
-1. Open the existing spreadsheet and its Apps Script project. Replace the project code with the updated `google-apps-script/WorkshopRegistrations.gs`. Do not create a spreadsheet or response tab.
-2. In Apps Script **Project Settings > Script properties**, set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`. Use Razorpay test credentials first. Enter secrets only in Script Properties; never in frontend code or chat. The old `WORKSHOP_API_TOKEN` is no longer used.
-3. Run `setupWorkshopRegistration()` once as the spreadsheet owner. Authorize the script. It checks the exact destination and fills missing L-R headers without changing A-K. Its execution log reports readiness without printing secret values.
-4. Choose **Deploy > Manage deployments**, edit the EXISTING web app deployment, select **New version**, and deploy. Set **Execute as: Me** (an account with edit access to this spreadsheet) and **Who has access: Anyone**. Reauthorize updated permissions if prompted.
-5. Keep this existing endpoint:
+## Manual deployment steps
 
-   `https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec`
+No deployment, credential edits, authenticated order creation or real payment was performed by the agent.
 
-   Use the web app `/exec` URL, not the library URL or a `/dev` URL.
-6. Open that endpoint. The new response must identify `backend: "google-apps-script"`, `version: "workshop-spark-v6-registration-saved"`, `sheet: "Form Responses 1"`, `sheetAccessible: true`, `credentialsConfigured: true`, `suggestedAmountRupees: 500`, `minimumAmountRupees: 1`, `currency: "INR"`, and `ok: true`. Configured credentials still need a successful Razorpay test to establish that they are valid. A generic or older version response means the updated source is not deployed at this URL.
-7. Build and deploy Hosting only:
+1. Open the existing Apps Script project belonging to the existing web app URL. Replace the project source with the complete WorkshopRegistrations.gs file. Remove old duplicate action handlers or webhook functions from that project if present. Save.
+2. Keep RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET exclusively in Project Settings > Script properties. Use a matching test-mode key pair for owner-run tests. Never put the secret into React or chat.
+3. Run diagnoseWorkshopSaving() for a read-only destination report. Run setupWorkshopRegistration() as the account with edit access to the exact spreadsheet, authorizing the required scopes. This prepares only missing automation columns/headers and preserves A-K.
+4. Run setupEditTrigger() once. It replaces duplicate handlePaymentStatusEdit triggers with one spreadsheet on-edit trigger. Existing Google Forms triggers are preserved.
+5. In Razorpay Dashboard, review Account & Settings > Payments Capture and choose Manual Capture. The order API also explicitly requests manual capture. Only the account owner can change this setting. Capture authorized payments within the configured timeout; otherwise Razorpay refunds them. Platform exceptions apply: Direct Settlement merchants and bank-transfer payments can be auto-captured irrespective of manual capture settings. Confirm supported payment methods/account configuration with Razorpay if the business requires no automatic capture in every case.
+6. In Apps Script choose Deploy > Manage deployments > edit the existing deployment > New version > Deploy. Execute as Me using the spreadsheet editor account; access Anyone. Saving the editor code does not update the /exec deployment.
+7. Keep this exact URL unless you intentionally create a different deployment:
 
-   ```sh
-   npm run build
-   firebase deploy --only hosting:skbridalstudio
-   ```
+https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec
 
-`firebase.json` no longer configures Functions deployment. The `functions/` source remains as an archived reference and is not called by the active website. Do not deploy it or upgrade the project to Blaze for this flow.
+8. Open /exec and confirm version workshop-manual-v9-table-safe, verificationMode manual, ok true, sheetAccessible true and credentialsConfigured true. This proves readiness only, not a Sheet write. If a different URL is intentionally used, update WORKSHOP_API_URL in src/lib/workshopPayment.ts.
+9. Build and publish Hosting only, after the backend is updated:
 
-## Server-side payment and save flow
+~~~powershell
+npm.cmd run build
+firebase deploy --only hosting:skbridalstudio
+~~~
 
-`create_order` receives the nine registration fields and the chosen amount as a positive integer in rupees. Name, phone, email, gender, experience, goal and course are required; city and question are optional. The three allowed course names are unchanged. The server checks destination access, validates the chosen amount and converts it exactly to paise, fixes currency at INR, and calls Razorpay directly using Script Properties credentials. Before returning the order to the frontend, it writes a complete `Pending` row to the existing sheet and confirms the order ID, status and amount by reading the row back. Failure to persist the pending row blocks Checkout. New orders do not depend on Script Properties to retain student details; the sheet row is the durable source.
+Refresh the browser after publishing. Existing open tabs running old code receive a safe rejection if they attempt automatic verification.
 
-The frontend supplies the default 500 explicitly. A request missing its amount is rejected, rather than silently creating an INR 500 order.
+Razorpay references: [Manual capture settings](https://razorpay.com/docs/payments/payments/capture-settings/) and [per-order manual capture](https://razorpay.com/docs/payments/payments/capture-settings/api).
 
-```json
-{"action":"create_order","amount":250,"registration":{"name":"Student","phone":"919876543210","email":"student@example.com","gender":"Female","experience":"Beginner","goal":"Learn bridal makeup","question":"","city":"Chennai","course":"Full 2-day masterclass"}}
-```
+## Tests without a real payment
 
-Checkout uses the validated returned `keyId`, `orderId`, `amount` and `currency`. The frontend requires a readable, successful JSON response with the matching chosen amount in paise, `registrationSaved: true` and an integer `row >= 2` before opening it. Backend/version labels alone are not acceptance criteria. Deploy the updated Apps Script before deploying the frontend: an older response without explicit Pending persistence confirmation is rejected before Checkout opens.
-
-For INR 500, the browser sends `amount: 500` (rupees). Apps Script converts it once to `50000` paise for Razorpay and returns `amount: 50000`. React passes that returned value directly to Checkout. Only sheet storage and human-readable display divide paise by 100. A request `amount: 5` intentionally means INR 5; it must not be silently changed to INR 500 because editable amounts are supported. The current source does not produce `amount: 5` from an input of 500; if DevTools still shows that, inspect the loaded frontend bundle and the actual input value. A response of `amount: 500` is rejected for an INR 500 submission.
-
-To verify the Pending row before Checkout without completing a payment, first run the mocked checks below. For an owner-authorized Google Sheets check later, manually publish this backend using Razorpay test credentials, and use the corresponding frontend. In Chrome Sources, set a breakpoint on `const instance = new window.Razorpay(...)` in `Workshops.tsx`, submit an amount of 500, and pause before Checkout construction. Network must show request `amount: 500` and response `ok: true`, `registrationSaved: true`, `amount: 50000` and a row number. Before resuming, inspect that exact row in `Form Responses 1`: L=Pending, M=No, N/P blank, O=selected course, Q=returned order ID, R=500. Resume and confirm Checkout shows INR 500, then cancel. This creates only a test-mode order and Pending registration; it does not require a payment. Use the mocked save-failure checks rather than changing production sheet permissions to force a failure. No publishing or authenticated test order was performed by the agent.
-
-```json
-{"action":"verify_payment","orderId":"order_example","paymentId":"pay_example","signature":"<Razorpay signature>"}
-```
-
-Apps Script verifies HMAC-SHA256 with its private Razorpay secret, fetches the order and payment from Razorpay, checks the pending row's course/registration hash, order ID, INR currency and raw numeric amount, and confirms captured status. Authorized payments are captured for the exact server-fetched order amount and fetched again before saving. Verification never trusts an amount supplied by the frontend. Invalid signatures, wrong amounts/currencies, failed capture or mismatched orders cannot mark a registration verified.
-
-Only then does the script acquire its write lock, search both P and Q for duplicates, update L-R on the existing pending row, flush and read the values back. It stores the payment ID and order ID as text and R as numeric INR. Duplicate retries return the same verified row without appending. The response includes `{ "ok": true, "verified": true, "saved": true, "orderId": "order_…", "paymentId": "pay_…", "amount": 1000, "currency": "INR", "row": 123, "duplicate": false }` only after saving is confirmed. A failed sheet update returns `verified: true`, `saved: false`, `code: "REGISTRATION_SAVE_FAILED"`; the pending row and browser receipt remain available for retry without another charge. The public API has no append/mark-verified action and no legacy Firebase callback.
-
-For an owner-run captured-payment recovery, pass a Payment ID to `recoverCapturedWorkshopPayment(paymentId)`. If running it from the Apps Script editor, set the temporary Script Property `WORKSHOP_RECOVERY_PAYMENT_ID` first because the editor does not supply function arguments. The helper fetches the payment from Razorpay to obtain its order ID, then verifies it again and updates the pending row found in Q. It does not accept registration details from the caller or create another payment.
-
-## Errors and recovery
-
-- `VALIDATION_ERROR` includes field errors; React displays them inline before Checkout.
-- `CONFIG_ERROR` / `SHEET_NOT_FOUND` block order creation. Check Script Properties, the exact tab name, permissions and deployment owner.
-- `PAYMENT_VERIFICATION_FAILED` blocks saving. Keep the receipt and retry verification without creating a new charge.
-- `REGISTRATION_SAVE_FAILED` means payment was verified but sheet saving was not confirmed. The separate saving-failure dialog preserves form details and the receipt. Fix sheet access and retry the same payment. Never ask an already-charged student to pay again.
-- If an older deployment never retained the original registration and neither a pending/verified sheet row nor the original Script Property exists, the payment can be authenticated but the student registration cannot be reconstructed safely. Do not charge again or invent details; locate the original registration from an authorized source and reconcile it manually.
-- Legacy Script Properties may authenticate a previously captured payment, but cannot recreate a missing sheet row. If Q has no matching row, verification returns `REGISTRATION_SAVE_FAILED` with `saveCause: ORDER_NOT_FOUND`; owner reconciliation is required without another charge. Captured-payment recovery works normally when the original Pending/Verified row exists. Missing expected amounts are never replaced with an assumed INR 500 value.
-
-For a saving failure, the response includes `reference`, `stage`, `saveStage` and `saveCause`. Owner-only Apps Script execution logs identify the destination and failing stage. Raw exceptions and stack text are omitted because platform messages may contain customer cell values. Pending stages include `acquire_lock`, `prepare_sheet`, `check_duplicate`, `append_pending_row`, `flush_pending_row`, `locate_pending_row`, `format_pending_row`, `flush_pending_text_cells` and `read_back_pending_row`. Verification update stages include `update_verified_row`, `flush_verified_row` and `read_back_verified_row`. These diagnostics do not mark failures successful.
-
-Run `diagnoseWorkshopSaving()` manually in the Apps Script editor for a read-only report of spreadsheet ID, actual sheet name/ID, last used row, column count and filter presence. The expected tab ID from the provided spreadsheet link is `1885927180`. This diagnostic does not create orders, payments, tabs or test registrations. A successful `setupEditTrigger()` run is not a website saving test.
-
-Requests use `text/plain;charset=UTF-8`, CORS mode, omitted credentials and followed redirects. HTTP errors, unreadable/opaque responses, malformed JSON and backend errors never count as successful orders or registrations. A health response alone cannot confirm a saved registration.
-
-The Razorpay Checkout script loads before an Apps Script order is created. If the CDN is unavailable, times out after 30 seconds, is blocked by a security policy, or fails to initialize, the form keeps its data and shows “Unable to Open Payment”. No order is created on that attempt. Retry removes the failed script and starts a fresh load. This is separate from payment verification or Sheets saving and does not require an Apps Script change. Use `node scripts/check-razorpay-loader.cjs "<installed Edge or Chrome executable>"` to check actual Checkout script loading without opening Checkout or creating orders/charges. A network/browser extension or security policy block must be resolved in the affected browser/network; the website does not bypass it or show false success.
-
-## Checks and release QA
-
-### Checkout diagnostic findings (20 November 2026)
-
-The official `https://checkout.razorpay.com/v1/checkout.js` returned HTTP 200
-and initialized `window.Razorpay` in approximately 9.3 seconds in a clean Edge
-profile. The diagnostic now uses real wall-clock time and Chrome DevTools
-Protocol network events, rather than virtual time. A failed sandbox network
-probe is not evidence that the customer's browser or Razorpay is broken.
-
-The deployed Web App health response separately reported `sheetAccessible:false`
-because its older code requires R1 to be exactly `Advance Paid (INR)`. The local
-Apps Script preserves every existing nonempty header and addresses column R by
-position. Deploy that complete file to the existing Web App deployment to remove
-the header-name restriction without renaming Google Form columns A-K.
-
-The loader reports `SDK_LOAD_FAILED`, `SDK_OFFLINE`, `SDK_TIMEOUT`,
-`SDK_CSP_BLOCKED`, `SDK_NOT_INITIALIZED`, or `SDK_INSERTION_BLOCKED`. A script
-error alone cannot identify an extension, DNS, TLS or HTTP failure. In the
-affected browser inspect the Network entry for `checkout.js` and the console's
-`[Workshop payment]` events. Logs exclude registration data, signatures, key
-secrets and raw API responses. No project CSP blocking Razorpay was found in
-the HTML or Firebase Hosting configuration.
-
-Opening errors use the gateway-unavailable dialog; actual `payment.failed`
-events use the payment-failure dialog. Unchanged forms reuse their last order
-within the mounted page after cancellation/opening failure/payment failure.
-Once a receipt exists, retry only verifies that payment. Order reuse is not
-persisted across page reloads. If a browser closes before receiving a payment
-receipt, reconcile that payment in Razorpay before requesting another payment.
-
-Both `rzp_test_` and `rzp_live_` public keys are accepted; the returned key is
-passed directly to Checkout. Script Properties must contain the corresponding
-key ID and secret from the same mode. This review did not access credentials
-or create an authenticated live/test order, so it cannot confirm their pairing.
-
-```sh
+~~~powershell
 node --test google-apps-script/WorkshopRegistrations.test.cjs src/lib/workshopPayment.test.cjs src/lib/workshopCheckout.test.cjs
 npx tsc -p tsconfig.app.json --noEmit
-npm run build
-node scripts/check-workshop-form.cjs "<installed Edge or Chrome executable>"
-node scripts/check-workshop-cors.cjs "<installed Edge or Chrome executable>"
-```
+npm.cmd run build
+node scripts/check-workshop-form.cjs "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+~~~
 
-The Apps Script tests use realistic in-memory spreadsheet and Razorpay mocks: unchanged A-K headers and existing records, missing L-R headers, no new tabs, pending-row persistence, HMAC rejection, capture and amount/currency/order checks, in-place L-R update, save failures, lost responses, duplicate retries, property-free sheet recovery and concurrent Google Form append. Browser form tests mock payments and send no live registrations. The CORS probe sends only invalid requests and tests readable errors, not successful saving.
+These tests use mocked Razorpay and Sheets, and the browser test blocks real payment requests. They assert:
 
-After deployment, submit one Google Form response and confirm existing data/headers remain intact. Then complete one website registration with Razorpay test credentials from the production origin using an amount below INR 500 and one above it. Verify the payment is captured and the website's row appears exactly once in the SAME `Form Responses 1` tab with the correct P/Q IDs and actual verified amount in R. Test cancellation, failed verification and a retry after saving failure. Confirm the page stays on Workshops and success appears only after verification plus saving. Switch to live credentials only after this passes.
+- A readable persisted Pending row exists before the order response reaches the actual frontend helper.
+- Save/flush/lookup/read-back failures return an error and never open Checkout.
+- INR 500 reaches Checkout as exactly 50000 paise.
+- Order creation requests manual capture and is the only Razorpay API request.
+- Checkout success makes no verification request or automatic confirmation claim.
+- Cancellation, failure and completed Checkout never append a second row for the same saved order.
+- Receipt reload does not create a new payment or call automatic verification.
+- Only an owner edit of L to Verified generates N and sets M to Ready to Send; A-K remain unchanged.
+
+## Owner-observed Pending-before-Checkout test
+
+Perform this only after manually publishing the backend with Razorpay test credentials:
+
+1. In Chrome Sources, set a breakpoint immediately before new window.Razorpay in Workshops.tsx.
+2. Fill the form with a chosen INR 500 advance and submit. This creates a test-mode order and registration; do not complete payment.
+3. Network must show create_order with amount 500. The response must include ok true, registrationSaved true, verificationMode manual, amount 50000 and a row number.
+4. While paused before Checkout construction, inspect that row in Form Responses 1. Confirm L Pending, M No, N/P blank, O selected course, Q returned order ID and R 500. Confirm A-K headers and all prior response rows are intact.
+5. Resume, confirm Checkout displays INR 500, and close it. The same row must remain Pending. Retry the unchanged form in the mounted page: the row/order is reused.
+6. To exercise the UI completion path without a payment, use the mocked browser test. It must show Pending manual review and make no verify_payment request.
+7. After an actual owner Dashboard review in normal operation, manually enter the payment ID in P and change L to Verified. Confirm M Ready to Send and a WhatsApp link in N on the same row. Clicking/sending remains manual.
+
+To force save failures, use the mocked tests rather than removing production sheet permissions. For an unexpected save failure, use the returned reference/saveStage to locate the owner-only Apps Script log. Exception messages are redacted before logging; customer details, signatures and credentials are not logged. Neither health checks nor passing mocked tests prove production write permission.
+
+## Investigating an empty reported row
+
+The attached workshop-manual-v2 source writes via getLastRow() + 1 and returns a numeric row position. That position can be misleading after row insertions/sorting, and a tab selected only by name is not proof of gid 1885927180. A previous success response is not proof that the intended row still contains the registration. The corrected source checks the exact spreadsheet and tab ID, appends through appendRow rather than writing to an unchecked grid index, finds rows by a unique reference, compares sanitized stored values correctly and confirms all 18 columns.
+
+For an existing reported order, run locateWorkshopRegistration(orderId) in the Apps Script editor as the owner. The editor cannot supply arguments directly: set Script Property WORKSHOP_LOOKUP_ORDER_ID to the order ID from the original Network response, then run locateWorkshopRegistration. It returns the exact spreadsheet/tab IDs, match count, presence flags and a direct link to each matching row. It does not return names, emails or phone numbers, create orders, edit rows or change payment status. A zero match means this exact tab does not currently contain that reference; inspect execution history and any other triggers or row-deletion/sorting scripts before resubmitting. A read-only lookup cannot reconstruct missing customer data.
+
+Replace the existing Apps Script code with the entire corrected file and manually update that deployment to a new version before using these fixes. Health should report workshop-manual-v9-table-safe, spreadsheetId 1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows and sheetId 1885927180. The previously supplied pasted script's health handler rewrites L-R headers; the corrected health handler is read-only.
+
+## Saved row followed by a Checkout-blocking error
+
+The screenshot message REGISTRATION_SAVE_FAILED is a backend rejection before Checkout, not a Razorpay payment failure. If the row is visible, inspect the post-write operation and its original Apps Script exception rather than bypassing registrationSaved. The corrected backend no longer calls setNumberFormat on Form response columns or rewrites phone/P/Q after the full row append. Column types can control formatting in Sheets tables; a formatting failure must not be a prerequisite for Checkout. Order linking changes only Q and remains subject to full A-R read-back verification. WhatsApp links read the raw phone value so display formatting cannot corrupt a numeric 12-digit phone number. Missing/mismatched data, failed flushes and wrong amounts still block Checkout. The exact deployed exception remains unconfirmed until the owner provides its execution log.
