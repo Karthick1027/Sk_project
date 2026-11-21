@@ -72,6 +72,8 @@ const results = [];
 const assert = (condition, message) => { if (!condition) throw new Error(message); results.push(message); };
 const setField = async (name, value) => {
   const field = document.querySelector('[name="' + name + '"]');
+  const optionalSection = field.closest('details');
+  if (optionalSection) optionalSection.open = true;
   if (field.getAttribute('role') === 'combobox') {
     field.click(); await delay();
     [...document.querySelectorAll('[role="option"]')].find(option => option.dataset.value === value).click();
@@ -86,10 +88,12 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
 (async () => {
   for (let count = 0; !document.querySelector('[name="email"]') && count < 80; count++) await delay();
   try {
+    const optionalDetails = document.querySelector('.workshop-optional-details');
+    assert(optionalDetails && !optionalDetails.open, 'Optional details start collapsed so required fields are easy to find');
     assert(document.querySelector('[name="email"]').required, 'Required Email Address input is rendered');
     const course = document.querySelector('[name="course"]');
     course.click(); await delay();
-    const hovered = [...document.querySelectorAll('[role="option"]')].find(option => option.dataset.value === 'Reception Look (Day 2)');
+    const hovered = [...document.querySelectorAll('[role="option"]')].find(option => option.dataset.value === '30-Day Professional Bridal Makeup Masterclass');
     hovered.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); await delay();
     assert(getComputedStyle(hovered).backgroundColor === 'rgb(216, 194, 165)' && getComputedStyle(hovered).color === 'rgb(59, 38, 30)', 'Dropdown hover uses light brown background and dark brown text (' + getComputedStyle(hovered).backgroundColor + ', ' + getComputedStyle(hovered).color + ')');
     course.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await delay();
@@ -97,8 +101,8 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     course.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); await delay();
     course.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })); await delay();
     course.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await delay();
-    assert(course.value === 'Reception Look (Day 2)' && document.activeElement === course, 'Dropdown supports keyboard selection and retains focus');
-    await setField('course', 'Full 2-day masterclass');
+    assert(course.value === '30-Day Professional Bridal Makeup Masterclass' && document.activeElement === course, 'Dropdown supports keyboard selection and retains focus');
+    await setField('course', '2-Day Online Live Demo Workshop');
     await submit();
     assert(document.getElementById('workshop-email-error') && !document.querySelector('dialog[open]') && qa.orders === 0 && qa.checkouts === 0, 'Empty fields show inline errors without order or checkout');
     for (const [name, value] of Object.entries({ name: 'Test Student', email: 'bad-email', phone: '9876543210', gender: 'Female', experience: 'Beginner', mainGoal: 'Learn bridal makeup', city: 'Chennai', question: 'Please keep these details' })) await setField(name, value);
@@ -114,8 +118,10 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     const invalidTransfer = new DataTransfer();
     invalidTransfer.items.add(new File(['invalid'], 'receipt.html', { type: 'text/html' }));
     proofInput.files = invalidTransfer.files; proofInput.dispatchEvent(new Event('change', { bubbles: true })); await delay();
+    optionalDetails.open = false;
     await submit();
     assert(document.getElementById('workshop-paymentScreenshot-error') && qa.orders === 0, 'Unsupported proof files show inline validation and block submission');
+    assert(optionalDetails.open && document.activeElement === proofInput, 'Invalid optional details open automatically and focus the field (open=' + optionalDetails.open + ', focus=' + document.activeElement?.id + ')');
     [...document.querySelectorAll('button')].find(button => button.textContent === 'Remove proof').click(); await delay();
     assert(proofInput.files.length === 0 && !document.getElementById('workshop-paymentScreenshot-error'), 'Removing proof clears selection and file error');
     const proofTransfer = new DataTransfer();

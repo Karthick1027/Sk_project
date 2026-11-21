@@ -126,7 +126,7 @@ test('payload contains all nine API fields, trimmed email, exact course and one 
       assert.deepEqual(JSON.parse(options.body).registration, {
         name: 'Student', phone: '919876543210', email: 'student@example.com',
         gender: 'Female', experience: 'Beginner', goal: 'Learn bridal makeup',
-        question: '', city: 'Chennai', course: 'Full 2-day masterclass',
+        question: '', city: 'Chennai', course: '2-Day Online Live Demo Workshop',
       });
       return jsonResponse(validOrder);
     };

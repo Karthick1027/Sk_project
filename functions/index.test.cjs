@@ -8,7 +8,7 @@ const crypto = require('node:crypto');
 
 const registration = {
   name: 'Workshop Student', email: 'student@example.com', phone: '919876543210',
-  course: 'Full 2-day masterclass', city: '', gender: 'Female',
+  course: '2-Day Online Live Demo Workshop', city: '', gender: 'Female',
   mainGoal: 'Learn bridal makeup', experience: 'Beginner', question: '',
 };
 const proof = {

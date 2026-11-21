@@ -4,7 +4,7 @@ const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 const ts = require('typescript');
-const registration = { name: 'Student', phone: '919876543210', email: 'student@example.com', gender: 'Female', goal: 'Learn bridal makeup', question: 'Keep my details', experience: 'Beginner', city: 'Chennai', course: 'Full 2-day masterclass' };
+const registration = { name: 'Student', phone: '919876543210', email: 'student@example.com', gender: 'Female', goal: 'Learn bridal makeup', question: 'Keep my details', experience: 'Beginner', city: 'Chennai', course: '2-Day Online Live Demo Workshop' };
 const signature = crypto.createHmac('sha256', 'test-secret').update('order_test|pay_test').digest('hex');
 const proof = { action: 'verify_payment', orderId: 'order_test', paymentId: 'pay_test', signature };
 function backend(options = {}) {
@@ -171,4 +171,16 @@ test('proof setup records a private folder without changing Sheet data or creati
   const api=backend({noProofFolder:true});const report=api.context.setupWorkshopProofUploads();
   assert.equal(report.ready,true);assert.equal(api.properties.get('WORKSHOP_PROOF_FOLDER_ID'),'proof_folder');
   assert.equal(JSON.stringify(api.rows),api.original);assert.equal(api.calls.length,0);assert.equal(api.files.length,0);
+});
+
+test('previously saved courses can finish verification but cannot create new registrations',()=>{
+  for(const course of ['Full 2-day masterclass','Muhurtham Look (Day 1)','Reception Look (Day 2)']) {
+    const remoteOrder={};const api=backend({order:remoteOrder});api.create();
+    api.rows[2][14]=course;
+    const saved=api.context.registrationFromSheetRow_(api.sheet,3);
+    remoteOrder.notes={...JSON.parse(api.calls[0].request.payload).notes,course,registration_hash:api.context.registrationHash_(saved)};
+    assert.equal(api.post(proof).verified,true);assert.equal(api.rows[2][14],course);assert.equal(api.rows.length,3);
+    const fresh=backend();const result=fresh.post({action:'create_order',amount:500,registration:{...registration,course}});
+    assert.equal(result.code,'VALIDATION_ERROR');assert.equal(fresh.calls.length,0);
+  }
 });

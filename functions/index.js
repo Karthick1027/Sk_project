@@ -17,9 +17,9 @@ function paymentAmountPaise(value = 500) {
   return paise;
 }
 const allowedCourses = [
-  'Full 2-day masterclass',
-  'Muhurtham Look (Day 1)',
-  'Reception Look (Day 2)',
+  '2-Day Online Live Demo Workshop',
+  '15-Day Bridal Makeup Masterclass',
+  '30-Day Professional Bridal Makeup Masterclass',
 ];
 
 function razorpayAuthorization() {

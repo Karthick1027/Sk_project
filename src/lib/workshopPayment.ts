@@ -1,5 +1,5 @@
 export const initialRegistration = {
-  name: '', email: '', phone: '', course: 'Full 2-day masterclass', city: '',
+  name: '', email: '', phone: '', course: '2-Day Online Live Demo Workshop', city: '',
   gender: '', mainGoal: '', experience: '', question: '',
 };
 export type Registration = typeof initialRegistration;
@@ -41,7 +41,7 @@ export function paymentAmountPaise(value: string): number {
 export function formatPaymentAmount(amount: number): string {
   return amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
-export const WORKSHOP_COURSES = ['Full 2-day masterclass', 'Muhurtham Look (Day 1)', 'Reception Look (Day 2)'] as const;
+export const WORKSHOP_COURSES = ['2-Day Online Live Demo Workshop', '15-Day Bridal Makeup Masterclass', '30-Day Professional Bridal Makeup Masterclass'] as const;
 export class RegistrationValidationError extends Error {
   constructor(public fields: RegistrationErrors, message = 'Please check the highlighted registration fields.') {
     super(message);

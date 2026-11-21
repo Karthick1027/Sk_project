@@ -6,6 +6,8 @@ The supplied findFirstEmptyDataRow_ and appendPendingRegistration_ functions rem
 
 ## Complete request flow
 
+New course options: 2-Day Online Live Demo Workshop; 15-Day Bridal Makeup Masterclass; 30-Day Professional Bridal Makeup Masterclass. The first option is the default. Existing saved rows retain their original course names and remain eligible for payment verification; legacy names are not accepted for new registrations.
+
 1. React validates the current form and flexible whole-rupee amount. Default is INR 500, minimum INR 1.
 2. create_order sends registration details and amount in rupees using a readable text/plain JSON POST to the existing Apps Script URL.
 3. The supplied Apps Script saver finds the first completely empty A-R row below the header. Existing values and formulas, including formulas displaying blank, prevent a row from being reused. Under a script lock it writes the complete Pending registration, flushes and reads it back. A-K headers and all prior response rows are preserved.

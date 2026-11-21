@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import {
-  ArrowDown, Sparkles, Check, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award, Send,
+  ArrowDown, Sparkles, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award, Send,
   LockKeyhole, Loader2, AlertCircle, type LucideIcon,
 } from 'lucide-react';
 import SectionHeading from '../components/SectionHeading';
@@ -21,6 +21,17 @@ import muhurthamImage from '../images/gallery/client_2170.jpg';
 import receptionImage from '../images/gallery/client_2163.jpg';
 
 const INSTAGRAM_URL = 'https://instagram.com/srinithimakeupartist';
+
+function focusRegistrationField(name: string) {
+  // Wait for React to display errors and re-enable fields after a failed request.
+  window.setTimeout(() => {
+    const field = document.querySelector<HTMLElement>(`[name="${name}"]`);
+    const optionalSection = field?.closest('details');
+    if (optionalSection) optionalSection.open = true;
+    field?.focus({ preventScroll: true });
+    field?.scrollIntoView({ block: 'center', behavior: 'instant' });
+  }, 0);
+}
 
 interface Highlight {
   label: string;
@@ -128,9 +139,9 @@ const essentials: { icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 const steps = [
-  { title: 'Choose your course', text: 'Register for both days or select the bridal look you want to learn.' },
-  { title: 'Pay your advance', text: 'Choose your advance amount and pay securely through Razorpay to reserve your seat.' },
-  { title: 'Pay the balance later', text: 'We will confirm your remaining balance and share instructions for paying it. Message us on Instagram with any questions.' },
+  { title: 'Choose your course', text: 'Pick the workshop or masterclass you want to join.' },
+  { title: 'Fill in your details', text: 'Add your contact details and tell us what you want to learn.' },
+  { title: 'Pay & register', text: 'Pay your advance securely through Razorpay.' },
 ];
 
 /** Circular "Live · Online" sticker whose text slowly rotates */
@@ -333,7 +344,7 @@ const Workshops: React.FC = () => {
     setErrors(validationErrors);
     const firstError = Object.keys(validationErrors)[0];
     if (firstError) {
-      document.querySelector<HTMLElement>(`[name="${firstError}"]`)?.focus();
+      focusRegistrationField(firstError);
       return;
     }
     busy.current = true;
@@ -405,7 +416,7 @@ const Workshops: React.FC = () => {
           setErrors(error.fields);
           setFormError(Object.keys(error.fields).length ? 'Please correct the highlighted fields.' : error.message);
           const firstField = Object.keys(error.fields)[0];
-          if (firstField) document.querySelector<HTMLElement>(`[name="${firstField}"]`)?.focus();
+          if (firstField) focusRegistrationField(firstField);
         } else {
           setFormError(error instanceof Error ? `Unable to create your payment order: ${error.message}` : 'Unable to create your payment order. Please try again.');
         }
@@ -719,46 +730,44 @@ const Workshops: React.FC = () => {
       </section>
 
       {/* How to register */}
-      <section id="registration" className="scroll-mt-24 py-10 md:py-16 bg-ivory">
+      <section id="registration" className="scroll-mt-24 bg-ivory py-5 md:py-7">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="How to Register"
             title={
               <>
-                Three Steps to <span className="font-cormorant italic text-cocoa">Your Seat</span>
+                Register for <span className="font-cormorant italic text-cocoa">your course</span>
               </>
             }
-            className="mb-8 md:mb-10"
+            className="mb-4 [&_.eyebrow]:mb-2 [&_.ornament]:mt-3"
           />
-          <div className="relative mx-auto max-w-5xl">
-            <div aria-hidden="true" className="absolute left-[16.67%] right-[16.67%] top-8 hidden border-t-2 border-dashed border-champagne md:block" />
-            <ol className="relative grid gap-10 md:grid-cols-3 md:gap-8">
-              {steps.map((s, i) => (
-                <li key={s.title} className="relative text-center">
-                  <span className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-chocolate font-cormorant text-3xl italic text-champagne ring-8 ring-ivory">
-                    {i === steps.length - 1 ? <Check className="h-7 w-7" /> : i + 1}
-                  </span>
-                  <h3 className="mt-5 font-playfair text-2xl font-medium text-chocolate">{s.title}</h3>
-                  <p className="mx-auto mt-2 max-w-xs font-inter text-sm leading-relaxed text-ink">{s.text}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="mt-8 text-center">
-            <div className="workshop-registration mx-auto w-full min-w-0 max-w-3xl rounded-2xl border border-sand bg-beige p-4 text-left shadow-soft sm:p-8">
+          <ol className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-3">
+            {steps.map((step, index) => (
+              <li key={step.title} className="flex items-start gap-3 rounded-xl border border-sand bg-white p-3 text-left">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chocolate text-sm font-semibold text-ivory">{index + 1}</span>
+                <div><h3 className="text-sm font-semibold text-chocolate">{step.title}</h3><p className="mt-1 text-xs leading-relaxed text-cocoa">{step.text}</p></div>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-4 text-center">
+            <div className="workshop-registration relative mx-auto w-full min-w-0 max-w-3xl rounded-2xl border border-sand bg-beige p-4 text-left shadow-soft sm:p-8">
+              <div aria-hidden="true" className="workshop-form-flourish hidden sm:block">
+                <span className="workshop-form-orbit" />
+                <Sparkles className="workshop-form-sparkle workshop-form-sparkle-one" />
+                <Sparkles className="workshop-form-sparkle workshop-form-sparkle-two" />
+                <span className="workshop-form-dot workshop-form-dot-one" />
+                <span className="workshop-form-dot workshop-form-dot-two" />
+                <span className="workshop-form-dot workshop-form-dot-three" />
+              </div>
               <p className="eyebrow">Course Registration</p>
-              <h2 className="mt-2 font-playfair text-3xl font-medium text-chocolate">Save your seat</h2>
-              <p className="mt-2 font-inter text-sm leading-relaxed text-ink">
-                The suggested advance is ₹500. You can pay a lower or higher amount. Your details are saved before payment opens. Your seat is confirmed after your payment is verified and the registration update is saved. We’ll confirm the remaining balance separately.
-              </p>
+              <h2 className="mt-2 font-playfair text-3xl font-medium text-chocolate">Fill in your details</h2>
 
               {pendingPayment && !processing && <p role="status" className="mt-5 rounded-xl border border-champagne bg-ivory p-4 text-sm text-cocoa">{pendingPayment.proof ? 'Your previous payment needs confirmation. Continue below to retry verification without paying again.' : 'Your earlier payment needs review by SK Bridal Studio. Contact us and do not pay again.'} Payment ID: <span className="break-all font-semibold">{pendingPayment.paymentId}</span></p>}
 
               <form onSubmit={handleRegistrationSubmit} noValidate className="mt-6 space-y-5" aria-busy={processing}>
-                <fieldset disabled={processing || Boolean(pendingPayment)} className="min-w-0 space-y-5 disabled:opacity-75">
-                <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
-                  <div>
-                    <label id="workshop-course-label" htmlFor="workshop-course" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Course *</label>
+                <fieldset disabled={processing || Boolean(pendingPayment)} className="min-w-0 space-y-5 disabled:opacity-75" aria-label="Registration details">
+                <div>
+                    <label id="workshop-course-label" htmlFor="workshop-course" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Choose your course *</label>
                     <WorkshopDropdown
                       {...fieldAccessibility('course')}
                       id="workshop-course"
@@ -770,55 +779,66 @@ const Workshops: React.FC = () => {
                     />
                     {fieldError('course')}
                   </div>
-                  <div>
+                <div className="border-t border-sand pt-5">
+                  <h3 className="mb-4 font-inter text-base font-semibold text-chocolate">Your details</h3>
+                  <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
+                    <div>
                     <label htmlFor="workshop-name" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Your name *</label>
                     <input {...fieldAccessibility('name')} id="workshop-name" name="name" type="text" autoComplete="name" required maxLength={100} value={registration.name} onChange={handleRegistrationChange} className="field" placeholder="Full name" />
                     {fieldError('name')}
                   </div>
-                </div>
-                <div>
+                    <div>
                   <label htmlFor="workshop-email" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Email Address *</label>
                   <input {...fieldAccessibility('email')} id="workshop-email" name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required maxLength={150} value={registration.email} onChange={handleRegistrationChange} className="field" placeholder="you@example.com" />
                   {fieldError('email')}
                 </div>
-                <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
-                  <div>
+                  </div>
+                  <div className="mt-5"><div>
                     <label htmlFor="workshop-phone" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">WhatsApp number *</label>
                     <div className="relative">
                       <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center border-r border-sand pr-3 text-base font-medium text-cocoa">+91</span>
                       <input {...fieldAccessibility('phone')} aria-label="WhatsApp number, India +91" id="workshop-phone" name="phone" type="tel" inputMode="numeric" pattern="[6-9][0-9]{9}" autoComplete="tel-national" required maxLength={10} value={registration.phone} onChange={handleRegistrationChange} onPaste={(event) => { event.preventDefault(); setRegistration((previous) => ({ ...previous, phone: normalizePhone(event.clipboardData.getData('text')) })); setErrors((previous) => ({ ...previous, phone: undefined })); }} className="field !pl-20" placeholder="10-digit mobile number" />
                     </div>
                     {fieldError('phone')}
-                  </div>
-                  <div>
-                    <label htmlFor="workshop-city" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">City</label>
-                    <input {...fieldAccessibility('city')} id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city" />
-                    {fieldError('city')}
-                  </div>
+                  </div></div>
                 </div>
-                <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
-                  <div>
+                <div className="border-t border-sand pt-5">
+                  <h3 className="mb-4 font-inter text-base font-semibold text-chocolate">About your learning</h3>
+                  <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
+                    <div>
                     <label id="workshop-gender-label" htmlFor="workshop-gender" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Gender *</label>
                     <WorkshopDropdown {...fieldAccessibility('gender')} id="workshop-gender" name="gender" value={registration.gender} options={[{ value: '', label: 'Select gender' }, ...['Female', 'Male', 'Prefer not to say'].map(gender => ({ value: gender, label: gender }))]} disabled={processing || Boolean(pendingPayment)} onChange={gender => { setRegistration(previous => ({ ...previous, gender })); setErrors(previous => ({ ...previous, gender: undefined })); setFormError(''); }} />
                     {fieldError('gender')}
                   </div>
-                  <div>
-                    <label htmlFor="workshop-experience" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Current makeup experience *</label>
-                    <input {...fieldAccessibility('experience')} id="workshop-experience" name="experience" type="text" required maxLength={150} value={registration.experience} onChange={handleRegistrationChange} className="field" placeholder="Beginner, professional, etc." />
+                    <div>
+                    <label htmlFor="workshop-experience" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Makeup experience *</label>
+                    <input {...fieldAccessibility('experience')} id="workshop-experience" name="experience" type="text" required maxLength={150} value={registration.experience} onChange={handleRegistrationChange} className="field" placeholder="e.g. Beginner or professional" />
                     {fieldError('experience')}
                   </div>
-                </div>
-                <div>
-                  <label htmlFor="workshop-main-goal" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Main goal for joining the course *</label>
-                  <textarea {...fieldAccessibility('mainGoal')} id="workshop-main-goal" name="mainGoal" rows={3} required maxLength={500} value={registration.mainGoal} onChange={handleRegistrationChange} className="field resize-y" placeholder="What do you want to learn?" />
+                  </div>
+                  <div className="mt-5"><div>
+                  <label htmlFor="workshop-main-goal" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">What would you like to learn? *</label>
+                  <textarea {...fieldAccessibility('mainGoal')} id="workshop-main-goal" name="mainGoal" rows={2} required maxLength={500} value={registration.mainGoal} onChange={handleRegistrationChange} className="field resize-y" placeholder="What do you want to learn?" />
                   {fieldError('mainGoal')}
+                </div></div>
                 </div>
-                <div>
+                <details className="workshop-optional-details group rounded-xl border border-sand bg-ivory/70">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-cocoa">
+                    <span><span className="block text-sm font-semibold">Additional details <span className="font-normal">(optional)</span></span><span className="mt-1 block text-xs">City, comments or a payment screenshot</span></span>
+                    <ArrowDown aria-hidden="true" className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="space-y-5 px-4 pb-4">
+                    <div>
+                    <label htmlFor="workshop-city" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">City</label>
+                    <input {...fieldAccessibility('city')} id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city" />
+                    {fieldError('city')}
+                  </div>
+                    <div>
                   <label htmlFor="workshop-question" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Additional comments or suggestions (optional)</label>
                   <textarea {...fieldAccessibility('question')} id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Any additional comments?" />
                   {fieldError('question')}
                 </div>
-                <div>
+                    <div>
                   <label htmlFor="workshop-paymentScreenshot" className="mb-1.5 block font-inter text-xs font-medium leading-relaxed text-cocoa">Please share a screenshot of your payment confirmation to secure your seat. 💳✨ (Optional)</label>
                   <input {...fieldAccessibility('paymentScreenshot')} ref={paymentProofInput} id="workshop-paymentScreenshot" name="paymentScreenshot" type="file" accept={PAYMENT_PROOF_TYPES.join(',')} aria-describedby={errors.paymentScreenshot ? 'workshop-paymentScreenshot-error workshop-proof-help' : 'workshop-proof-help'} onChange={event => {
                     const file = event.target.files?.[0] || null;
@@ -842,11 +862,16 @@ const Workshops: React.FC = () => {
                   {fieldError('paymentScreenshot')}
                   {paymentProofPreview && !errors.paymentScreenshot && <img src={paymentProofPreview} alt="Selected payment proof preview" className="mt-2 max-h-24 max-w-full rounded-md object-contain" />}
                 </div>
-                <div>
-                  <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Payment amount (₹) *</label>
+                  </div>
+                </details>
+                <div className="border-t border-sand pt-5">
+                  <h3 className="mb-4 font-inter text-base font-semibold text-chocolate">Complete your registration</h3>
+                  <div>
+                  <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Registration advance (₹) *</label>
                   <input {...fieldAccessibility('amount')} id="workshop-amount" name="amount" type="number" inputMode="numeric" min="1" step="1" required value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value); setErrors(previous => ({ ...previous, amount: undefined })); setFormError(''); }} className="field" />
-                  <p className="mt-2 text-sm text-cocoa">₹500 suggested. Pay any amount (minimum ₹1).</p>
+                  <p className="mt-2 text-sm text-cocoa">₹500 suggested · Minimum ₹1. We’ll confirm any remaining balance separately.</p>
                   {fieldError('amount')}
+                </div>
                 </div>
                 </fieldset>
                 <div className="flex w-full min-w-0 flex-col items-center gap-3">

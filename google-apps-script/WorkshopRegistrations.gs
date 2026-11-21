@@ -33,10 +33,14 @@ const CONFIG = {
 };
 
 const ALLOWED_COURSES = [
+  "2-Day Online Live Demo Workshop", "15-Day Bridal Makeup Masterclass", "30-Day Professional Bridal Makeup Masterclass"
+];
+// Keep existing saved registrations verifiable without offering these for new orders.
+const LEGACY_SAVED_COURSES = [
   "Full 2-day masterclass", "Muhurtham Look (Day 1)", "Reception Look (Day 2)"
 ];
 
-function validateRegistration_(data) {
+function validateRegistration_(data, allowLegacySavedCourse) {
   data = data && typeof data === "object" && !Array.isArray(data) ? data : {};
 
   // Accept the field names used by both the current website and older form versions.
@@ -86,7 +90,7 @@ function validateRegistration_(data) {
   if (!/^91[6-9][0-9]{9}$/.test(registration.phone)) {
     fields.phone = "Enter a valid Indian WhatsApp number.";
   }
-  if (ALLOWED_COURSES.indexOf(registration.course) === -1) {
+  if (ALLOWED_COURSES.indexOf(registration.course) === -1 && !(allowLegacySavedCourse === true && LEGACY_SAVED_COURSES.indexOf(registration.course) !== -1)) {
     fields.course = "Please select one of the available courses.";
   }
   if (registration.gender && ["Female", "Male", "Prefer not to say"].indexOf(registration.gender) === -1) {
@@ -515,7 +519,7 @@ function registrationFromSheetRow_(sheet, row) {
     city: values[8],
     course: values[14],
     paymentScreenshot: values[10]
-  });
+  }, true);
 }
 
 /**
@@ -623,7 +627,7 @@ function verifyWorkshopPayment_(request) {
 /** Update the existing Pending row; never append a duplicate registration. */
 function saveVerifiedRegistration_(row, registration, orderId, paymentId, amountPaise) {
   const sheet = getResponseSheet_();
-  validateRegistration_(registration);
+  validateRegistration_(registration, true);
   // Re-resolve the order after network calls; row numbers can move.
   row = findRegistrationRowByOrderId_(sheet, orderId);
   if (!row) throw backendError_("ORDER_NOT_FOUND", "The Pending registration for this order is missing.");

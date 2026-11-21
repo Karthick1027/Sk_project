@@ -10,11 +10,28 @@
 .workshop-registration .field[aria-invalid='true'] { border-color: #dc2626; box-shadow: 0 0 0 3px rgb(220 38 38 / 12%), 0 3px 10px rgb(185 28 28 / 10%); }
 .workshop-registration .field[aria-invalid='true']:focus { border-color: #b91c1c; box-shadow: 0 0 0 4px rgb(220 38 38 / 18%), 0 4px 12px rgb(185 28 28 / 12%); }
 .workshop-registration .workshop-validation-alert { color: #991b1b; background-color: #fef2f2; border: 2px solid #dc2626; border-left-width: 6px; box-shadow: 0 0 0 3px rgb(220 38 38 / 12%), 0 6px 18px rgb(185 28 28 / 16%); }
+.workshop-form-flourish { position: absolute; z-index: 0; top: 18px; right: 24px; width: 150px; height: 92px; pointer-events: none; opacity: .72; }
+.workshop-form-flourish::before { content: ''; position: absolute; top: 9px; right: 22px; width: 72px; height: 72px; border: 1px solid rgb(150 114 83 / 35%); border-radius: 999px; box-shadow: inset 0 0 0 9px rgb(216 194 165 / 10%), 0 0 24px rgb(196 161 120 / 16%); animation: workshop-flourish-breathe 4s ease-in-out infinite; }
+.workshop-form-orbit { position: absolute; top: 18px; right: 31px; width: 54px; height: 54px; border: 1px dashed rgb(150 114 83 / 55%); border-radius: 999px; animation: workshop-flourish-spin 14s linear infinite; }
+.workshop-form-orbit::before, .workshop-form-orbit::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; border: 1px solid rgb(150 114 83 / 45%); border-radius: 60% 40% 60% 40%; transform-origin: center; }
+.workshop-form-orbit::before { transform: translate(-50%, -50%) rotate(45deg) translateY(-34px); background: rgb(216 194 165 / 45%); }
+.workshop-form-orbit::after { transform: translate(-50%, -50%) rotate(225deg) translateY(-34px); background: rgb(247 239 229 / 80%); }
+.workshop-form-sparkle { position: absolute; color: #967253; filter: drop-shadow(0 2px 5px rgb(150 114 83 / 18%)); }
+.workshop-form-sparkle-one { top: 4px; right: 4px; width: 22px; height: 22px; animation: workshop-flourish-float 3.6s ease-in-out infinite; }
+.workshop-form-sparkle-two { bottom: 3px; right: 96px; width: 15px; height: 15px; animation: workshop-flourish-float 3.6s 1.2s ease-in-out infinite; }
+.workshop-form-dot { position: absolute; width: 5px; height: 5px; border-radius: 999px; background: #c4a178; animation: workshop-flourish-twinkle 2.8s ease-in-out infinite; }
+.workshop-form-dot-one { top: 18px; left: 24px; }
+.workshop-form-dot-two { top: 53px; left: 5px; animation-delay: .8s; }
+.workshop-form-dot-three { bottom: 4px; right: 16px; animation-delay: 1.6s; }
 @keyframes workshop-popup { from { opacity: 0; transform: translateY(12px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes workshop-icon { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: scale(1); } }
 @keyframes workshop-check { to { stroke-dashoffset: 0; } }
 @keyframes workshop-confetti { 10% { opacity: .9; } to { opacity: 0; transform: translateY(340px) rotate(260deg); } }
+@keyframes workshop-flourish-spin { to { transform: rotate(360deg); } }
+@keyframes workshop-flourish-breathe { 50% { transform: scale(1.07); opacity: .65; } }
+@keyframes workshop-flourish-float { 50% { transform: translateY(-5px) rotate(8deg); opacity: .55; } }
+@keyframes workshop-flourish-twinkle { 50% { transform: scale(1.7); opacity: .35; } }
 @media (prefers-reduced-motion: reduce) {
-  .workshop-payment-dialog, .workshop-result-icon, .workshop-confetti, .workshop-check path { animation: none; }
+  .workshop-payment-dialog, .workshop-result-icon, .workshop-confetti, .workshop-check path, .workshop-form-flourish::before, .workshop-form-orbit, .workshop-form-sparkle, .workshop-form-dot { animation: none; }
   .workshop-check path { stroke-dashoffset: 0; }
 }
