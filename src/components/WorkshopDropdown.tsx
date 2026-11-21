@@ -17,6 +17,7 @@ export default function WorkshopDropdown({ id, name, value, options, onChange, d
   const listId = `workshop-options-${useId()}`;
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLUListElement>(null);
   const search = useRef({ text: '', time: 0 });
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -36,7 +37,34 @@ export default function WorkshopDropdown({ id, name, value, options, onChange, d
   }, [open]);
 
   useEffect(() => {
-    if (open && active >= 0) document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: 'nearest' });
+    if (!open || disabled) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (!list.current) return;
+      const viewport = window.visualViewport;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const viewportBottom = (viewport?.offsetTop ?? 0) + viewportHeight;
+      // Keep room for the field and header on short screens or with a keyboard open.
+      list.current.style.maxHeight = `${Math.max(44, Math.min(240, viewportHeight - 192))}px`;
+      const overflow = list.current.getBoundingClientRect().bottom - viewportBottom + 16;
+      if (overflow > 0) {
+        window.scrollBy({
+          top: overflow,
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        });
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, disabled]);
+
+  useEffect(() => {
+    const menu = list.current;
+    const option = document.getElementById(`${listId}-${active}`);
+    if (!open || !menu || !option) return;
+    // Move within the options without scrolling the page again on hover/navigation.
+    const top = option.offsetTop - menu.clientTop;
+    const bottom = top + option.offsetHeight;
+    if (top < menu.scrollTop) menu.scrollTop = top;
+    else if (bottom > menu.scrollTop + menu.clientHeight) menu.scrollTop = bottom - menu.clientHeight;
   }, [active, open, listId]);
 
   const choose = (index: number) => {
@@ -79,7 +107,7 @@ export default function WorkshopDropdown({ id, name, value, options, onChange, d
         <span id={`${id}-value`} className="min-w-0 break-words">{options[selected]?.label || 'Select an option'}</span>
         <ChevronDown aria-hidden="true" className={`pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cocoa transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && !disabled && <ul id={listId} role="listbox" aria-labelledby={`${id}-label`} onMouseLeave={() => setActive(-1)} className="absolute left-0 right-0 top-full z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-champagne bg-beige p-1.5 shadow-luxe">
+      {open && !disabled && <ul ref={list} id={listId} role="listbox" aria-labelledby={`${id}-label`} onMouseLeave={() => setActive(-1)} className="absolute left-0 right-0 top-full z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-champagne bg-beige p-1.5 shadow-luxe">
         {options.map((option, index) => (
           <li key={option.value} id={`${listId}-${index}`} role="option" aria-selected={value === option.value} data-value={option.value} onMouseEnter={() => setActive(index)} onMouseDown={event => event.preventDefault()} onClick={() => choose(index)} className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-base transition-colors duration-150 ${active === index ? 'bg-champagne text-chocolate' : selected === index ? 'bg-chocolate text-ivory' : 'bg-beige text-chocolate'}`}>
             <span className="min-w-0 break-words">{option.label}</span>
