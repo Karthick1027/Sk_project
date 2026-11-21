@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="220" viewBox="0 0 360 220" fill="none">
+  <defs>
+    <linearGradient id="case" x1="100" y1="60" x2="240" y2="180" gradientUnits="userSpaceOnUse"><stop stop-color="#684739"/><stop offset="1" stop-color="#33221C"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="28" y2="18" gradientUnits="userSpaceOnUse"><stop stop-color="#E8CFAC"/><stop offset=".5" stop-color="#B78C65"/><stop offset="1" stop-color="#E5C6A0"/></linearGradient>
+    <linearGradient id="bristles" x1="0" y1="-53" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#C69D84"/><stop offset=".55" stop-color="#89624E"/><stop offset="1" stop-color="#4B3025"/></linearGradient>
+    <radialGradient id="blush"><stop stop-color="#E8BCAC"/><stop offset="1" stop-color="#C88D7C"/></radialGradient>
+  </defs>
+  <ellipse cx="179" cy="108" rx="129" ry="84" stroke="#C8A785" stroke-opacity=".4" transform="rotate(-15 179 108)"/>
+  <path d="M46 143C90 196 246 193 311 110" stroke="#C8A785" stroke-opacity=".3" stroke-dasharray="2 6"/>
+  <ellipse cx="182" cy="177" rx="88" ry="8" fill="#4B3025" opacity=".07"/>
+  <!-- Open powder compact, with a softly reflective mirror. -->
+  <g transform="rotate(-13 166 113)">
+    <rect x="118" y="33" width="101" height="84" rx="36" fill="url(#case)"/>
+    <rect x="124" y="39" width="89" height="72" rx="30" fill="#DDCCB9" stroke="#C5A17A" stroke-width="2"/>
+    <path d="M137 83L168 48M148 98L190 48" stroke="#FFF9F0" stroke-opacity=".55" stroke-width="8" stroke-linecap="round"/>
+    <rect x="148" y="108" width="42" height="8" rx="4" fill="#B78C65"/>
+    <rect x="110" y="113" width="117" height="67" rx="32" fill="url(#case)" stroke="#B78C65"/>
+    <ellipse cx="168.5" cy="145" rx="47" ry="23" fill="#D7B18D"/>
+    <ellipse cx="168.5" cy="143" rx="42" ry="19" fill="url(#blush)"/>
+    <path d="M141 139C153 131 179 128 194 139" stroke="#F5D7C8" stroke-opacity=".5" stroke-linecap="round"/>
+  </g>
+  <!-- A sculpted powder brush. -->
+  <g transform="translate(237 108) rotate(32)">
+    <path d="M-15 0C-24-16-23-43-12-50C-5-56 6-56 13-50C24-42 24-16 15 0Z" fill="url(#bristles)"/>
+    <path d="M-9-43L-6-8M0-48V-7M9-43L6-8" stroke="#E2BBA0" stroke-opacity=".3" stroke-linecap="round"/>
+    <path d="M-15 0H15L10 29H-10Z" fill="url(#gold)"/>
+    <path d="M-10 29H10L7 81C6 90-6 90-7 81Z" fill="#4B3025"/>
+    <path d="M-7 34L-5 77" stroke="#94705C" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <!-- Rose lipstick. -->
+  <g transform="translate(98 112) rotate(-24)">
+    <rect x="-10" y="14" width="20" height="43" rx="3" fill="url(#case)"/>
+    <rect x="-11" y="6" width="22" height="12" rx="2" fill="url(#gold)"/>
+    <path d="M-7 6V-19C-7-24 7-33 7-25V6Z" fill="#AC615F"/>
+    <path d="M-3-18V1" stroke="#D4968B" stroke-width="2" stroke-linecap="round"/>
+    <path d="M-10 23H10" stroke="#B78C65" stroke-width="2"/>
+  </g>
+  <g stroke="#B18B67" stroke-linecap="round">
+    <path d="M280 44V60M272 52H288M53 101V111M48 106H58"/>
+    <path d="M302 138V146M298 142H306" opacity=".6"/>
+  </g>
+  <circle cx="73" cy="65" r="2.5" fill="#C2917C"/>
+  <circle cx="294" cy="88" r="2" fill="#C2917C"/>
+  <path d="M133 198C161 202 191 202 218 196" stroke="#B18B67" stroke-opacity=".6" stroke-linecap="round"/>
+</svg>

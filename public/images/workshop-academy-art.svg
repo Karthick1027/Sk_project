@@ -1,0 +1,107 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="420" height="260" viewBox="0 0 420 260" fill="none">
+  <title>SK Bridal Studio Academy — the art and business of beauty</title>
+  <desc>A makeup demonstration with students, professional lighting, a cosmetics palette, and a branding and social media workstation, illustrated in warm ivory, bronze and espresso.</desc>
+  <defs>
+    <linearGradient id="paper" x1="92" y1="28" x2="302" y2="215" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFCF7"/><stop offset="1" stop-color="#EDE0D0"/></linearGradient>
+    <linearGradient id="bronze" x1="80" y1="30" x2="298" y2="220" gradientUnits="userSpaceOnUse"><stop stop-color="#D9BD98"/><stop offset=".5" stop-color="#A87D55"/><stop offset="1" stop-color="#DBC3A4"/></linearGradient>
+    <linearGradient id="silk" x1="206" y1="115" x2="256" y2="187" gradientUnits="userSpaceOnUse"><stop stop-color="#CAADA0"/><stop offset="1" stop-color="#A5796C"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#553C2E" flood-opacity=".09"/></filter>
+  </defs>
+  <!-- Architectural frame; the entire scene shares a quiet, level baseline. -->
+  <path d="M94 208V101C94 53 135 20 196 20S299 53 299 101V208" fill="url(#paper)"/>
+  <path d="M103 203V102C103 58 141 29 196 29S290 58 290 102V203" stroke="#C9AE8C" stroke-opacity=".55"/>
+  <path d="M72 218H328" stroke="url(#bronze)"/>
+  <path d="M123 229H276" stroke="#C9AE8C" stroke-opacity=".4"/>
+  <g fill="#8C6B50" font-family="Georgia,serif" font-size="10" letter-spacing="3">
+    <text x="196" y="53" text-anchor="middle">SK ACADEMY</text>
+  </g>
+  <path d="M166 62H226" stroke="#C5A27C" stroke-width=".8"/>
+
+  <!-- Studio light: precise concentric rings and an articulated recording mount. -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M67 114V198M67 177L49 207M67 177L85 207" stroke="#85674F" stroke-width="2"/>
+    <circle cx="67" cy="85" r="30" fill="#F5E9D9" stroke="url(#bronze)" stroke-width="3"/>
+    <circle cx="67" cy="85" r="24" fill="#FAF6EF" stroke="#CEB38F" stroke-width="1.2"/>
+    <path d="M67 106V96" stroke="#85674F" stroke-width="2"/>
+    <rect x="60" y="76" width="14" height="22" rx="3" fill="#5A4031"/>
+    <rect x="62.5" y="79" width="9" height="14" rx="1" fill="#E6D3BC"/>
+    <path d="M65 81H69" stroke="#8F7059" stroke-width=".8"/>
+    <circle cx="67" cy="95.5" r=".8" fill="#D5B995"/>
+    <path d="M100 90L118 98M99 80L117 79" stroke="#CCB293" stroke-opacity=".55" stroke-width=".8"/>
+  </g>
+
+  <!-- A tailored educator, shown in profile, demonstrating a brush technique. -->
+  <path d="M144 107C132 103 131 85 136 76C143 65 161 70 164 81L165 99L154 109Z" fill="#4B352A"/>
+  <path d="M147 98L145 114L158 121L165 109L157 99" fill="#D3AB8B"/>
+  <path d="M146 77C154 72 163 79 163 87L166 93L162 95V101C156 108 145 101 144 94L141 88Z" fill="#E1BDA0"/>
+  <path d="M140 89C143 86 149 81 150 77C148 72 140 73 137 81L137 100L145 104Z" fill="#4B352A"/>
+  <path d="M158 87L161 88M158 98L162 98" stroke="#825B46" stroke-width=".9" stroke-linecap="round"/>
+  <circle cx="148" cy="96" r="1.6" stroke="#C2A16F"/>
+  <path d="M145 111L131 119L122 177H170L167 125L159 112L151 125Z" fill="#604738"/>
+  <path d="M145 113L142 134L151 128L158 136L160 116M140 142L136 173" stroke="#BFA285" stroke-width="1" stroke-linecap="round"/>
+  <path d="M163 124C174 126 180 137 187 135L210 117" stroke="#D8B194" stroke-width="7" stroke-linecap="round"/>
+  <path d="M208 118L221 107" stroke="#6C4B36" stroke-width="2" stroke-linecap="round"/>
+  <path d="M219 109L225 104" stroke="#B59070" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M134 126L126 149L144 153" stroke="#D8B194" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="141" y="147" width="23" height="8" rx="2" transform="rotate(-10 141 147)" fill="#C6A782" stroke="#8B694C" stroke-width=".8"/>
+  <path d="M147 149L150 148M155 148L158 147" stroke="#A27063" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Model with swept hair, bridal jewellery and a draped cape. -->
+  <path d="M215 114C209 97 213 79 227 77C243 74 251 88 248 105L244 125Z" fill="#4D362B"/>
+  <circle cx="247" cy="95" r="10" fill="#4D362B"/>
+  <path d="M224 112V126L238 129V110" fill="#C99E7E"/>
+  <path d="M218 93C217 84 232 80 240 88L241 104C241 119 221 122 218 107Z" fill="#E2BCA0"/>
+  <path d="M216 98C215 83 226 77 235 81C239 82 242 86 243 92C235 91 228 87 226 85C224 91 220 96 216 98Z" fill="#4D362B"/>
+  <path d="M220 102L225 103M232 103L236 101" stroke="#6E4A38" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M225 112Q230 115 234 111" stroke="#A56C62" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M229 103L227 108L230 109" stroke="#BD8F73" stroke-width=".7" stroke-linecap="round"/>
+  <circle cx="217" cy="110" r="2" fill="#C6A26E"/>
+  <circle cx="241" cy="110" r="2" fill="#C6A26E"/>
+  <path d="M222 121L207 131L201 177H258L252 133L237 122C233 128 227 128 222 121Z" fill="url(#silk)"/>
+  <path d="M219 126Q230 148 242 127M212 140L244 171M218 136L250 167" stroke="#E8D1B6" stroke-width="1" stroke-opacity=".8"/>
+  <path d="M209 178H253M216 179V204M246 179V204" stroke="#8E6B51" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Two students in the foreground, reduced to confident editorial silhouettes. -->
+  <path d="M143 215C143 195 152 187 163 187C177 187 185 196 185 215" fill="#C8B59E"/>
+  <path d="M152 181C150 164 156 157 164 157C174 157 179 166 176 181L172 191H157Z" fill="#5A4031"/>
+  <path d="M156 179C161 177 169 177 173 182V189C166 193 160 191 156 187Z" fill="#D6AE8F"/>
+  <path d="M184 215C184 198 192 191 202 191C214 191 222 199 222 215" fill="#8E6E59"/>
+  <path d="M192 188V176C192 162 212 161 214 177V191C204 195 195 193 192 188Z" fill="#493429"/>
+  <path d="M194 186C197 183 200 176 200 174C203 183 207 185 211 187L208 195H198Z" fill="#DDB79B"/>
+  <path d="M169 202L181 199L193 202V213L181 210L169 213Z" fill="#FFF9EF" stroke="#B89B7A" stroke-width=".8"/>
+  <path d="M181 200V210M172 205L177 204M185 204L190 205" stroke="#B89B7A" stroke-width=".6"/>
+
+  <!-- A considered still life of colour and tools. -->
+  <g filter="url(#shadow)">
+    <rect x="64" y="154" width="53" height="38" rx="5" fill="#FAF5EC" stroke="#C3A684"/>
+    <rect x="68" y="158" width="45" height="13" rx="2" fill="#E7D8C5"/>
+    <path d="M73 167L79 160M79 169L87 160" stroke="#FDF9F1" stroke-width="2"/>
+    <g><circle cx="75" cy="181" r="4" fill="#D6AF91"/><circle cx="88" cy="181" r="4" fill="#B98474"/><circle cx="101" cy="181" r="4" fill="#85604A"/></g>
+    <path d="M109 160L120 132" stroke="#684B37" stroke-width="3" stroke-linecap="round"/>
+    <path d="M119 135L123 126" stroke="#C8A57D" stroke-width="5" stroke-linecap="round"/>
+    <path d="M123 127C116 124 120 116 126 113C132 119 130 127 123 127Z" fill="#99765A"/>
+  </g>
+
+  <!-- A clean branding workstation, with a designed social post and colour system. -->
+  <g filter="url(#shadow)">
+    <rect x="275" y="107" width="101" height="75" rx="6" fill="#FFF9F0" stroke="#C4A582"/>
+    <path d="M275 119H376" stroke="#D8C3A9"/>
+    <g fill="#BC9C7B"><circle cx="282" cy="113" r="1.3"/><circle cx="287" cy="113" r="1.3"/><circle cx="292" cy="113" r="1.3"/></g>
+    <rect x="283" y="126" width="39" height="47" rx="2" fill="#E9D9C7"/>
+    <path d="M290 160V145C290 128 315 128 315 145V160Z" fill="#B28F75"/>
+    <path d="M297 144C297 138 307 138 307 144V151C307 158 297 158 297 151Z" fill="#E6C3A6"/>
+    <path d="M290 160C292 151 312 151 315 160" fill="#6C4D3A"/>
+    <path d="M291 165H313M296 169H308" stroke="#8D6950" stroke-width="1" stroke-linecap="round"/>
+    <path d="M330 130H365M330 136H357M330 143H361" stroke="#B69778" stroke-width="1.5" stroke-linecap="round"/>
+    <rect x="330" y="152" width="10" height="10" rx="2" fill="#583C2C"/><rect x="343" y="152" width="10" height="10" rx="2" fill="#BC8C78"/><rect x="356" y="152" width="10" height="10" rx="2" fill="#DCC5A6"/>
+    <path d="M330 168H352" stroke="#B69778" stroke-width="1" stroke-linecap="round"/>
+    <path d="M317 183V193M304 194H340" stroke="#987759" stroke-width="2.5" stroke-linecap="round"/>
+    <rect x="358" y="153" width="24" height="46" rx="5" fill="#57402F" stroke="#FAF3E8" stroke-width="2"/>
+    <rect x="362" y="159" width="16" height="32" rx="1.5" fill="#F8ECDB"/>
+    <rect x="364" y="162" width="12" height="15" rx="1" fill="#BF9A81"/>
+    <path d="M365 180L368 183L371 180M364 187H375" stroke="#A16C59" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M367 156H373" stroke="#C4A582" stroke-linecap="round"/>
+  </g>
+  <path d="M308 74H349M308 80H334" stroke="#C4A582" stroke-width=".8"/>
+  <circle cx="303" cy="74" r="1.5" fill="#B38D6D"/>
+</svg>

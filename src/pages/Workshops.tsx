@@ -464,6 +464,14 @@ const Workshops: React.FC = () => {
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-champagne/30 blur-3xl" />
 
         <div className="relative container mx-auto grid items-center gap-12 px-4 pt-6 pb-8 sm:py-14 md:max-w-[90%] lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:py-16">
+          <img
+            src="/images/workshop-academy-art.svg"
+            alt=""
+            aria-hidden="true"
+            width={420}
+            height={260}
+            className="pointer-events-none absolute left-[31%] top-3 hidden w-[30%] max-w-[380px] select-none xl:block"
+          />
           <div className="text-center lg:text-left animate-fade-in">
             <span className="inline-flex items-center gap-2.5 rounded-full border border-champagne bg-ivory/80 px-4 py-2 font-inter text-[11px] font-semibold uppercase tracking-[0.3em] text-cocoa">
               <span className="relative flex h-2 w-2">
@@ -686,25 +694,25 @@ const Workshops: React.FC = () => {
       </section>
 
       {/* Before you join */}
-      <section className="relative overflow-hidden bg-beige py-10 md:py-16">
+      <section className="relative overflow-hidden bg-beige py-6 md:py-8">
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
         <div className="relative container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="Before You Join"
             title="Good to Know"
             subtitle="How the live sessions run, so you can plan your day"
-            className="mb-8 md:mb-10"
+            className="mb-5 md:mb-6 [&_.eyebrow]:mb-2 [&_.ornament]:mt-3 [&>p:last-child]:mt-3"
           />
           {/* Compact rows on phones (icon beside the text); centred cards from sm up */}
-          <div className="mx-auto grid max-w-5xl gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto grid max-w-5xl gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {essentials.map((e) => (
-              <div key={e.title} className="group card flex items-center gap-4 p-4 text-left transition-transform duration-300 hover:-translate-y-1 sm:block sm:p-6 sm:text-center">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-beige text-cocoa ring-1 ring-champagne transition-colors duration-300 group-hover:bg-chocolate group-hover:text-champagne sm:mx-auto sm:h-14 sm:w-14">
+              <div key={e.title} className="group card flex items-center gap-4 p-4 text-left transition-transform duration-300 hover:-translate-y-1 sm:block sm:p-5 sm:text-center">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-beige text-cocoa ring-1 ring-champagne transition-colors duration-300 group-hover:bg-chocolate group-hover:text-champagne sm:mx-auto sm:h-12 sm:w-12">
                   <e.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </span>
                 <div>
-                  <h3 className="font-playfair text-lg font-medium text-chocolate sm:mt-5 sm:text-xl">{e.title}</h3>
-                  <p className="mt-0.5 font-inter text-sm leading-relaxed text-ink sm:mt-2">{e.text}</p>
+                  <h3 className="font-playfair text-lg font-medium text-chocolate sm:mt-3 sm:text-xl">{e.title}</h3>
+                  <p className="mt-0.5 font-inter text-sm leading-relaxed text-ink sm:mt-1">{e.text}</p>
                 </div>
               </div>
             ))}
@@ -869,7 +877,7 @@ const Workshops: React.FC = () => {
                   <div>
                   <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Registration advance (₹) *</label>
                   <input {...fieldAccessibility('amount')} id="workshop-amount" name="amount" type="number" inputMode="numeric" min="1" step="1" required value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value); setErrors(previous => ({ ...previous, amount: undefined })); setFormError(''); }} className="field" />
-                  <p className="mt-2 text-sm text-cocoa">{formatPaymentAmount(Number(WORKSHOP_ADVANCES[registration.course] ?? DEFAULT_PAYMENT_AMOUNT))} suggested · Minimum ₹1. We’ll confirm any remaining balance separately.</p>
+                  <p className="mt-2 ml-2 text-sm text-cocoa">{formatPaymentAmount(Number(WORKSHOP_ADVANCES[registration.course] ?? DEFAULT_PAYMENT_AMOUNT))} suggested · Minimum ₹1. We’ll confirm any remaining balance separately.</p>
                   {fieldError('amount')}
                 </div>
                 </div>
