@@ -13,8 +13,9 @@ vm.runInNewContext(ts.transpileModule(readFileSync(`${__dirname}/workshopPayment
   setTimeout, clearTimeout, AbortController, Error, TypeError, SyntaxError,
   sessionStorage: { getItem: (key) => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
 });
-const { normalizePhone, validateRegistration, initialRegistration, storePendingPayment, readPendingPayment, createWorkshopOrder, WORKSHOP_API_URL } = exportsObject;
+const { normalizePhone, validateRegistration, initialRegistration, storePendingPayment, readPendingPayment, createWorkshopOrder, verifyWorkshopPayment, WORKSHOP_API_URL } = exportsObject;
 const validRegistration = { ...initialRegistration, name: 'Student', email: 'student@example.com', phone: '9876543210', gender: 'Female', experience: 'Beginner', mainGoal: 'Learn bridal makeup' };
+const validProof = { razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'a'.repeat(64) };
 
 test('phone accepts national numbers and strips exactly one pasted India prefix', () => {
   for (const input of ['9876543210', '+91 98765 43210', '919876543210', '0091 98765 43210']) assert.equal(normalizePhone(input), '9876543210');
@@ -42,7 +43,7 @@ test('receipt survives reload for manual review without another payment', () => 
   assert.equal(readPendingPayment(), null);
 });
 
-const validOrder = { ok: true, registrationSaved: true, verificationMode: 'manual', row: 3, keyId: 'rzp_test_123', orderId: 'order_123', amount: 50000, currency: 'INR' };
+const validOrder = { ok: true, registrationSaved: true, paymentVerification: 'AUTOMATIC', row: 3, keyId: 'rzp_test_123', orderId: 'order_123', amount: 50000, currency: 'INR' };
 const jsonResponse = (data) => ({ ok: true, type: 'cors', json: async () => data });
 
 test('create_order sends goal and international phone using a readable simple CORS POST', async () => {
@@ -167,31 +168,6 @@ test('chosen amount is sent to Apps Script and checked before opening Checkout',
   await assert.rejects(createWorkshopOrder({ registration: validRegistration, amount: '250' }), /invalid payment order/);
 });
 
-test('an automatic or unspecified backend workflow cannot open Checkout', async () => {
-  for (const verificationMode of [undefined, 'automatic', false]) {
-    fetchHandler = async () => jsonResponse({ ...validOrder, verificationMode });
-    await assert.rejects(createWorkshopOrder({ registration: validRegistration }), error => error.diagnostics.code === 'MANUAL_WORKFLOW_REQUIRED');
-  }
-});
-
-test('deployed MANUAL response with a saved row opens a usable order for INR 5', async () => {
-  fetchHandler = async (_url, options) => {
-    assert.equal(JSON.parse(options.body).amount, 5);
-    return jsonResponse({ ok: true, registrationSaved: true, saved: true, row: 50545,
-      keyId: 'rzp_test_123', orderId: 'order_123', amount: 500, currency: 'INR', paymentVerification: 'MANUAL' });
-  };
-  const order = await createWorkshopOrder({ registration: validRegistration, amount: '5' });
-  assert.equal(order.amount, 500);
-  assert.equal(order.orderId, 'order_123');
-});
-
-test('manual field aliases cannot bypass persistence, amount, or conflicting mode checks', async () => {
-  for (const overrides of [{ registrationSaved: false }, { row: undefined }, { amount: 500 }, { verificationMode: 'automatic' }, { paymentVerification: 'AUTOMATIC' }]) {
-    fetchHandler = async () => jsonResponse({ ...validOrder, verificationMode: undefined, paymentVerification: 'MANUAL', ...overrides });
-    await assert.rejects(createWorkshopOrder({ registration: validRegistration }));
-  }
-});
-
 test('legacy receipts migrate to manual review without any verification request or stored signature', () => {
   storage.set('sk-workshop-pending-payment', JSON.stringify({ proof: { razorpay_order_id: 'order_old', razorpay_payment_id: 'pay_old', razorpay_signature: 'old-signature' }, registration: validRegistration, amount: 50000 }));
   fetchHandler = () => { throw new Error('Receipt reading must not send network requests'); };
@@ -200,4 +176,40 @@ test('legacy receipts migrate to manual review without any verification request 
   assert.equal(receipt.amount, 50000);
   assert.equal(storage.get('sk-workshop-pending-payment').includes('old-signature'), false);
   storePendingPayment(null);
+});
+
+test('manual and unspecified backends cannot enable automatic payment verification', async () => {
+  for (const paymentVerification of [undefined, 'MANUAL', false]) {
+    fetchHandler = async () => jsonResponse({ ...validOrder, paymentVerification });
+    await assert.rejects(createWorkshopOrder({ registration: validRegistration }), error => error.diagnostics.code === 'AUTOMATIC_WORKFLOW_REQUIRED');
+  }
+});
+
+test('Checkout proof survives reload for verification-only recovery', () => {
+  const pending = { paymentId: validProof.razorpay_payment_id, proof: validProof, registration: validRegistration, amount: 50000, registrationSaved: true };
+  storePendingPayment(pending);
+  assert.equal(readPendingPayment().proof.razorpay_signature, validProof.razorpay_signature);
+  assert.equal(readPendingPayment().proof.razorpay_order_id, validProof.razorpay_order_id);
+  storePendingPayment(null);
+});
+
+test('verification sends the actual Checkout fields without registration or client amount', async () => {
+  fetchHandler = async (_url, options) => {
+    assert.deepEqual(JSON.parse(options.body), { action: 'verify_payment', orderId: 'order_123', paymentId: 'pay_123', signature: validProof.razorpay_signature });
+    return jsonResponse({ ok: true, verified: true, saved: true, orderId: 'order_123', paymentId: 'pay_123', amount: 50000, currency: 'INR', row: 3 });
+  };
+  assert.equal(await verifyWorkshopPayment(validProof, 50000), 500);
+});
+
+test('only explicit verification plus confirmed saving and matching payment can show success', async () => {
+  const valid = { ok: true, verified: true, saved: true, amount: 50000, currency: 'INR', orderId: 'order_123', paymentId: 'pay_123' };
+  for (const changes of [{ ok: false }, { ok: undefined }, { verified: undefined }, { verified: false }, { saved: false }, { amount: 500 }, { currency: 'USD' }, { orderId: 'order_other' }, { paymentId: 'pay_other' }]) {
+    fetchHandler = async () => jsonResponse({ ...valid, ...changes });
+    await assert.rejects(verifyWorkshopPayment(validProof, 50000));
+  }
+});
+
+test('captured payment and unconfirmed Sheet update is a saving error, never another charge', async () => {
+  fetchHandler = async () => jsonResponse({ ok: false, verified: true, paymentCaptured: true, saved: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Payment was captured but saving failed. Contact SK Bridal Studio; do not pay again.' });
+  await assert.rejects(verifyWorkshopPayment(validProof, 50000), error => error.kind === 'saving' && /do not pay again/i.test(error.message));
 });

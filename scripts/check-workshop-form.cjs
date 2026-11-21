@@ -19,14 +19,20 @@ window.fetch = async (url, options = {}) => {
   if (payload.action === 'create_order') {
     qa.orders++;
     response = qa.mode === 'validation' ? { ok: false, code: 'VALIDATION_ERROR', fields: { email: 'Please check your email.' }, error: 'Check your fields.' }
-      : { ok: true, registrationSaved: true, saved: true, paymentVerification: 'MANUAL', row: 3, orderId: 'order_123', keyId: 'rzp_test_123', amount: Number(payload.amount) * 100, currency: 'INR' };
+      : { ok: true, registrationSaved: true, saved: true, paymentVerification: 'AUTOMATIC', row: 3, orderId: 'order_123', keyId: 'rzp_test_123', amount: Number(payload.amount) * 100, currency: 'INR' };
     qa.amount = Math.round(Number(payload.amount) * 100);
     if (qa.mode === 'unconfirmed-pending') delete response.registrationSaved;
     if (qa.mode === 'wrong-amount') response.amount = 500;
     if (qa.mode === 'pending-save-failed') response = { ok: false, code: 'PENDING_REGISTRATION_SAVE_FAILED', error: 'Your registration could not be saved, so Checkout was not opened.', stage: 'append_pending_row', reference: 'qa123456', saved: false };
   } else {
     qa.verifications++;
-    throw new Error('Manual flow must never call a verification action');
+    const expected = { action: 'verify_payment', orderId: 'order_123', paymentId: 'pay_123', signature: 'a'.repeat(64) };
+    if (JSON.stringify(payload) !== JSON.stringify(expected)) throw new Error('Unexpected verification payload');
+    await new Promise(resolve => setTimeout(resolve, 180));
+    response = qa.mode === 'verification-failure' ? { ok: false, verified: false, saved: false, code: 'PAYMENT_VERIFICATION_FAILED', error: 'Payment could not be verified.' }
+      : qa.mode === 'saving-failure' ? { ok: false, verified: true, paymentCaptured: true, saved: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Payment was captured but saving failed. Do not pay again.' }
+      : qa.mode === 'unconfirmed-verification' ? { ok: true, verified: false, saved: false }
+      : { ok: true, verified: true, saved: true, amount: qa.amount, currency: 'INR', row: 3, orderId: 'order_123', paymentId: 'pay_123' };
   }
   return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' } });
 };
@@ -40,7 +46,13 @@ window.Razorpay = class {
     window.qa.checkoutDescription = this.options.description;
     if (window.qa.mode === 'open-error') throw new Error('Checkout initialization rejected');
     if (window.qa.mode === 'cancelled') { setTimeout(() => this.options.modal.ondismiss(), 10); return; }
-    setTimeout(() => window.qa.mode === 'failure' ? this.events['payment.failed']() : this.options.handler({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'a'.repeat(64) }), 10);
+    setTimeout(() => {
+      if (window.qa.mode === 'failure') this.events['payment.failed']();
+      else {
+        const proof = { razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'a'.repeat(64) };
+        this.options.handler(proof); this.options.handler(proof);
+      }
+    }, 10);
   }
 };
 window.qa.mockRazorpay = window.Razorpay;
@@ -137,15 +149,29 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     assert(document.querySelector('dialog').textContent.includes('remain Pending'), 'Cancellation keeps registration Pending');
     document.querySelector('[aria-label="Close payment message"]').click(); await delay();
     const orderCount = qa.orders;
-    qa.mode = 'success'; await submit();
-    assert(qa.orders === orderCount && qa.verifications === 0, 'Success reuses the saved order and sends no verification request');
-    assert(document.getElementById('payment-result-title')?.textContent === 'Registration Saved', 'Checkout completion shows Registration Saved');
-    assert(document.querySelector('dialog').textContent.includes('Pending manual review') && !document.querySelector('dialog').textContent.includes('verified successfully'), 'Completion makes no automatic verification or seat confirmation claim');
+    qa.mode = 'verification-failure'; await submit();
+    assert(document.querySelector('form button[type="submit"]').disabled, 'Form is locked during backend verification');
+    await submit(); await delay(); await delay();
+    assert(qa.orders === orderCount && qa.verifications === 1, 'Duplicate callbacks and submits send exactly one verification and no new order');
+    assert(document.getElementById('payment-result-title')?.textContent === 'Payment Verification Pending', 'Unverified callback never shows success');
+    assert(JSON.parse(sessionStorage.getItem('sk-workshop-pending-payment')).proof.razorpay_signature === 'a'.repeat(64), 'Receipt is retained for reload and retry');
+    qa.mode = 'saving-failure';
+    [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Retry Verification').click();
+    await delay(); await delay(); await delay(); await delay();
+    assert(document.getElementById('payment-result-title')?.textContent === 'Registration Update Not Confirmed' && document.querySelector('dialog').textContent.includes('Do not pay again'), 'Captured payment with failed Sheet update instructs contact and no further payment');
+    qa.mode = 'unconfirmed-verification';
+    [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Retry Verification').click();
+    await delay(); await delay(); await delay(); await delay();
+    assert(document.getElementById('payment-result-title')?.textContent === 'Payment Verification Pending', 'Generic HTTP success without verified acknowledgement is rejected');
+    qa.mode = 'success';
+    [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Retry Verification').click();
+    await delay(); await delay(); await delay(); await delay();
+    assert(document.getElementById('payment-result-title')?.textContent === 'Payment Verified', 'Success appears only after backend verification and confirmed saving');
+    assert(qa.orders === orderCount && qa.verifications === 4 && qa.checkouts === checkoutsBefore500 + 2, 'Verification retries never create another order or open Checkout again');
+    assert(sessionStorage.getItem('sk-workshop-pending-payment') === null, 'Confirmed success clears the recovery receipt');
+    assert(document.querySelector('dialog').textContent.includes('500'), 'Verified success displays the actual amount');
     [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Continue to Workshop').click(); await delay();
-    assert(document.querySelector('[name="email"]').value === 'student@example.com', 'Details remain available for manual review');
-    await submit();
-    assert(qa.orders === orderCount && qa.verifications === 0 && qa.checkouts === checkoutsBefore500 + 2, 'Viewing manual status never opens a new payment or sends a verification');
-    assert(!JSON.stringify(qa.payloads).includes('verify_payment'), 'Customer workflow contains create_order requests only');
+    assert(document.querySelector('[name="email"]').value === '' && document.querySelector('[name="amount"]').value === '500', 'Form resets after confirmed success is dismissed');
     document.body.dataset.qa = 'passed';
   } catch (error) { results.push('FAILED: ' + error.message); document.body.dataset.qa = 'failed'; }
   const output = document.createElement('pre'); output.id = 'qa-result'; output.textContent = JSON.stringify(results); document.body.appendChild(output);
