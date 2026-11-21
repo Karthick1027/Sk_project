@@ -132,9 +132,12 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
     if (error instanceof RegistrationValidationError) Object.assign(errors, error.fields); else throw error;
   }
   if (Object.keys(errors).length) throw new RegistrationValidationError(errors);
+  // The form and Apps Script request use rupees. The backend converts to
+  // paise for Razorpay; its response and Checkout amount remain in paise.
+  const amountRupees = Number(amount.trim());
   const { mainGoal, ...details } = normalized;
   const data = await postWorkshopAction({
-    action: 'create_order', amount: paise / 100, registration: { ...details, phone: `91${normalized.phone}`, goal: mainGoal },
+    action: 'create_order', amount: amountRupees, registration: { ...details, phone: `91${normalized.phone}`, goal: mainGoal },
   });
   // Do not open Checkout just because the POST was sent or returned HTTP 200.
   if (typeof data.orderId !== 'string' || !/^order_[A-Za-z0-9]+$/.test(data.orderId) ||
@@ -142,7 +145,7 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
       data.amount !== paise || data.currency !== 'INR') {
     throw new Error('The registration server returned an invalid payment order. Checkout was not opened. Please contact SK Bridal Studio.');
   }
-  if (data.pendingSaved !== true || typeof data.row !== 'number' || !Number.isSafeInteger(data.row) || data.row < 2) {
+  if (data.registrationSaved !== true || typeof data.row !== 'number' || !Number.isSafeInteger(data.row) || data.row < 2) {
     throw new WorkshopApiError('order', 'We could not confirm that your registration was saved. Checkout was not opened. Please contact SK Bridal Studio before trying again.', { code: 'PENDING_SAVE_NOT_CONFIRMED' });
   }
   return { orderId: data.orderId, keyId: data.keyId, amount: data.amount, currency: data.currency };

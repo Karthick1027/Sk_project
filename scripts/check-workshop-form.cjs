@@ -19,9 +19,11 @@ window.fetch = async (url, options = {}) => {
   if (payload.action === 'create_order') {
     qa.orders++;
     response = qa.mode === 'validation' ? { ok: false, code: 'VALIDATION_ERROR', fields: { email: 'Please check your email.' }, error: 'Check your fields.' }
-      : { ok: true, pendingSaved: true, row: 3, orderId: 'order_123', keyId: 'rzp_test_123', amount: Math.round(Number(payload.amount) * 100), currency: 'INR' };
+      : { ok: true, registrationSaved: true, row: 3, orderId: 'order_123', keyId: 'rzp_test_123', amount: Number(payload.amount) * 100, currency: 'INR' };
     qa.amount = Math.round(Number(payload.amount) * 100);
-    if (qa.mode === 'unconfirmed-pending') delete response.pendingSaved;
+    if (qa.mode === 'unconfirmed-pending') delete response.registrationSaved;
+    if (qa.mode === 'wrong-amount') response.amount = 500;
+    if (qa.mode === 'pending-save-failed') response = { ok: false, code: 'PENDING_REGISTRATION_SAVE_FAILED', error: 'Your registration could not be saved, so Checkout was not opened.', stage: 'append_pending_row', reference: 'qa123456', saved: false };
   } else {
     qa.verifications++;
     response = qa.mode === 'saving' ? { ok: false, code: 'REGISTRATION_SAVE_FAILED', error: 'Registration could not be saved.' } : { ok: true, verified: true, saved: true, amount: qa.amount, currency: 'INR' };
@@ -34,6 +36,8 @@ window.Razorpay = class {
   close() { this.options.modal.ondismiss(); }
   open() {
     window.qa.checkouts++;
+    window.qa.checkoutAmount = this.options.amount;
+    window.qa.checkoutDescription = this.options.description;
     if (window.qa.mode === 'open-error') throw new Error('Checkout initialization rejected');
     if (window.qa.mode === 'cancelled') { setTimeout(() => this.options.modal.ondismiss(), 10); return; }
     setTimeout(() => window.qa.mode === 'failure' ? this.events['payment.failed']() : this.options.handler({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'a'.repeat(64) }), 10);
@@ -104,6 +108,9 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     assert(qa.payloads[0].amount === 250, 'Edited amount below INR 500 is sent to Apps Script');
     qa.mode = 'unconfirmed-pending'; await submit();
     assert(qa.checkouts === 0 && !document.querySelector('dialog[open]') && document.querySelector('[role="alert"]')?.textContent.includes('registration was saved'), 'Unconfirmed Pending save blocks Checkout and displays an actionable error');
+    qa.mode = 'pending-save-failed'; await submit();
+    assert(qa.checkouts === 0 && qa.verifications === 0 && !document.querySelector('dialog[open]') && document.querySelector('[role="alert"]')?.textContent.includes('qa123456'), 'Pending save rejection blocks Checkout, shows the stage/reference and releases the processing state');
+    assert(!document.querySelector('form button[type="submit"]').disabled, 'Pending save failure allows a retry without leaving the form processing');
     qa.mode = 'open-error'; await submit();
     assert(document.getElementById('payment-result-title')?.textContent === 'Unable to Open Payment', 'Checkout open exceptions are distinct from payment failures');
     document.querySelector('[aria-label="Close payment message"]').click(); await delay();
@@ -131,6 +138,12 @@ const submit = async () => { document.querySelector('form').dispatchEvent(new Ev
     assert(document.querySelector('[name="name"]').value === 'Test Student', 'Confirmed registration retains details until popup is dismissed');
     [...document.querySelectorAll('dialog button')].find(button => button.textContent === 'Continue to Workshop').click(); await delay();
     assert(document.querySelector('[name="email"]').value === '' && document.querySelector('[name="name"]').value === '' && document.querySelector('[name="amount"]').value === '500', 'Form resets only after confirmed success is dismissed');
+    for (const [name, value] of Object.entries({ name: 'Test Student', email: 'student@example.com', phone: '9876543210', gender: 'Female', experience: 'Beginner', mainGoal: 'Learn bridal makeup' })) await setField(name, value);
+    const checkoutsBefore500 = qa.checkouts;
+    qa.mode = 'wrong-amount'; await submit();
+    assert(qa.payloads.at(-1).amount === 500 && qa.checkouts === checkoutsBefore500 && document.querySelector('[role="alert"]')?.textContent.includes('invalid payment order'), 'Displayed INR 500 sends 500 rupees and rejects a backend response of only 500 paise');
+    qa.mode = 'cancelled'; await submit();
+    assert(qa.payloads.at(-1).amount === 500 && qa.checkoutAmount === 50000 && qa.checkoutDescription.includes('500') && qa.checkouts === checkoutsBefore500 + 1, 'INR 500 reaches Checkout as 50000 paise with a matching rupee description');
     document.body.dataset.qa = 'passed';
   } catch (error) { results.push('FAILED: ' + error.message); document.body.dataset.qa = 'failed'; }
   const output = document.createElement('pre'); output.id = 'qa-result'; output.textContent = JSON.stringify(results); document.body.appendChild(output);
