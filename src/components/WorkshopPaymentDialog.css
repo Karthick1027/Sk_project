@@ -5,8 +5,22 @@
 .workshop-confetti { position: absolute; top: -12px; width: 6px; height: 10px; opacity: 0; animation: workshop-confetti 1700ms ease-out both; }
 .workshop-registration .field { min-width: 0; font-size: 16px; background-color: #fff; color: #422b21; border-color: #d9c6aa; box-shadow: 0 2px 6px rgb(70 43 30 / 5%); }
 .workshop-registration .field:hover, .workshop-registration .field:focus { border-color: #967253; }
-.workshop-registration .workshop-proof-input { padding: 6px 10px; font-size: 14px; line-height: 20px; }
-.workshop-registration .workshop-proof-input::file-selector-button { margin-right: 10px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.workshop-registration { font-family: Inter, sans-serif; }
+.workshop-registration label { margin-bottom: 4px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1.5; letter-spacing: normal; text-transform: none; }
+.workshop-registration textarea.field { display: block; }
+.workshop-optional-details summary::-webkit-details-marker { display: none; }
+.workshop-optional-details .field { box-shadow: none; }
+.workshop-registration .workshop-proof-input { display: block; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; padding: 6px; font-family: inherit; font-size: 16px; line-height: 24px; text-overflow: ellipsis; box-shadow: none; }
+.workshop-registration .workshop-proof-input::file-selector-button { margin-right: 12px; padding: 8px 14px; border: 0; border-radius: 6px; background: #3b261e; color: #fffcf6; font-family: inherit; font-size: 14px; font-weight: 500; line-height: 20px; cursor: pointer; }
+.workshop-registration .workshop-proof-input::file-selector-button:hover { background: #6b4f3f; }
+.workshop-registration .workshop-proof-input:disabled::file-selector-button { cursor: not-allowed; }
+@media (max-width: 639px) {
+  .workshop-registration .field { min-height: 46px; padding: 10px 12px; }
+  .workshop-registration .workshop-proof-input { padding: 6px; }
+  .workshop-registration .workshop-proof-input::file-selector-button { margin-right: 8px; padding: 10px; }
+  .workshop-optional-details textarea.field { min-height: 88px; }
+  .workshop-optional-details p { overflow-wrap: anywhere; }
+}
 .workshop-registration .field[aria-invalid='true'] { border-color: #dc2626; box-shadow: 0 0 0 3px rgb(220 38 38 / 12%), 0 3px 10px rgb(185 28 28 / 10%); }
 .workshop-registration .field[aria-invalid='true']:focus { border-color: #b91c1c; box-shadow: 0 0 0 4px rgb(220 38 38 / 18%), 0 4px 12px rgb(185 28 28 / 12%); }
 .workshop-registration .workshop-validation-alert { color: #991b1b; background-color: #fef2f2; border: 2px solid #dc2626; border-left-width: 6px; box-shadow: 0 0 0 3px rgb(220 38 38 / 12%), 0 6px 18px rgb(185 28 28 / 16%); }

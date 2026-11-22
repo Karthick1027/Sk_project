@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   ArrowDown, Sparkles, Info, Radio, VideoOff, ShieldCheck, MonitorPlay, MessagesSquare, Award, Send,
-  LockKeyhole, Loader2, AlertCircle, type LucideIcon,
+  LockKeyhole, Loader2, AlertCircle, Paperclip, ChevronDown, type LucideIcon,
 } from 'lucide-react';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
@@ -758,7 +758,7 @@ const Workshops: React.FC = () => {
             ))}
           </ol>
           <div className="mt-4 text-center">
-            <div className="workshop-registration relative mx-auto w-full min-w-0 max-w-3xl rounded-2xl border border-sand bg-beige p-4 text-left shadow-soft sm:p-8">
+            <div className="workshop-registration relative mx-auto w-full min-w-0 max-w-3xl rounded-2xl border border-sand bg-beige p-3.5 text-left shadow-soft sm:p-5">
               <div aria-hidden="true" className="workshop-form-flourish hidden sm:block">
                 <span className="workshop-form-orbit" />
                 <Sparkles className="workshop-form-sparkle workshop-form-sparkle-one" />
@@ -768,13 +768,13 @@ const Workshops: React.FC = () => {
                 <span className="workshop-form-dot workshop-form-dot-three" />
               </div>
               <p className="eyebrow">Course Registration</p>
-              <h2 className="mt-2 font-playfair text-3xl font-medium text-chocolate">Fill in your details</h2>
-              <p className="mt-2 text-sm text-cocoa">Each WhatsApp number and email address can be used for one registration only.</p>
+              <h2 className="mt-1 font-playfair text-2xl font-medium text-chocolate sm:text-3xl">Fill in your details</h2>
+              <p className="mt-1 text-sm text-cocoa">Each WhatsApp number and email address can be used for one registration only.</p>
 
               {pendingPayment && !processing && <p role="status" className="mt-5 rounded-xl border border-champagne bg-ivory p-4 text-sm text-cocoa">{pendingPayment.proof ? 'Your previous payment needs confirmation. Continue below to retry verification without paying again.' : 'Your earlier payment needs review by SK Bridal Studio. Contact us and do not pay again.'} Payment ID: <span className="break-all font-semibold">{pendingPayment.paymentId}</span></p>}
 
-              <form onSubmit={handleRegistrationSubmit} noValidate className="mt-6 space-y-5" aria-busy={processing}>
-                <fieldset disabled={processing || Boolean(pendingPayment)} className="min-w-0 space-y-5 disabled:opacity-75" aria-label="Registration details">
+              <form onSubmit={handleRegistrationSubmit} noValidate className="mt-4 space-y-3" aria-busy={processing}>
+                <fieldset disabled={processing || Boolean(pendingPayment)} className="min-w-0 space-y-3 disabled:opacity-75" aria-label="Registration details">
                 <div>
                     <label id="workshop-course-label" htmlFor="workshop-course" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Choose your course *</label>
                     <WorkshopDropdown
@@ -788,9 +788,9 @@ const Workshops: React.FC = () => {
                     />
                     {fieldError('course')}
                   </div>
-                <div className="border-t border-sand pt-5">
-                  <h3 className="mb-4 font-inter text-base font-semibold text-chocolate">Your details</h3>
-                  <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
+                <div className="border-t border-sand pt-3">
+                  <h3 className="mb-2 font-inter text-base font-semibold text-chocolate">Your details</h3>
+                  <div className="grid min-w-0 gap-3 sm:grid-cols-2 [&>div]:min-w-0">
                     <div>
                     <label htmlFor="workshop-name" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Your name *</label>
                     <input {...fieldAccessibility('name')} id="workshop-name" name="name" type="text" autoComplete="name" required maxLength={100} value={registration.name} onChange={handleRegistrationChange} className="field" placeholder="Full name" />
@@ -802,7 +802,7 @@ const Workshops: React.FC = () => {
                   {fieldError('email')}
                 </div>
                   </div>
-                  <div className="mt-5"><div>
+                  <div className="mt-3"><div>
                     <label htmlFor="workshop-phone" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">WhatsApp number *</label>
                     <div className="relative">
                       <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center border-r border-sand pr-3 text-base font-medium text-cocoa">+91</span>
@@ -811,9 +811,9 @@ const Workshops: React.FC = () => {
                     {fieldError('phone')}
                   </div></div>
                 </div>
-                <div className="border-t border-sand pt-5">
-                  <h3 className="mb-4 font-inter text-base font-semibold text-chocolate">About your learning</h3>
-                  <div className="grid min-w-0 gap-5 sm:grid-cols-2 [&>div]:min-w-0">
+                <div className="border-t border-sand pt-3">
+                  <h3 className="mb-2 font-inter text-base font-semibold text-chocolate">About your learning</h3>
+                  <div className="grid min-w-0 gap-3 sm:grid-cols-2 [&>div]:min-w-0">
                     <div>
                     <label id="workshop-gender-label" htmlFor="workshop-gender" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Gender *</label>
                     <WorkshopDropdown {...fieldAccessibility('gender')} id="workshop-gender" name="gender" value={registration.gender} options={[{ value: '', label: 'Select gender' }, ...['Female', 'Male', 'Prefer not to say'].map(gender => ({ value: gender, label: gender }))]} disabled={processing || Boolean(pendingPayment)} onChange={gender => { setRegistration(previous => ({ ...previous, gender })); setErrors(previous => ({ ...previous, gender: undefined })); setFormError(''); }} />
@@ -825,30 +825,34 @@ const Workshops: React.FC = () => {
                     {fieldError('experience')}
                   </div>
                   </div>
-                  <div className="mt-5"><div>
+                  <div className="mt-3"><div>
                   <label htmlFor="workshop-main-goal" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">What would you like to learn? *</label>
                   <textarea {...fieldAccessibility('mainGoal')} id="workshop-main-goal" name="mainGoal" rows={2} required maxLength={500} value={registration.mainGoal} onChange={handleRegistrationChange} className="field resize-y" placeholder="What do you want to learn?" />
                   {fieldError('mainGoal')}
                 </div></div>
                 </div>
-                <details className="workshop-optional-details group rounded-xl border border-sand bg-ivory/70">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-cocoa">
-                    <span><span className="block text-sm font-semibold">Additional details <span className="font-normal">(optional)</span></span><span className="mt-1 block text-xs">City, comments or a payment screenshot</span></span>
-                    <ArrowDown aria-hidden="true" className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+                <details className="workshop-optional-details group overflow-hidden rounded-2xl border border-sand bg-ivory">
+                  <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-2 p-3 text-cocoa focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-cocoa sm:gap-3 sm:px-4">
+                    <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-sand bg-beige sm:h-10 sm:w-10 sm:rounded-xl"><Paperclip aria-hidden="true" className="h-4 w-4 sm:h-5 sm:w-5" /></span>
+                      <span className="min-w-0"><span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-chocolate sm:text-base">Additional details <span className="text-xs font-normal text-cocoa sm:rounded-full sm:bg-beige sm:px-2 sm:py-0.5 sm:font-medium">Optional</span></span><span className="mt-1 block text-sm leading-snug">City, notes or payment proof</span></span>
+                    </span>
+                    <ChevronDown aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
                   </summary>
-                  <div className="space-y-5 px-4 pb-4">
+                  <div className="min-w-0 space-y-3 border-t border-sand/70 p-3 sm:p-4">
                     <div>
                     <label htmlFor="workshop-city" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">City</label>
-                    <input {...fieldAccessibility('city')} id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city" />
+                    <input {...fieldAccessibility('city')} id="workshop-city" name="city" type="text" autoComplete="address-level2" maxLength={100} value={registration.city} onChange={handleRegistrationChange} className="field" placeholder="Your city"/>
                     {fieldError('city')}
                   </div>
                     <div>
-                  <label htmlFor="workshop-question" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Additional comments or suggestions (optional)</label>
-                  <textarea {...fieldAccessibility('question')} id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Any additional comments?" />
+                  <label htmlFor="workshop-question" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Comments or questions</label>
+                  <textarea {...fieldAccessibility('question')} id="workshop-question" name="question" rows={3} maxLength={1000} value={registration.question} onChange={handleRegistrationChange} className="field resize-y" placeholder="Anything you’d like us to know?"/>
                   {fieldError('question')}
                 </div>
-                    <div>
-                  <label htmlFor="workshop-paymentScreenshot" className="mb-1.5 block font-inter text-xs font-medium leading-relaxed text-cocoa">Please share a screenshot of your payment confirmation to secure your seat. 💳✨ (Optional)</label>
+                    <div className="min-w-0 rounded-xl border border-dashed border-champagne bg-beige/50 p-3 sm:p-4">
+                  <label htmlFor="workshop-paymentScreenshot" className="mb-1.5 block font-inter text-sm font-semibold text-cocoa">Payment proof</label>
+                  <p className="mb-3 text-sm leading-relaxed text-cocoa">Add a screenshot or receipt, if available.</p>
                   <input {...fieldAccessibility('paymentScreenshot')} ref={paymentProofInput} id="workshop-paymentScreenshot" name="paymentScreenshot" type="file" accept={PAYMENT_PROOF_TYPES.join(',')} aria-describedby={errors.paymentScreenshot ? 'workshop-paymentScreenshot-error workshop-proof-help' : 'workshop-proof-help'} onChange={event => {
                     const file = event.target.files?.[0] || null;
                     setPaymentProofFile(file);
@@ -861,8 +865,8 @@ const Workshops: React.FC = () => {
                     }
                   }} className="field workshop-proof-input cursor-pointer file:rounded-md file:border-0 file:bg-beige file:font-medium file:text-chocolate" />
                   <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                    <p id="workshop-proof-help" className="text-xs text-cocoa">JPG, PNG, WEBP or PDF · Max 5 MB</p>
-                    {paymentProofFile && <button type="button" className="shrink-0 text-xs font-medium text-red-700 underline underline-offset-2" onClick={() => {
+                    <p id="workshop-proof-help" className="text-sm text-cocoa">JPG, PNG, WEBP or PDF · Up to 5 MB</p>
+                    {paymentProofFile && <button type="button" className="min-h-11 shrink-0 rounded px-1 py-2 text-sm font-medium text-red-700 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa" onClick={() => {
                         setPaymentProofFile(null);
                         if (paymentProofInput.current) paymentProofInput.current.value = '';
                         setErrors(previous => ({ ...previous, paymentScreenshot: undefined }));
@@ -873,8 +877,8 @@ const Workshops: React.FC = () => {
                 </div>
                   </div>
                 </details>
-                <div className="border-t border-sand pt-5">
-                  <h3 className="mb-4 font-inter text-base font-semibold text-chocolate">Complete your registration</h3>
+                <div className="border-t border-sand pt-3">
+                  <h3 className="mb-2 font-inter text-base font-semibold text-chocolate">Complete your registration</h3>
                   <div>
                   <label htmlFor="workshop-amount" className="mb-2 block font-inter text-xs font-semibold uppercase tracking-[0.2em] text-cocoa">Registration advance (₹) *</label>
                   <input {...fieldAccessibility('amount')} id="workshop-amount" name="amount" type="number" inputMode="numeric" min="1" step="1" required value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value); setErrors(previous => ({ ...previous, amount: undefined })); setFormError(''); }} className="field" />
@@ -883,7 +887,7 @@ const Workshops: React.FC = () => {
                 </div>
                 </div>
                 </fieldset>
-                <div className="flex w-full min-w-0 flex-col items-center gap-3">
+                <div className="flex w-full min-w-0 flex-col items-center gap-2">
                   {formError && <div role="alert" className="workshop-validation-alert flex w-full items-start gap-3 rounded-lg p-2 text-left">
                     <AlertCircle aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0" strokeWidth={2} />
                     <p className="min-w-0 break-words  font-medium leading-relaxed">{formError}</p>
@@ -893,7 +897,7 @@ const Workshops: React.FC = () => {
                     {stage === 'verifying' ? 'Verifying Payment...' : processing ? 'Processing Payment...' : pendingPayment ? pendingPayment.proof ? 'Verify Existing Payment' : 'View Payment Review' : `Pay ${Number(paymentAmount) > 0 && Number.isFinite(Number(paymentAmount)) ? formatPaymentAmount(Number(paymentAmount)) : 'Selected Amount'} & Register`}
                   </button>
                   <p className="flex items-center justify-center gap-1.5 text-center font-inter text-xs leading-relaxed text-cocoa"><LockKeyhole aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />Secure advance payment via Razorpay</p>
-                  <p role="status" aria-live="polite" className="text-center text-sm text-cocoa">{statusText[stage]}</p>
+                  <p role="status" aria-live="polite" className="text-center text-sm text-cocoa empty:hidden">{statusText[stage]}</p>
                 </div>
               </form>
             </div>
