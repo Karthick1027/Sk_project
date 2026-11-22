@@ -1,8 +1,10 @@
 # Workshop registration with automatic Razorpay verification
 
-The backend source of truth for this change is the supplied C:/Users/ASWIN/Downloads/WorkshopRegistrations_AutomaticVerification.gs (workshop-auto-verify-v3). Its active repository copy is google-apps-script/WorkshopRegistrations.gs, version workshop-auto-verify-v5-proof-upload. Do not deploy both full scripts into one Apps Script project: replace the old code to avoid duplicate function/CONFIG definitions.
+The backend source of truth for this change is the supplied C:/Users/ASWIN/Downloads/WorkshopRegistrations_AutomaticVerification.gs (workshop-auto-verify-v3). Its active repository copy is google-apps-script/WorkshopRegistrations.gs, version workshop-auto-verify-v7-unique-contacts. Do not deploy both full scripts into one Apps Script project: replace the old code to avoid duplicate function/CONFIG definitions.
 
-The supplied findFirstEmptyDataRow_ and appendPendingRegistration_ functions remain unchanged. createWorkshopOrder_ additionally accepts an optional local payment-proof upload before saving the Pending row. Field aliases, course validation, first-empty-row selection, Pending persistence, amount conversion, spreadsheet destination and the existing WhatsApp/edit-trigger workflow remain as supplied. The verification-only changes recheck duplicate callbacks against Razorpay, return amount/currency consistently, reject duplicate order rows/reused payments, and distinguish captured-payment Sheet failures. The verified update writes only L-R, does not require typed-column reformatting, retains a plain WhatsApp link if rich-link formatting fails and preserves an existing sent confirmation.
+The first-empty-row selection remains unchanged. appendPendingRegistration_ checks contact uniqueness and accepts an optional local payment-proof upload before saving the Pending row. Field aliases, course validation, Pending persistence, amount conversion, spreadsheet destination and the existing WhatsApp/edit-trigger workflow remain as supplied. Payment verification rechecks duplicate callbacks against Razorpay, returns amount/currency consistently, rejects duplicate order rows/reused payments, and distinguishes captured-payment Sheet failures. The verified update writes only L-R, does not require typed-column reformatting, retains a plain WhatsApp link if rich-link formatting fails and preserves an existing sent confirmation.
+
+Each phone number and email address is allowed in only one registration across all courses. Before uploading proof or creating a row/order, the backend compares normalized Indian phone numbers and trimmed, case-insensitive emails against all existing response rows, including older Google Form responses and Pending registrations. Either match returns DUPLICATE_REGISTRATION with an inline error on the matching field. The contact check and Pending save share a script lock to prevent competing website submissions from reserving the same contact. Existing-order checkout retries and payment verification remain available; a new registration using a reserved contact requires the studio to resolve the original record first. Google Forms submissions made directly outside this API do not use this lock or validation.
 
 ## Complete request flow
 
@@ -42,6 +44,8 @@ WhatsApp sending remains manual: verification generates the link, and the studio
 
 ## Failure handling and recovery
 
+WhatsApp emoji links: column N now contains separate `WhatsApp Web` and `WhatsApp App` links with the same once-encoded Unicode message. Web opens web.whatsapp.com directly; App uses api.whatsapp.com. After replacing the Apps Script code, publish a new version of the existing deployment for future payments. Run `testWhatsAppEmojiEncoding` to obtain both test URLs and verify encoding, then run `rebuildVerifiedLinks` once to replace previously saved links. Rebuilding does not send messages and preserves existing `Confirmation Sent` values. Check the prefilled message in both clients before sending; automated tests verify URL contents, not WhatsApp's client rendering.
+
 - Pending save fails: no usable order is returned and Checkout remains closed.
 - Razorpay order creation fails after Pending persistence: the Pending row remains in the Sheet. Contact the studio before submitting another registration.
 - Checkout is cancelled or reports payment.failed: the Pending row remains; an unchanged mounted form can reuse its saved order.
@@ -60,13 +64,13 @@ No deployment, credential change, authenticated test order or real payment has b
 
 1. Open the existing Apps Script project serving this URL:
 
-https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec
+https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec
 
 2. Replace its old Code.gs contents with the entire corrected google-apps-script/WorkshopRegistrations.gs. Remove other copies of the full old backend from the same project so old manual handlers cannot override it. The Downloads original remains unchanged.
 3. In Project Settings > Script properties, keep the matching RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET pair. Start with Razorpay Test Mode keys. Do not put the secret into React, .env frontend variables or chat.
 4. Run setupWorkshopRegistration as the account with edit access to the existing spreadsheet and authorize the required Sheet/UrlFetch scopes. Keep the existing form and tab. The supplied setup prepares automation headers L-R only. If the edit trigger is not already installed, run setupEditTrigger once; it retains other Google Forms triggers.
 5. Choose Deploy > Manage deployments > edit the EXISTING deployment > New version > Deploy. Execute as Me (the spreadsheet editor account), access Anyone. Saving editor code alone does not publish /exec.
-6. Confirm the URL reports version workshop-auto-verify-v5-proof-upload and ok true. The supplied health function also prepares L-R headers; it is not a completely read-only endpoint, and readiness alone does not prove a saved registration/payment.
+6. Confirm the URL reports version workshop-auto-verify-v7-unique-contacts and ok true. The supplied health function also prepares L-R headers; it is not a completely read-only endpoint, and readiness alone does not prove a saved registration/payment.
 7. Keep WORKSHOP_API_URL unchanged if this deployment URL is retained. If you intentionally create a different deployment, update that constant in src/lib/workshopPayment.ts before building.
 8. Publish the frontend only after the backend supports automatic verification:
 

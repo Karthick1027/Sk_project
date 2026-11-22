@@ -769,6 +769,7 @@ const Workshops: React.FC = () => {
               </div>
               <p className="eyebrow">Course Registration</p>
               <h2 className="mt-2 font-playfair text-3xl font-medium text-chocolate">Fill in your details</h2>
+              <p className="mt-2 text-sm text-cocoa">Each WhatsApp number and email address can be used for one registration only.</p>
 
               {pendingPayment && !processing && <p role="status" className="mt-5 rounded-xl border border-champagne bg-ivory p-4 text-sm text-cocoa">{pendingPayment.proof ? 'Your previous payment needs confirmation. Continue below to retry verification without paying again.' : 'Your earlier payment needs review by SK Bridal Studio. Contact us and do not pay again.'} Payment ID: <span className="break-all font-semibold">{pendingPayment.paymentId}</span></p>}
 

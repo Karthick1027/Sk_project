@@ -17,7 +17,7 @@ test('each course defaults to its advance and generates the correct WhatsApp bal
     assert.equal(order.ok, true);
     assert.equal(order.amount, advance * 100);
     assert.equal(api.post(proof).verified, true);
-    const message = decodeURIComponent(api.rows[order.row - 1][13].split('?text=')[1]);
+    const message = new URL(api.rows[order.row - 1][13]).searchParams.get('text');
     assert.ok(message.includes(course));
     assert.ok(message.includes('Remaining Balance: ₹' + balance));
     assert.equal(message.includes('\uFFFD'), false);
@@ -34,7 +34,7 @@ function backend(options = {}) {
   let columns = 11, locked = false, status = options.status || 'captured', order;
   let failUpdate = Boolean(options.failUpdate), failPending = Boolean(options.failPending), verifiedWritten = false;
   let failVerifiedFlush = Boolean(options.failVerifiedFlush), rejectFormat = false;
-  const calls = [], writes = [], logs = [], files = [];
+  const calls = [], writes = [], logs = [], files = [], richLinks = [];
   const properties = new Map([['RAZORPAY_KEY_ID','rzp_test_123'],['RAZORPAY_KEY_SECRET','test-secret']]);
   if (!options.noProofFolder) properties.set('WORKSHOP_PROOF_FOLDER_ID', 'proof_folder');
   const proofFolder = { getId: () => 'proof_folder', getUrl: () => 'https://drive.google.com/drive/folders/proof_folder', createFile(blob) {
@@ -74,6 +74,7 @@ function backend(options = {}) {
     },
   };
   const context = {
+    Logger: {log: value => logs.push(String(value))},
     console: {log: (...a) => logs.push(a.join(' ')), error: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' '))},
     LockService: {getScriptLock: () => ({waitLock() {assert.equal(locked,false);locked=true;}, releaseLock(){locked=false;}})},
     PropertiesService: {getScriptProperties: () => ({getProperty: key => properties.get(key),setProperty:(key,value)=>properties.set(key,value)})},
@@ -81,7 +82,7 @@ function backend(options = {}) {
     SpreadsheetApp: {
       openById(id) { assert.equal(id,'1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows'); return {getSheetByName(name){assert.equal(name,'Form Responses 1');return sheet;}}; },
       flush() { if(verifiedWritten && failVerifiedFlush){failVerifiedFlush=false;throw Error('Lost flush acknowledgement');} },
-      newRichTextValue() { const value={setText(){return value;},setLinkUrl(url){value.url=url;return value;},build(){return value;}};return value; },
+      newRichTextValue() { const value={text:'',setText(text){value.text=text;return value;},setLinkUrl(start,end,url){richLinks.push({label:value.text.slice(start,end),url});if(!value.url)value.url=url;return value;},build(){return value;}};return value; },
     },
     ContentService: {MimeType:{JSON:'application/json'},createTextOutput: text => ({setMimeType: () => JSON.parse(text)})},
     Utilities: {getUuid: () => '12345678-1234-1234-1234-123456789012', Charset:{UTF_8:'UTF-8'}, DigestAlgorithm:{SHA_256:'SHA-256'},
@@ -110,8 +111,40 @@ function backend(options = {}) {
   };
   vm.createContext(context);vm.runInContext(readFileSync(__dirname+'/WorkshopRegistrations.gs','utf8'),context);
   const post = payload => context.doPost({postData:{contents:JSON.stringify(payload)}});
-  return {rows,original,sheet,context,calls,writes,logs,files,properties,post,create: (amount,paymentProof) => post({action:'create_order',registration,amount:amount??500,paymentProof}),allowUpdate:()=>{failUpdate=false;},rejectFormatting:()=>{rejectFormat=true;}};
+  return {rows,original,sheet,context,calls,writes,logs,files,richLinks,properties,post,create: (amount,paymentProof) => post({action:'create_order',registration,amount:amount??500,paymentProof}),allowUpdate:()=>{failUpdate=false;},rejectFormatting:()=>{rejectFormat=true;}};
 }
+test('either an existing phone or email blocks registration before uploads, rows or orders are created',()=>{
+  for (const [contact, value] of [['phone','+91 99999 99999'],['email',' ORIGINAL@EXAMPLE.COM ']]) {
+    const api=backend();
+    const result=api.post({action:'create_order',registration:{...registration,[contact]:value},paymentProof:pngProof});
+    assert.equal(result.code,'DUPLICATE_REGISTRATION');
+    assert.deepEqual(Object.keys(result.fields),[contact]);
+    assert.match(result.fields[contact],/already registered/);
+    assert.equal(api.rows.length,2);assert.equal(api.calls.length,0);assert.equal(api.files.length,0);
+  }
+});
+
+test('contact normalization detects older phone formats and case-insensitive emails',()=>{
+  for(const phone of ['9999999999','09999999999','+91 99999 99999','00919999999999']) {
+    const api=backend();api.rows[1][2]=phone;
+    assert.equal(api.post({action:'create_order',registration:{...registration,phone:'919999999999'}}).code,'DUPLICATE_REGISTRATION');
+  }
+  const api=backend();api.rows[1][7]=' ORIGINAL@EXAMPLE.COM ';
+  assert.equal(api.post({action:'create_order',registration:{...registration,email:'original@example.com'}}).fields.email.includes('already'),true);
+});
+
+test('pending and verified registrations reserve both contacts across courses while payment verification can retry',()=>{
+  for(const verified of [false,true]) {
+    const api=backend();assert.equal(api.create().ok,true);
+    if(verified) assert.equal(api.post(proof).verified,true);
+    const count=api.rows.length,calls=api.calls.length;
+    const result=api.post({action:'create_order',registration:{...registration,course:'15-Day Bridal Makeup Masterclass'}});
+    assert.equal(result.code,'DUPLICATE_REGISTRATION');assert.deepEqual(Object.keys(result.fields).sort(),['email','phone']);
+    assert.equal(api.rows.length,count);assert.equal(api.calls.length,calls);
+    assert.equal(api.post(proof).verified,true);
+  }
+});
+
 test('supplied first-empty-row saver persists a complete Pending registration before returning an order',()=>{
   const api=backend({gap:true});const original=JSON.parse(api.original);const order=api.create();
   assert.equal(order.ok,true);assert.equal(order.registrationSaved,true);assert.equal(order.row,2);assert.equal(order.paymentVerification,'AUTOMATIC');
@@ -129,7 +162,7 @@ test('Pending-save rejection never creates a Razorpay order',()=>{
 test('flexible INR amounts reach Razorpay in paise and verify in the same saved row',()=>{
   for(const amount of [1,5,250,500,750]){const api=backend();const order=api.create(amount);const before=api.rows[2].slice(0,11);const count=api.rows.length;
     const result=api.post(proof);assert.equal(result.ok,true);assert.equal(result.verified,true);assert.equal(result.saved,true);assert.equal(result.row,order.row);assert.equal(result.amount,amount*100);assert.equal(result.currency,'INR');assert.equal(api.rows.length,count);assert.deepEqual(api.rows[2].slice(0,11),before);
-    assert.equal(api.rows[2][11],'Verified');assert.equal(api.rows[2][12],'Ready to Send');assert.ok(api.rows[2][13].startsWith('https://wa.me/919876543210?text='));assert.equal(api.rows[2][15],'pay_test');assert.equal(api.rows[2][16],'order_test');assert.equal(api.rows[2][17],amount);
+    assert.equal(api.rows[2][11],'Verified');assert.equal(api.rows[2][12],'Ready to Send');assert.ok(api.rows[2][13].startsWith('https://web.whatsapp.com/send?phone=919876543210&text='));assert.equal(api.rows[2][15],'pay_test');assert.equal(api.rows[2][16],'order_test');assert.equal(api.rows[2][17],amount);
   }
 });
 test('invalid signatures cannot fetch, capture or change the Pending row',()=>{
@@ -166,6 +199,33 @@ test('frontend helper and supplied backend agree on the rupee/paise and verifica
 });
 
 const pngProof = {mimeType:'image/png',base64:Buffer.from([137,80,78,71,13,10,26,10]).toString('base64')};
+
+test('saved Web and App links preserve every emoji, Tamil text and URL-sensitive characters',()=>{
+  const api=backend();api.create();api.post(proof);
+  const message=api.context.buildConfirmationMessage_(registration.name,500,registration.course);
+  assert.deepEqual(api.richLinks.map(link=>link.label),['WhatsApp Web','WhatsApp App']);
+  for(const link of api.richLinks) {
+    const url=new URL(link.url);
+    assert.equal(url.searchParams.get('phone'),registration.phone);
+    assert.equal(url.searchParams.get('text'),message);
+    assert.equal(link.url.includes('%EF%BF%BD'),false);
+    for(const point of [0x1F389,0x1F496,0x2705,0x1F484,0x2728,0x1F4DA,0x1F4C5,0x1F310,0x1F5E3,0x1F4B0,0x1F4CC,0x2764]) assert.ok(url.searchParams.get('text').includes(String.fromCodePoint(point)));
+  }
+  const text='தமிழ் & + # %\n'+String.fromCodePoint(0x1F389,0x2764,0xFE0F);
+  const links=api.context.buildWhatsAppLinks_(registration.phone,text);
+  for(const link of Object.values(links)) assert.equal(new URL(link).searchParams.get('text'),text);
+  assert.throws(()=>api.context.buildWhatsAppLinks_(registration.phone,'Broken \uFFFD'),/damaged text/);
+  assert.equal(api.context.testWhatsAppEmojiEncoding().linksPreserveMessage,true);
+});
+
+test('rebuilding old links repairs URLs and preserves sent confirmations and registration details',()=>{
+  const api=backend();api.create();api.post(proof);
+  api.rows[2][12]='Confirmation Sent';api.rows[2][13]='https://wa.me/919876543210?text=%EF%BF%BD';
+  const before=api.rows[2].slice();
+  api.context.rebuildVerifiedLinks();
+  assert.equal(new URL(api.rows[2][13]).searchParams.get('text'),api.context.buildConfirmationMessage_(registration.name,500,registration.course));
+  before.forEach((value,index)=>{if(index!==13)assert.equal(api.rows[2][index],value);});
+});
 test('uploaded proof is stored in Drive and its URL is confirmed in K before Checkout',()=>{
   const api=backend(); const order=api.create(500,pngProof);
   assert.equal(order.ok,true);assert.equal(order.paymentProofSaved,true);

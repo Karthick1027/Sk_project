@@ -9,7 +9,7 @@ const CONFIG = {
   FIRST_DATA_ROW: 2,
   PAYMENT_AMOUNT: 50000,
   CURRENCY: "INR",
-  BACKEND_VERSION: "workshop-auto-verify-v6-course-advances",
+  BACKEND_VERSION: "workshop-auto-verify-v7-unique-contacts",
 
   // Registration columns
   COURSE_COL: 15,          // O
@@ -259,12 +259,12 @@ function registrationHash_(registration) {
 function createWorkshopOrder_(data, requestedAmount, paymentProof) {
   const registration = validateRegistration_(data);
   const amount = paymentAmountPaise_(requestedAmount, registration.course);
-  const proofUrl = paymentProof ? uploadWorkshopProof_(paymentProof) : "";
-  if (proofUrl) registration.paymentScreenshot = proofUrl;
 
   // Save the registration FIRST. Checkout must never open unless this row
   // has been written to and read back from Google Sheets successfully.
-  const saved = appendPendingRegistration_(registration, amount);
+  const saved = appendPendingRegistration_(registration, amount, paymentProof);
+  const proofUrl = saved.paymentProofUrl;
+  if (proofUrl) registration.paymentScreenshot = proofUrl;
   if (proofUrl && String(getExistingResponseSheet_().getRange(saved.row, CONFIG.PAYMENT_SCREENSHOT_COL).getValue()) !== proofUrl) {
     throw backendError_("REGISTRATION_SAVE_FAILED", "The payment proof link could not be confirmed in your registration. Checkout was not opened.");
   }
@@ -386,13 +386,18 @@ function findFirstEmptyDataRow_(sheet) {
  * A-K are populated with registration details; L-R are website automation fields.
  * Existing Google Forms rows and headers are not modified.
  */
-function appendPendingRegistration_(registration, amountPaise) {
+function appendPendingRegistration_(registration, amountPaise, paymentProof) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
 
   try {
     const sheet = getResponseSheet_();
     const details = validateRegistration_(registration);
+    // Check and reserve contacts under the same lock, including Pending and
+    // older Google Form rows, so simultaneous requests cannot reuse them.
+    assertUnusedRegistrationContacts_(sheet, details);
+    const proofUrl = paymentProof ? uploadWorkshopProof_(paymentProof) : "";
+    if (proofUrl) details.paymentScreenshot = proofUrl;
 
     // Reuse the first completely empty row after the header instead of
     // always appending after getLastRow(). This preserves existing responses
@@ -442,7 +447,7 @@ function appendPendingRegistration_(registration, amountPaise) {
       throw backendError_("REGISTRATION_SAVE_FAILED", "The Pending registration could not be confirmed in Google Sheets. Checkout was not opened.");
     }
 
-    return { row: targetRow };
+    return { row: targetRow, paymentProofUrl: proofUrl };
   } catch (error) {
     if (error && error.code) throw error;
     console.error("Pending registration save failed: " + String(error.message || error));
@@ -450,6 +455,23 @@ function appendPendingRegistration_(registration, amountPaise) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function assertUnusedRegistrationContacts_(sheet, registration) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < CONFIG.FIRST_DATA_ROW) return;
+  const rows = sheet.getRange(CONFIG.FIRST_DATA_ROW, 1, lastRow - CONFIG.FIRST_DATA_ROW + 1, 8).getValues();
+  const fields = {};
+  rows.forEach(function(row) {
+    let phone = String(row[CONFIG.PHONE_COL - 1] || "").replace(/\D/g, "");
+    if (phone.length === 10) phone = "91" + phone;
+    else if (phone.length === 11 && phone.charAt(0) === "0") phone = "91" + phone.substring(1);
+    else if (phone.length === 14 && phone.substring(0, 4) === "0091") phone = phone.substring(2);
+    const email = String(row[CONFIG.EMAIL_COL - 1] || "").trim().replace(/^'/, "").toLowerCase();
+    if (phone === registration.phone) fields.phone = "WhatsApp number already registered.";
+    if (email === registration.email) fields.email = "Email already registered.";
+  });
+  if (Object.keys(fields).length) throw backendError_("DUPLICATE_REGISTRATION", "This phone number or email address has already been registered.", fields);
 }
 
 function verifySignature_(orderId, paymentId, signature) {
@@ -656,7 +678,7 @@ function saveVerifiedRegistration_(row, registration, orderId, paymentId, amount
   const duplicate = status === "verified";
   const previousConfirmation = String(values[12] || "").trim();
   const confirmation = duplicate && /^(yes|sent|confirmation sent)$/i.test(previousConfirmation) ? previousConfirmation : "Ready to Send";
-  const whatsapp = "https://wa.me/" + registration.phone + "?text=" + encodeURIComponent(buildConfirmationMessage_(registration.name, amountPaise / 100, registration.course));
+  const whatsapp = buildWhatsAppLinks_(registration.phone, buildConfirmationMessage_(registration.name, amountPaise / 100, registration.course)).app;
   // Only L-R change. Keep A-K and the existing first-empty-row saver intact.
   // IDs are already text; do not require typed-column number-format changes.
   sheet.getRange(row, CONFIG.PAYMENT_COL, 1, 7).setValues([["Verified", confirmation, whatsapp, registration.course, paymentId, orderId, amountPaise / 100]]);
@@ -825,18 +847,16 @@ function createWhatsAppLink_(sheet, row) {
   const course = String(sheet.getRange(row, CONFIG.COURSE_COL).getDisplayValue()).trim();
   const message = buildConfirmationMessage_(name, advance, course);
 
-  // Encode complete message, including emojis.
-  const encodedMessage = encodeURIComponent(message);
-
-  const url =
-    "https://wa.me/" +
-    phone +
-    "?text=" +
-    encodedMessage;
-
+  const links = buildWhatsAppLinks_(phone, message);
+  // Open Web directly on a computer; use App on a phone. Both links carry
+  // the same UTF-8 message without passing through the wa.me short link.
+  const webLabel = "WhatsApp Web";
+  const appLabel = "WhatsApp App";
+  const label = webLabel + " | " + appLabel;
   const richText = SpreadsheetApp.newRichTextValue()
-    .setText("Send WhatsApp")
-    .setLinkUrl(url)
+    .setText(label)
+    .setLinkUrl(0, webLabel.length, links.web)
+    .setLinkUrl(webLabel.length + 3, label.length, links.app)
     .build();
 
   linkCell.setRichTextValue(richText);
@@ -860,6 +880,20 @@ function createWhatsAppLink_(sheet, row) {
 // =====================================================
 // 8. WHATSAPP CONFIRMATION MESSAGE
 // =====================================================
+
+function buildWhatsAppLinks_(phone, message) {
+  // Encode the complete Unicode string once; never encode individual UTF-16
+  // halves of emoji or encode an already encoded message a second time.
+  const encoded = encodeURIComponent(message);
+  if (decodeURIComponent(encoded) !== message || /%EF%BF%BD/i.test(encoded)) {
+    throw new Error("WhatsApp message contains damaged text. Check the saved student details and rebuild the link.");
+  }
+  const query = "?phone=" + encodeURIComponent(phone) + "&text=" + encoded;
+  return {
+    web: "https://web.whatsapp.com/send" + query,
+    app: "https://api.whatsapp.com/send" + query
+  };
+}
 
 function buildConfirmationMessage_(name, advance, course) {
   // Build emojis from Unicode code points at runtime to avoid source-file
@@ -1049,13 +1083,17 @@ function testWhatsAppEmojiEncoding() {
   const replacementCharacterFound = message.indexOf(String.fromCharCode(0xFFFD)) !== -1;
   const encodedEmojiFound = /%F0%9F/i.test(encoded);
   const courseNameFound = message.indexOf("2-Day Online Live Demo Workshop") !== -1;
+  const links = buildWhatsAppLinks_("919876543210", message);
+  const linksPreserveMessage = [links.web, links.app].every(function(url) {
+    return decodeURIComponent(url.split("&text=")[1]) === message;
+  });
 
   console.log("Generated message: " + message);
   console.log("Encoded WhatsApp text: " + encoded);
   console.log("Replacement character found: " + replacementCharacterFound);
   console.log("Emoji UTF-8 encoding found: " + encodedEmojiFound);
 
-  if (replacementCharacterFound || !encodedEmojiFound || !courseNameFound) {
+  if (replacementCharacterFound || !encodedEmojiFound || !courseNameFound || !linksPreserveMessage) {
     throw new Error("Emoji generation or URL encoding failed.");
   }
 
@@ -1063,7 +1101,10 @@ function testWhatsAppEmojiEncoding() {
     ok: true,
     replacementCharacterFound: false,
     encodedEmojiFound: true,
-    courseNameFound: courseNameFound
+    courseNameFound: courseNameFound,
+    linksPreserveMessage: linksPreserveMessage,
+    webTestUrl: links.web,
+    appTestUrl: links.app
   };
 }
 

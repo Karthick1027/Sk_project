@@ -1,5 +1,5 @@
 ﻿<svg xmlns="http://www.w3.org/2000/svg" width="420" height="260" viewBox="0 0 420 260" fill="none">
-  <title>SK Bridal Studio Academy — the art and business of beauty</title>
+  <title>SK Bridal Studio — the art and business of beauty</title>
   <desc>A makeup demonstration with students, professional lighting, a cosmetics palette, and a branding and social media workstation, illustrated in warm ivory, bronze and espresso.</desc>
   <defs>
     <linearGradient id="paper" x1="92" y1="28" x2="302" y2="215" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFCF7"/><stop offset="1" stop-color="#EDE0D0"/></linearGradient>
@@ -12,8 +12,8 @@
   <path d="M103 203V102C103 58 141 29 196 29S290 58 290 102V203" stroke="#C9AE8C" stroke-opacity=".55"/>
   <path d="M72 218H328" stroke="url(#bronze)"/>
   <path d="M123 229H276" stroke="#C9AE8C" stroke-opacity=".4"/>
-  <g fill="#8C6B50" font-family="Georgia,serif" font-size="10" letter-spacing="3">
-    <text x="196" y="53" text-anchor="middle">SK ACADEMY</text>
+  <g fill="#8C6B50" font-family="Georgia,serif" font-size="10" letter-spacing="1.5">
+    <text x="196" y="53" text-anchor="middle">SK BRIDAL STUDIO</text>
   </g>
   <path d="M166 62H226" stroke="#C5A27C" stroke-width=".8"/>
 

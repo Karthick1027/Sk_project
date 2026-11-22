@@ -54,6 +54,19 @@ test('receipt survives reload for manual review without another payment', () => 
 const validOrder = { ok: true, registrationSaved: true, paymentVerification: 'AUTOMATIC', row: 3, keyId: 'rzp_test_123', orderId: 'order_123', amount: 50000, currency: 'INR' };
 const jsonResponse = (data) => ({ ok: true, type: 'cors', json: async () => data });
 
+test('duplicate contacts show only the rejected field with a short message', async () => {
+  for (const field of ['email', 'phone']) {
+    const message = 'This contact has already been used to register.';
+    fetchHandler = async () => jsonResponse({ ok: false, code: 'DUPLICATE_REGISTRATION', error: 'This phone number or email address has already been registered.', fields: { [field]: message } });
+    await assert.rejects(createWorkshopOrder({ registration: validRegistration }), error => {
+      assert.equal(error.name, 'RegistrationValidationError');
+      assert.deepEqual(Object.keys(error.fields), [field]);
+      assert.equal(error.fields[field], field === 'email' ? 'Email already registered.' : 'WhatsApp number already registered.');
+      return true;
+    });
+  }
+});
+
 test('create_order sends goal and international phone using a readable simple CORS POST', async () => {
   const registration = { ...validRegistration, name: 'Student', phone: '919876543210', mainGoal: 'Learn bridal makeup' };
   fetchHandler = async (url, options) => {

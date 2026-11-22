@@ -92,7 +92,7 @@ declare global {
   interface Window { Razorpay?: new (options: CheckoutOptions) => Checkout }
 }
 
-export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec';
+export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec';
 
 export class WorkshopCommunicationError extends Error {
   constructor() {
@@ -127,10 +127,16 @@ async function postWorkshopAction(payload: object): Promise<Record<string, unkno
           if ((field === 'amount' || field === 'paymentScreenshot' || Object.prototype.hasOwnProperty.call(initialRegistration, field)) && typeof value === 'string') fields[field as RegistrationField] = value.slice(0, 500);
         }
       }
+      if (result.code === 'DUPLICATE_REGISTRATION') {
+        if (fields.email) fields.email = 'Email already registered.';
+        if (fields.phone) fields.phone = 'WhatsApp number already registered.';
+      }
       if (action === 'create_order' && (result.code === 'VALIDATION_ERROR' || Object.keys(fields).length || /required fields|registration details|invalid email|invalid course|valid Indian WhatsApp/i.test(message))) {
-        if (/email/i.test(message)) fields.email ||= 'Please enter a valid email address.';
-        if (/course/i.test(message)) fields.course ||= 'Please select one of the available courses.';
-        if (/WhatsApp|phone/i.test(message)) fields.phone ||= 'Enter a valid 10-digit Indian mobile number.';
+        if (!Object.keys(fields).length) {
+          if (/email/i.test(message)) fields.email = 'Please enter a valid email address.';
+          if (/course/i.test(message)) fields.course = 'Please select one of the available courses.';
+          if (/WhatsApp|phone/i.test(message)) fields.phone = 'Enter a valid 10-digit Indian mobile number.';
+        }
         throw new RegistrationValidationError(fields, message);
       }
       const saving = result.code === 'REGISTRATION_SAVE_FAILED' || result.paymentCaptured === true || result.stage === 'saving' || /registration.*(?:could not be saved|not saved)|(?:saving|save).*(?:registration|sheet)/i.test(message);
