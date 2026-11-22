@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import {
   Check, Plus, Gift, Car, Sparkles, Gem, Award, Brush, MessageCircle, ArrowRight, ArrowDown, Instagram,
   Wallet, CalendarCheck, CalendarClock, Percent, Receipt, Lock, Clock,
-  Smartphone, SmartphoneNfc, QrCode, Landmark, Banknote, type LucideIcon,
+  Smartphone, SmartphoneNfc, QrCode, Landmark, Banknote, CreditCard, type LucideIcon,
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
 import CtaBanner from '../components/CtaBanner';
+import BridalAdvancePayment from '../components/BridalAdvancePayment';
 import { PackagesBackdrop } from '../components/PageBackdrops';
 import {
   bridalPackages, packageAddOns, addOnServices, bookingAdvance, bookingSteps, bookingNotes, paymentMethods, BridalPackage,
@@ -40,6 +41,7 @@ const paymentIcons: Record<string, LucideIcon> = {
   UPI: QrCode,
   'Net banking': Landmark,
   Cash: Banknote,
+  'Credit Card': CreditCard,
 };
 
 const noteIcon = (note: string) => {
@@ -61,45 +63,62 @@ const enquiryLink = (pkg: BridalPackage, mode: BookingMode) => {
 };
 
 /**
- * Ticket-style advance card in 3D: it tilts toward the pointer (or tap) with a moving glare,
- * and a back layer gives it thickness. The text and button sit flat on the card face.
- * With no pointer on it, it sways gently so touch users still see the depth.
+ * Tilt only the decorative surface. Keep content and controls in a flat layer
+ * so animation cannot move click targets or alter browser hit testing.
  */
 const DatePass: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
-
-  const tilt = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = ref.current;
-    // Hold the card still while the pointer is on the button, so it doesn't move away mid-click
-    if (!el || (e.target as HTMLElement).closest('a')) return;
-    const r = el.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width;
-    const y = (e.clientY - r.top) / r.height;
-    el.style.setProperty('--ry', `${(x - 0.5) * 20}deg`);
-    el.style.setProperty('--rx', `${(0.5 - y) * 16}deg`);
-    el.style.setProperty('--gx', `${x * 100}%`);
-    el.style.setProperty('--gy', `${y * 100}%`);
-  };
+  const frame = useRef<number | null>(null);
+  const target = useRef({ x: 0.5, y: 0.5 });
+  const [availabilityConfirmed, setAvailabilityConfirmed] = useState(false);
+  useEffect(() => () => { if (frame.current !== null) cancelAnimationFrame(frame.current); }, []);
 
   const reset = () => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    frame.current = null;
     ref.current?.style.setProperty('--rx', '0deg');
     ref.current?.style.setProperty('--ry', '0deg');
+    ref.current?.style.setProperty('--gx', '50%');
+    ref.current?.style.setProperty('--gy', '0%');
+  };
+
+  const tilt = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Keep payment controls steady, and avoid tilt for touch or reduced motion.
+    if (e.pointerType !== 'mouse' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches || (e.target as HTMLElement).closest('a, button, input, label, dialog')) {
+      reset(); return;
+    }
+    const bounds = e.currentTarget.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    target.current = {
+      x: Math.max(0, Math.min(1, (e.clientX - bounds.left) / bounds.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - bounds.top) / bounds.height)),
+    };
+    if (frame.current !== null) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = null;
+      const el = ref.current;
+      if (!el) return;
+      const { x, y } = target.current;
+      el.style.setProperty('--ry', `${(x - 0.5) * 8}deg`);
+      el.style.setProperty('--rx', `${(0.5 - y) * 6}deg`);
+      el.style.setProperty('--gx', `${x * 100}%`);
+      el.style.setProperty('--gy', `${y * 100}%`);
+    });
   };
 
   return (
-    <div className="relative mt-10 [perspective:1100px]">
+    <div data-advance-card onPointerMove={tilt} onPointerLeave={reset} onPointerCancel={reset} onFocusCapture={reset} className="relative mt-10 [perspective:1100px]">
       {/* Soft ground shadow */}
-      <div aria-hidden="true" className="absolute inset-x-10 -bottom-5 h-10 rounded-full bg-chocolate/35 blur-2xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 -bottom-5 h-10 rounded-full bg-chocolate/35 blur-2xl" />
 
-      <div className="animate-sway-3d hover:[animation-play-state:paused] motion-reduce:animate-none [transform-style:preserve-3d]">
-        <div
+      <div className="group relative isolate rounded-3xl bg-chocolate text-ivory">
+        <div className="relative">
+          <div
           ref={ref}
-          onPointerMove={tilt}
-          onPointerDown={tilt}
-          onPointerLeave={reset}
-          className="group relative rounded-3xl text-ivory transition-transform duration-200 ease-out [transform-style:preserve-3d]"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 rounded-3xl transition-transform duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none [will-change:transform] [transform-style:preserve-3d]"
           style={{ transform: 'rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))' }}
-        >
+          >
           {/* Back layer: the card's thickness, visible as it tilts */}
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-3xl bg-[#1d120d] shadow-luxe [transform:translateZ(-18px)]" />
 
@@ -112,18 +131,19 @@ const DatePass: React.FC = () => {
               style={{ background: 'radial-gradient(circle at var(--gx, 25%) var(--gy, 0%), rgba(255,252,246,0.22), transparent 55%)' }}
             />
           </div>
+          </div>
 
-          {/* A hair in front of the face; sharing its plane makes the face swallow clicks and flicker over the text */}
-          <div className="relative px-6 py-7 sm:px-8 [transform:translateZ(1px)]">
+          {/* Controls stay above decoration without any 3D transforms. */}
+          <div className="relative z-10 px-6 py-7 sm:px-8">
             <div className="flex items-start justify-between gap-4">
-              <p className="font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-champagne">Advance per session</p>
+              <p className="font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-champagne">Booking advance from</p>
               <CalendarCheck className="h-6 w-6 shrink-0 text-champagne" />
             </div>
             <p className="mt-4 font-playfair text-5xl sm:text-6xl font-semibold leading-none">
               {formatPrice(bookingAdvance)}
             </p>
             <p className="mt-3 font-cormorant text-xl italic text-sand/90">
-              Secures your date · Non-refundable
+              Pay only after we confirm availability
             </p>
 
             {/* Perforated tear line with half-circle notches at the card edges */}
@@ -136,11 +156,17 @@ const DatePass: React.FC = () => {
               href={RESERVE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-light w-full"
+              className="btn-light w-full !whitespace-normal text-center hover:!translate-y-0"
             >
               <MessageCircle className="h-4 w-4" />
-              Reserve on WhatsApp
+              Check Date Availability
             </a>
+            <label htmlFor="bridal-availability-confirmed" className="mt-4 flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-champagne/25 bg-ivory/5 p-3 font-inter text-sm leading-relaxed text-sand">
+              <input id="bridal-availability-confirmed" type="checkbox" checked={availabilityConfirmed} onChange={event => setAvailabilityConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-champagne" />
+              <span>SK Bridal Studio has confirmed my date and session availability.</span>
+            </label>
+            <BridalAdvancePayment availabilityConfirmed={availabilityConfirmed} />
+            <p className="mt-2 font-inter text-xs leading-relaxed text-champagne">Advance varies by number of days and is non-refundable.</p>
           </div>
         </div>
       </div>
@@ -624,33 +650,43 @@ const Packages: React.FC = () => {
         </div>
 
         {/* Add-on services by the team */}
-        <div className="mt-10 sm:mt-14 grid gap-8 lg:grid-cols-5 lg:gap-14">
-          <div className="lg:col-span-2">
-            <p className="eyebrow">Add-on services</p>
-            <h3 className="mt-3 font-playfair text-3xl sm:text-4xl xl:text-5xl font-medium leading-tight text-chocolate">
-              Extra hands <span className="font-cormorant italic text-cocoa">on the day</span>
+        <div className="mt-10 grid overflow-hidden rounded-3xl border border-sand bg-beige/60 sm:mt-14 lg:grid-cols-[.85fr_1.65fr]">
+          <div className="relative isolate overflow-hidden bg-chocolate p-5 text-ivory sm:p-8 xl:p-10">
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 -right-24 -z-10 h-80 w-64 rounded-t-full border border-champagne/20 p-4"><div className="h-full w-full rounded-t-full border border-champagne/15" /></div>
+            <p className="font-inter text-xs font-semibold uppercase tracking-[0.25em] text-champagne">Add-on services</p>
+            <div className="my-5 hidden h-px w-12 bg-champagne/60 sm:block" />
+            <h3 className="font-playfair text-3xl font-medium leading-tight sm:text-4xl">
+              <span className="mt-3 block text-2xl sm:hidden">Extra services for your wedding</span>
+              <span className="hidden sm:block">Extra hands<span className="mt-1 block font-cormorant text-5xl italic text-champagne">on the day</span></span>
             </h3>
-            <p className="mt-4 max-w-sm font-inter text-[15px] leading-relaxed text-ink">
-              My trained team takes care of these extras. They can be added only to a bridal package booking.
+            <p className="mt-3 max-w-sm font-inter text-sm leading-relaxed text-sand/90 sm:mt-5">
+              My trained team takes care of the little details, so you and your bridal party can enjoy every moment.
+            </p>
+            <p className="mt-4 flex items-start gap-2 border-t border-champagne/20 pt-3 font-inter text-sm leading-relaxed text-champagne sm:mt-6 sm:pt-4">
+              <Plus aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />Available with a bridal package booking only.
             </p>
           </div>
-          <ul className="lg:col-span-3 divide-y divide-sand border-y border-sand">
-            {addOnServices.map((s) => (
-              <li key={s.title} className="flex flex-col gap-2 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                <h4 className="font-playfair text-xl sm:text-2xl font-medium text-chocolate">
-                  {s.title} <span className="font-cormorant italic text-cocoa">{s.accent}</span>
-                </h4>
-                {s.options.length > 0 && (
-                  <ul className="flex flex-wrap gap-2 sm:justify-end">
-                    {s.options.map((o) => (
-                      <li key={o} className="rounded-full bg-beige px-3 py-1 font-inter text-[11px] font-medium uppercase tracking-[0.15em] text-cocoa ring-1 ring-sand">
-                        {o}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
+          <ul className="grid gap-3 p-3 sm:grid-cols-2 sm:gap-4 sm:p-5 xl:p-6">
+            {addOnServices.map((s, index) => {
+              const Icon = [Gem, Brush, Sparkles, Clock][index];
+              return (
+                <li key={s.title} className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-2xl border border-sand/80 bg-ivory p-4 sm:flex sm:flex-col sm:gap-0 sm:p-6">
+                  <div className="row-span-3 flex items-start gap-3 sm:mb-4 sm:items-center" aria-hidden="true">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-champagne bg-beige text-cocoa"><Icon className="h-[18px] w-[18px]" strokeWidth={1.5} /></span>
+                    <span className="hidden h-px flex-1 bg-sand/80 sm:block" />
+                  </div>
+                  <h4 className="col-start-2 font-inter text-base font-semibold leading-snug text-chocolate sm:font-playfair sm:text-xl sm:font-medium"><span className="sm:hidden">{s.mobileTitle}</span><span className="hidden sm:inline">{s.title}</span></h4>
+                  <p className="col-start-2 text-sm leading-relaxed text-cocoa sm:mt-1 sm:font-cormorant sm:text-2xl sm:italic sm:leading-tight"><span className="sm:hidden">{s.mobileDescription}</span><span className="hidden sm:inline">{s.accent}</span></p>
+                  {s.options.length > 0 && (
+                    <ul className="col-start-2 mt-2 flex flex-wrap gap-x-3 gap-y-2 font-inter text-sm text-cocoa sm:mt-4 sm:border-t sm:border-sand/70 sm:pt-3">
+                      {s.options.map((option) => (
+                        <li key={option} className="flex items-center gap-1.5"><span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-mocha" />{option}</li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -675,7 +711,8 @@ const Packages: React.FC = () => {
             </div>
 
             {/* Steps timeline */}
-            <ol className="relative lg:col-span-3 lg:pt-2">
+            <div className="flex min-w-0 flex-col gap-6 lg:col-span-3 lg:pt-2">
+            <ol className="relative">
               {bookingSteps.map((s, i) => {
                 const Icon = stepIcons[i];
                 const last = i === bookingSteps.length - 1;
@@ -701,9 +738,24 @@ const Packages: React.FC = () => {
                 );
               })}
             </ol>
+            <div className="mt-auto rounded-2xl border border-sand bg-ivory/70 p-4 sm:p-5 lg:ml-20">
+              <h4 className="mb-3 font-inter text-sm font-semibold text-cocoa">We accept</h4>
+              <ul className="flex flex-wrap gap-2">
+                {paymentMethods.map((method) => {
+                  const Icon = paymentIcons[method] ?? Wallet;
+                  return (
+                    <li key={method} className="inline-flex items-center gap-2 rounded-lg border border-champagne/25 bg-chocolate px-3 py-2 font-inter text-sm text-ivory">
+                      <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-champagne" />
+                      {method}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+            </div>
           </div>
 
-          {/* Fine print + payment */}
+          {/* Fine print */}
           <div className="relative mt-8 sm:mt-10 border-t border-sand pt-6 sm:pt-8">
             <p className="font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-mocha">Good to know</p>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -720,18 +772,6 @@ const Packages: React.FC = () => {
               })}
             </ul>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <span className="mr-1 font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-mocha">We accept</span>
-              {paymentMethods.map((m) => {
-                const Icon = paymentIcons[m] ?? Wallet;
-                return (
-                  <span key={m} className="inline-flex items-center gap-1.5 rounded-full bg-chocolate px-4 py-1.5 font-inter text-xs font-medium tracking-wide text-ivory shadow-soft">
-                    <Icon className="h-3.5 w-3.5 text-champagne" />
-                    {m}
-                  </span>
-                );
-              })}
-            </div>
           </div>
         </div>
       </section>

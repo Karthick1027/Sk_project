@@ -101,7 +101,7 @@ export class WorkshopCommunicationError extends Error {
   }
 }
 
-async function postWorkshopAction(payload: object): Promise<Record<string, unknown>> {
+export async function postWorkshopAction(payload: object): Promise<Record<string, unknown>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 90000);
   try {

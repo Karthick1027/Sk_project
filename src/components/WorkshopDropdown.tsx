@@ -9,11 +9,12 @@ interface Props {
   options: Option[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  inlineMenu?: boolean;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
 }
 
-export default function WorkshopDropdown({ id, name, value, options, onChange, disabled, 'aria-invalid': invalid, 'aria-describedby': description }: Props) {
+export default function WorkshopDropdown({ id, name, value, options, onChange, disabled, inlineMenu = false, 'aria-invalid': invalid, 'aria-describedby': description }: Props) {
   const listId = `workshop-options-${useId()}`;
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -45,6 +46,11 @@ export default function WorkshopDropdown({ id, name, value, options, onChange, d
       const viewportBottom = (viewport?.offsetTop ?? 0) + viewportHeight;
       // Keep room for the field and header on short screens or with a keyboard open.
       list.current.style.maxHeight = `${Math.max(44, Math.min(240, viewportHeight - 192))}px`;
+      if (inlineMenu) {
+        // Scroll within the dialog rather than the page behind its backdrop.
+        list.current.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        return;
+      }
       const overflow = list.current.getBoundingClientRect().bottom - viewportBottom + 16;
       if (overflow > 0) {
         window.scrollBy({
@@ -54,7 +60,7 @@ export default function WorkshopDropdown({ id, name, value, options, onChange, d
       }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [open, disabled]);
+  }, [open, disabled, inlineMenu]);
 
   useEffect(() => {
     const menu = list.current;
@@ -107,7 +113,7 @@ export default function WorkshopDropdown({ id, name, value, options, onChange, d
         <span id={`${id}-value`} className="min-w-0 break-words">{options[selected]?.label || 'Select an option'}</span>
         <ChevronDown aria-hidden="true" className={`pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cocoa transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && !disabled && <ul ref={list} id={listId} role="listbox" aria-labelledby={`${id}-label`} onMouseLeave={() => setActive(-1)} className="absolute left-0 right-0 top-full z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-champagne bg-beige p-1.5 shadow-luxe">
+      {open && !disabled && <ul ref={list} id={listId} role="listbox" aria-labelledby={`${id}-label`} onMouseLeave={() => setActive(-1)} className={`${inlineMenu ? 'relative' : 'absolute left-0 right-0 top-full'} z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-champagne bg-beige p-1.5 shadow-luxe`}>
         {options.map((option, index) => (
           <li key={option.value} id={`${listId}-${index}`} role="option" aria-selected={value === option.value} data-value={option.value} onMouseEnter={() => setActive(index)} onMouseDown={event => event.preventDefault()} onClick={() => choose(index)} className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-3 text-base transition-colors duration-150 ${active === index ? 'bg-champagne text-chocolate' : selected === index ? 'bg-chocolate text-ivory' : 'bg-beige text-chocolate'}`}>
             <span className="min-w-0 break-words">{option.label}</span>

@@ -81,19 +81,19 @@ export const packageAddOns = [
 
 // Extra services by the studio team, bookable only alongside a bridal package
 export const addOnServices = [
-  { title: 'Saree draping', accent: 'in any style you choose', options: [] as string[] },
-  { title: 'Makeup for', accent: 'your bridesmaids', options: ['Simple', 'HD', 'Airbrush'] },
-  { title: 'Hair styling for', accent: 'your bridesmaids', options: ['Simple', 'Bridal'] },
-  { title: 'Stay-on-call', accent: 'touch-ups', options: ['Makeup refresh', 'Hair fix', 'Jewellery re-setting', 'Saree change'] },
+  { title: 'Saree draping', accent: 'in any style you choose', mobileTitle: 'Saree draping', mobileDescription: 'Draping in your preferred style.', options: [] as string[] },
+  { title: 'Makeup for', accent: 'your bridesmaids', mobileTitle: 'Bridesmaid makeup', mobileDescription: 'Choose a finish for your bridal party.', options: ['Simple', 'HD', 'Airbrush'] },
+  { title: 'Hair styling for', accent: 'your bridesmaids', mobileTitle: 'Bridesmaid hairstyling', mobileDescription: 'Hair styling for your bridal party.', options: ['Simple', 'Bridal'] },
+  { title: 'Stay-on-call', accent: 'touch-ups', mobileTitle: 'On-site touch-ups', mobileDescription: 'Keep our team available for finishing touches.', options: ['Makeup refresh', 'Hair fix', 'Jewellery re-setting', 'Saree change'] },
 ];
 
 // Booking procedure: first come, first served
 export const bookingAdvance = 2000;
 
 export const bookingSteps = [
-  { title: 'Contact me', text: 'Call or WhatsApp +91 86680 38093 before paying the advance.' },
-  { title: 'Pay the advance', text: 'Required for each makeup session, across all packages.' },
-  { title: 'Date confirmed', text: 'Your date is confirmed once the advance is received.' },
+  { title: 'Confirm date availability', text: 'Call or WhatsApp +91 86680 38093. We will confirm availability for your event date and session before you pay.' },
+  { title: 'Send details & pay the advance', text: 'Select Pay, fill the booking form and send your details on WhatsApp. Then pay the displayed advance on Razorpay: INR 2,000 for 1 day, INR 3,000 for 2 days, or INR 4,000 for 3 days.' },
+  { title: 'Booking confirmed', text: 'Share your payment receipt with us on WhatsApp. We will verify the advance and send your booking confirmation.' },
 ];
 
 export const bookingNotes = [
@@ -104,4 +104,4 @@ export const bookingNotes = [
   'Prices are fixed and non-negotiable.',
 ];
 
-export const paymentMethods = ['Google Pay', 'PhonePe', 'Paytm', 'UPI', 'Net banking', 'Cash'];
+export const paymentMethods = ['Google Pay', 'PhonePe', 'Paytm', 'UPI', 'Credit Card', 'Net banking', 'Cash'];

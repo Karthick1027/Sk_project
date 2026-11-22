@@ -1,6 +1,6 @@
 # Workshop registration with automatic Razorpay verification
 
-The backend source of truth for this change is the supplied C:/Users/ASWIN/Downloads/WorkshopRegistrations_AutomaticVerification.gs (workshop-auto-verify-v3). Its active repository copy is google-apps-script/WorkshopRegistrations.gs, version workshop-auto-verify-v7-unique-contacts. Do not deploy both full scripts into one Apps Script project: replace the old code to avoid duplicate function/CONFIG definitions.
+The backend source of truth for this change is the supplied C:/Users/ASWIN/Downloads/WorkshopRegistrations_AutomaticVerification.gs (workshop-auto-verify-v3). Its active repository copy is google-apps-script/WorkshopRegistrations.gs, version workshop-auto-verify-v8-bridal-advances. Do not deploy both full scripts into one Apps Script project: replace the old code to avoid duplicate function/CONFIG definitions.
 
 The first-empty-row selection remains unchanged. appendPendingRegistration_ checks contact uniqueness and accepts an optional local payment-proof upload before saving the Pending row. Field aliases, course validation, Pending persistence, amount conversion, spreadsheet destination and the existing WhatsApp/edit-trigger workflow remain as supplied. Payment verification rechecks duplicate callbacks against Razorpay, returns amount/currency consistently, rejects duplicate order rows/reused payments, and distinguishes captured-payment Sheet failures. The verified update writes only L-R, does not require typed-column reformatting, retains a plain WhatsApp link if rich-link formatting fails and preserves an existing sent confirmation.
 
@@ -70,7 +70,7 @@ https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7Zzhp
 3. In Project Settings > Script properties, keep the matching RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET pair. Start with Razorpay Test Mode keys. Do not put the secret into React, .env frontend variables or chat.
 4. Run setupWorkshopRegistration as the account with edit access to the existing spreadsheet and authorize the required Sheet/UrlFetch scopes. Keep the existing form and tab. The supplied setup prepares automation headers L-R only. If the edit trigger is not already installed, run setupEditTrigger once; it retains other Google Forms triggers.
 5. Choose Deploy > Manage deployments > edit the EXISTING deployment > New version > Deploy. Execute as Me (the spreadsheet editor account), access Anyone. Saving editor code alone does not publish /exec.
-6. Confirm the URL reports version workshop-auto-verify-v7-unique-contacts and ok true. The supplied health function also prepares L-R headers; it is not a completely read-only endpoint, and readiness alone does not prove a saved registration/payment.
+6. Confirm the URL reports version workshop-auto-verify-v8-bridal-advances and ok true. The supplied health function also prepares L-R headers; it is not a completely read-only endpoint, and readiness alone does not prove a saved registration/payment.
 7. Keep WORKSHOP_API_URL unchanged if this deployment URL is retained. If you intentionally create a different deployment, update that constant in src/lib/workshopPayment.ts before building.
 8. Publish the frontend only after the backend supports automatic verification:
 

@@ -12,8 +12,6 @@ import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
 import HeroBackdrop, { LotusFlower } from '../components/HeroBackdrop';
 
-const CLASS_FORM_URL = 'https://forms.gle/rfW2a95NHFgN874XA';
-
 const Counter: React.FC<{ end: number; duration: number; label: string; icon: React.ReactNode }> = ({
   end, duration, label, icon
 }) => {
@@ -259,9 +257,9 @@ const Home: React.FC = () => {
               );
 
               return isClass ? (
-                <a key={service.title} href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className={cardClass}>
+                <Link key={service.title} to="/workshops" className={cardClass}>
                   {cardContent}
-                </a>
+                </Link>
               ) : (
                 <Link key={service.title} to="/contact" className={cardClass}>
                   {cardContent}

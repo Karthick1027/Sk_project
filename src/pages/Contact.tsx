@@ -4,6 +4,7 @@ import PageHero from '../components/PageHero';
 import { ContactBackdrop } from '../components/PageBackdrops';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
+import StudioMapBackdrop from '../components/StudioMapBackdrop';
 
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -272,8 +273,9 @@ Sent from SK Bridal Studio Website
       </div>
 
       {/* Location Section */}
-      <section className="py-10 md:py-16 bg-beige">
-        <div className="container mx-auto px-4 md:max-w-[90%]">
+      <section className="relative isolate overflow-hidden py-10 md:py-16 bg-beige">
+        <StudioMapBackdrop />
+        <div className="container relative z-10 mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="Find Us"
             title="Visit My Studio"
