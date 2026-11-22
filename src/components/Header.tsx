@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, MessageCircle } from 'lucide-react';
 import Logo_white from '../../src/images/SK_logo_white.png';
+
+const WHATSAPP_ENQUIRY_URL = `https://wa.me/918668038093?text=${encodeURIComponent("Hi SK Bridal Studio! I'd like to enquire about your makeup services and check date availability.")}`;
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -79,13 +81,13 @@ const Header: React.FC = () => {
             })}
           </div>
             <a
-              href="https://wa.me/918668038093"
+              href={WHATSAPP_ENQUIRY_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary hidden justify-self-end !px-5 !py-2.5 text-sm xl:inline-flex"
             >
-              Book Now
-              <ArrowRight className="w-4 h-4" />
+              <MessageCircle aria-hidden="true" className="w-4 h-4 shrink-0" />
+              WhatsApp Us
             </a>
 
           {/* Mobile Menu Button */}
@@ -118,14 +120,14 @@ const Header: React.FC = () => {
             ))}
             <div className="px-6 pt-3 pb-1">
               <a
-                href="https://wa.me/918668038093"
+                href={WHATSAPP_ENQUIRY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary w-full"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Book Your Makeup
-                <ArrowRight className="w-4 h-4" />
+                <MessageCircle aria-hidden="true" className="w-4 h-4 shrink-0" />
+                WhatsApp Us
               </a>
             </div>
           </div>

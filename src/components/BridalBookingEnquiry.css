@@ -1,0 +1,22 @@
+.bridal-booking-dialog .field {
+  min-height: 40px;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-left: 10px;
+  font-size: 14px;
+  line-height: 22px;
+}
+.bridal-booking-dialog [role='option'] {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+.bridal-booking-dialog .btn-primary,
+.bridal-booking-dialog .btn-outline {
+  padding: 10px 16px !important;
+  font-size: 14px;
+}
+@media (max-width: 639px), (pointer: coarse) {
+  .bridal-booking-dialog .field { min-height: 44px; font-size: 16px; }
+  .bridal-booking-dialog [role='option'] { min-height: 44px; }
+}

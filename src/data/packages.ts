@@ -92,7 +92,7 @@ export const bookingAdvance = 2000;
 
 export const bookingSteps = [
   { title: 'Confirm date availability', text: 'Call or WhatsApp +91 86680 38093. We will confirm availability for your event date and session before you pay.' },
-  { title: 'Send details & pay the advance', text: 'Select Pay, fill the booking form and send your details on WhatsApp. Then pay the displayed advance on Razorpay: INR 2,000 for 1 day, INR 3,000 for 2 days, or INR 4,000 for 3 days.' },
+  { title: 'Send details & pay the advance', text: 'Fill the booking form, send your details on WhatsApp, then pay the displayed advance on Razorpay.' },
   { title: 'Booking confirmed', text: 'Share your payment receipt with us on WhatsApp. We will verify the advance and send your booking confirmation.' },
 ];
 

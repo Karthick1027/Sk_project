@@ -481,20 +481,24 @@ const Workshops: React.FC = () => {
               Live Virtual Masterclass
             </span>
 
-            <h1 className="mt-5 sm:mt-7 font-playfair text-5xl sm:text-6xl xl:text-7xl font-medium leading-[1.05] text-chocolate">
-              2 Sessions.
+            <h1 className="mt-5 sm:mt-7 font-playfair text-4xl sm:text-5xl xl:text-6xl font-medium leading-[1.05] text-chocolate">
+              2 Days.
               <br />
-              Two Styles.
-              <br />
-              <span className="font-cormorant italic text-cocoa">Mastered live.</span>
+              <span className="font-cormorant italic text-cocoa">Learn Live.</span>
             </h1>
 
-            <p className="mx-auto mt-4 sm:mt-7 max-w-xl font-inter text-base sm:text-lg leading-relaxed text-ink lg:mx-0">
-              A two-day interactive virtual masterclass with Srinithi: the muhurtham look on the first day, the
-              reception look on the second. Demonstrated as it happens, with all your questions answered along the way.
-            </p>
+            <div className="mt-5 sm:mt-6 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-center lg:justify-start">
+              <a href="#registration" className="btn-primary !py-3 sm:!py-3.5">
+                <Send className="h-4 w-4" />
+                Register for a Course
+              </a>
+              <a href="#programme" className="btn-outline !py-3 sm:!py-3.5">
+                Explore the 2 Days
+                <ArrowDown className="h-4 w-4" />
+              </a>
+            </div>
 
-            <dl className="mx-auto mt-3 sm:mt-4 grid max-w-md grid-cols-3 divide-x divide-sand rounded-2xl border border-sand bg-ivory/70 py-2.5 lg:mx-0">
+            <dl className="mx-auto mt-4 sm:mt-5 grid max-w-md grid-cols-3 divide-x divide-sand rounded-2xl border border-sand bg-ivory/70 py-2.5 lg:mx-0">
               {[
                 ['02', 'Days'],
                 ['02', 'Bridal looks'],
@@ -508,17 +512,9 @@ const Workshops: React.FC = () => {
               ))}
             </dl>
 
-            <div className="mt-6 sm:mt-9 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-center lg:justify-start">
-              <a href="#registration" className="btn-primary !py-3 sm:!py-3.5">
-                <Send className="h-4 w-4" />
-                Register for a Course
-              </a>
-              <a href="#programme" className="btn-outline !py-3 sm:!py-3.5">
-                Explore the 2 Days
-                <ArrowDown className="h-4 w-4" />
-              </a>
-            </div>
-            <p className="mt-3 sm:mt-4 font-inter text-sm text-mocha">Choose your course and send your details using the registration form below.</p>
+            <p className="mx-auto mt-4 max-w-xl font-inter text-base leading-relaxed text-ink lg:mx-0">
+              Learn muhurtham and reception looks live with Srinithi, with step-by-step demos and Q&amp;A.
+            </p>
           </div>
 
           {/* Photo collage */}
@@ -562,7 +558,7 @@ const Workshops: React.FC = () => {
       </div>
 
       {/* Programme */}
-      <section id="programme" className="scroll-mt-24 py-10 md:py-16">
+      <section id="programme" className="scroll-mt-24 py-6 md:py-9">
         <div className="container mx-auto px-4 md:max-w-[90%]">
           <SectionHeading
             eyebrow="The Programme"
@@ -572,7 +568,7 @@ const Workshops: React.FC = () => {
               </>
             }
             subtitle="Both looks are taught in depth, using techniques refined through real bridal experience, to bridge the gap between model practice and a real bride. Pick a day to see what's covered."
-            className="mb-8 md:mb-10"
+            className="mb-5 md:mb-6 [&_.eyebrow]:mb-2 [&_.ornament]:mt-3 [&>p:last-child]:mt-3"
           />
 
           {/* Day switcher */}
@@ -588,14 +584,14 @@ const Workshops: React.FC = () => {
                   aria-selected={selected}
                   aria-controls="day-panel"
                   onClick={() => setActive(i)}
-                  className={`group relative flex items-center gap-4 sm:gap-5 overflow-hidden rounded-3xl sm:rounded-[1.75rem] border px-5 py-3.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-2 focus-visible:ring-offset-ivory sm:p-6 ${
+                  className={`group relative flex items-center gap-3 sm:gap-4 overflow-hidden rounded-3xl sm:rounded-[1.75rem] border px-4 py-3 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-2 focus-visible:ring-offset-ivory sm:px-5 sm:py-4 ${
                     selected
                       ? 'border-chocolate bg-chocolate text-ivory shadow-luxe'
                       : 'border-sand bg-ivory text-chocolate shadow-soft hover:-translate-y-0.5 hover:border-champagne'
                   }`}
                 >
                   <span
-                    className={`font-cormorant text-5xl italic leading-none sm:text-7xl ${selected ? 'text-champagne' : 'text-champagne/80'}`}
+                    className={`font-cormorant text-5xl italic leading-none sm:text-6xl ${selected ? 'text-champagne' : 'text-champagne/80'}`}
                   >
                     {d.num}
                   </span>
@@ -618,7 +614,7 @@ const Workshops: React.FC = () => {
             id="day-panel"
             role="tabpanel"
             aria-labelledby={`day-tab-${day.num}`}
-            className="mt-10 grid items-start gap-10 animate-fade-in lg:mt-14 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12"
+            className="mt-7 grid items-start gap-7 animate-fade-in lg:mt-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-9"
           >
             <div className="relative mx-auto w-[calc(100%-2rem)] max-w-sm lg:sticky lg:top-28">
               <div aria-hidden="true" className="absolute -inset-4 rounded-t-full border border-champagne" />
@@ -644,15 +640,15 @@ const Workshops: React.FC = () => {
                 {day.title} <span className="font-cormorant italic text-cocoa">{day.accent}</span>
               </h2>
               <p className="mt-3 font-cormorant text-2xl italic text-mocha">{day.tagline}</p>
-              <div className="ornament mx-auto mt-6 lg:mx-0" />
-              <p className="mx-auto mt-6 max-w-2xl font-inter text-base sm:text-lg leading-relaxed text-ink lg:mx-0">
+              <div className="ornament mx-auto mt-4 lg:mx-0" />
+              <p className="mx-auto mt-4 max-w-2xl font-inter text-base sm:text-lg leading-relaxed text-ink lg:mx-0">
                 {day.description}
               </p>
 
-              <div className="mt-9 grid gap-4 text-left sm:grid-cols-2">
+              <div className="mt-5 grid gap-3 text-left sm:grid-cols-2">
                 {day.highlights.map((h) => (
                   // An odd card out at the end spans the full row
-                  <article key={h.label} className="card relative p-6 sm:last:odd:col-span-2">
+                  <article key={h.label} className="card relative p-4 sm:p-5 sm:last:odd:col-span-2">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-inter text-[11px] font-semibold uppercase tracking-[0.3em] text-mocha">{h.label}</p>
                       {h.swatches && (
@@ -669,7 +665,7 @@ const Workshops: React.FC = () => {
                 ))}
               </div>
 
-              <div className="mt-10 text-left">
+              <div className="mt-6 text-left">
                 <p className="eyebrow">What you'll learn</p>
                 <ol className="mt-5 grid gap-3 sm:grid-cols-2">
                   {day.learn.map((item, i) => (
@@ -908,6 +904,7 @@ const Workshops: React.FC = () => {
       {result && <WorkshopPaymentDialog result={result} detail={resultDetail} course={registration.course} amount={submittedAmount} pending={Boolean(pendingPayment)} onClose={closeResult} onRetry={() => { void startPayment(); }} />}
 
       <CtaBanner
+        compact
         eyebrow="Learn With Me"
         title="New Workshops Are Announced on Instagram First"
         text="Choose a course and send your details to hear about the next session."

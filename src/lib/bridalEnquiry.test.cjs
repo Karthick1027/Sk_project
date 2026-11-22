@@ -10,7 +10,8 @@ test('WhatsApp booking message includes all details, the studio number and typed
   const url=new URL(api.buildBridalEnquiryUrl(details));
   assert.equal(url.origin,'https://wa.me');assert.equal(url.pathname,'/918668038093');
   const message=url.searchParams.get('text');
-  for(const value of [details.name,'bride@example.com','+91 9876543210','25/01/2027','Reception',details.venue,'1 day INR 2,000; 2 days INR 3,000; 3 days INR 4,000','pay 2000'])assert.ok(message.includes(value),value);
+  for(const value of [details.name,'bride@example.com','+91 9876543210','25/01/2027','Reception',details.venue,'Total advance: INR 2,000.','pay 2000'])assert.ok(message.includes(value),value);
+  assert.equal(message.includes('Advance by booking duration:'),false);
   assert.equal(message.includes('\uFFFD'),false);
   assert.equal(api.BRIDAL_PAYMENT_URL,'https://razorpay.me/@skbridalstudio');
 });

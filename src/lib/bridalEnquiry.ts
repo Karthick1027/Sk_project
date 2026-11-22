@@ -1,6 +1,6 @@
 export const BRIDAL_PAYMENT_URL = 'https://razorpay.me/@skbridalstudio';
 export const BRIDAL_WHATSAPP_NUMBER = '918668038093';
-export const BRIDAL_ENQUIRY_SESSIONS = ['Muhurtham', 'Reception', 'Engagement', 'Other bridal session'];
+export const BRIDAL_ENQUIRY_SESSIONS = ['Muhurtham', 'Reception', 'Engagement', 'Baby Shower', 'Puberty Ceremony', 'Commercial Shoot', 'Other bridal session'];
 export interface BridalDay { eventDate: string; session: string }
 export interface BridalEnquiry { name: string; email: string; phone: string; days: BridalDay[]; venue: string }
 export const BRIDAL_DAY_ADVANCES: Record<number, number> = { 1: 2000, 2: 3000, 3: 4000 };
@@ -45,7 +45,6 @@ export function buildBridalEnquiryUrl(details: BridalEnquiry): string {
     ...schedule,
     `Venue / city: ${details.venue.trim() || 'To be shared'}`, '',
     'I have confirmed date and session availability with SK Bridal Studio.',
-    'Advance by booking duration: 1 day INR 2,000; 2 days INR 3,000; 3 days INR 4,000.',
     `Total advance: INR ${bridalAdvanceTotal(details).toLocaleString('en-IN')}.`,
     `I will pay ${bridalAdvanceTotal(details)} on your Razorpay page and share the payment receipt for booking confirmation.`,
   ].join('\n');

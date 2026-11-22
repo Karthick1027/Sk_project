@@ -9,6 +9,7 @@ import PageHero from '../components/PageHero';
 import CtaBanner from '../components/CtaBanner';
 import BridalAdvancePayment from '../components/BridalAdvancePayment';
 import { PackagesBackdrop } from '../components/PageBackdrops';
+import './Packages.css';
 import {
   bridalPackages, packageAddOns, addOnServices, bookingAdvance, bookingSteps, bookingNotes, paymentMethods, BridalPackage,
 } from '../data/packages';
@@ -68,10 +69,22 @@ const enquiryLink = (pkg: BridalPackage, mode: BookingMode) => {
  */
 const DatePass: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
+  const motion = useRef<HTMLDivElement>(null);
+  const cardRoot = useRef<HTMLDivElement>(null);
+  const stopped = useRef(false);
+  const [hasStopped, setHasStopped] = useState(false);
+  const [inView, setInView] = useState(false);
   const frame = useRef<number | null>(null);
+  const settleFrame = useRef<number | null>(null);
   const target = useRef({ x: 0.5, y: 0.5 });
   const [availabilityConfirmed, setAvailabilityConfirmed] = useState(false);
-  useEffect(() => () => { if (frame.current !== null) cancelAnimationFrame(frame.current); }, []);
+  useEffect(() => () => { if (frame.current !== null) cancelAnimationFrame(frame.current); if (settleFrame.current !== null) cancelAnimationFrame(settleFrame.current); }, []);
+  useEffect(() => {
+    if (!cardRoot.current) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
+    observer.observe(cardRoot.current);
+    return () => observer.disconnect();
+  }, []);
 
   const reset = () => {
     if (frame.current !== null) cancelAnimationFrame(frame.current);
@@ -81,8 +94,27 @@ const DatePass: React.FC = () => {
     ref.current?.style.setProperty('--gx', '50%');
     ref.current?.style.setProperty('--gy', '0%');
   };
+  const stopAnimation = () => {
+    if (stopped.current) return;
+    stopped.current = true;
+    reset();
+    const surface = motion.current;
+    if (surface) {
+      const pose = getComputedStyle(surface).transform;
+      surface.style.animation = 'none';
+      surface.style.transform = pose;
+      // Preserve the visible pose before easing back to a flat card.
+      surface.getBoundingClientRect();
+      settleFrame.current = requestAnimationFrame(() => {
+        settleFrame.current = null;
+        surface.style.transform = 'rotateX(0deg) rotateY(0deg)';
+      });
+    }
+    setHasStopped(true);
+  };
 
   const tilt = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (stopped.current) return;
     // Keep payment controls steady, and avoid tilt for touch or reduced motion.
     if (e.pointerType !== 'mouse' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches || (e.target as HTMLElement).closest('a, button, input, label, dialog')) {
       reset(); return;
@@ -107,12 +139,13 @@ const DatePass: React.FC = () => {
   };
 
   return (
-    <div data-advance-card onPointerMove={tilt} onPointerLeave={reset} onPointerCancel={reset} onFocusCapture={reset} className="relative mt-10 [perspective:1100px]">
+    <div ref={cardRoot} data-advance-card data-motion-stopped={hasStopped} onClickCapture={stopAnimation} onPointerMove={tilt} onPointerLeave={reset} onPointerCancel={reset} onFocusCapture={reset} onKeyDownCapture={event => { if (event.key === 'Enter' || event.key === ' ') stopAnimation(); }} className="relative mt-10 [perspective:1100px]">
       {/* Soft ground shadow */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 -bottom-5 h-10 rounded-full bg-chocolate/35 blur-2xl" />
 
       <div className="group relative isolate rounded-3xl bg-chocolate text-ivory">
         <div className="relative">
+          <div ref={motion} data-advance-card-motion aria-hidden="true" className={`pointer-events-none absolute inset-0 [transform-style:preserve-3d] ${hasStopped ? 'advance-card-motion-stopped' : 'advance-card-motion'}`} style={{ animationPlayState: inView ? 'running' : 'paused' }}>
           <div
           ref={ref}
           aria-hidden="true"
@@ -130,6 +163,7 @@ const DatePass: React.FC = () => {
               className="absolute inset-0 opacity-60 transition-opacity duration-300 group-hover:opacity-100"
               style={{ background: 'radial-gradient(circle at var(--gx, 25%) var(--gy, 0%), rgba(255,252,246,0.22), transparent 55%)' }}
             />
+          </div>
           </div>
           </div>
 
@@ -536,7 +570,7 @@ const Packages: React.FC = () => {
 
       <section className="container mx-auto px-4 pt-6 pb-10 sm:pt-10 sm:pb-12 md:pt-10 md:pb-14 md:max-w-[90%]">
         {/* Booking toggle */}
-        <div className="flex flex-col items-center gap-3 sm:gap-4 text-center">
+        <div id="booking-options" className="relative scroll-mt-28 flex flex-col items-center gap-3 sm:gap-4 text-center">
           <p className="eyebrow">I'm booking for</p>
           <div
             role="group"
@@ -572,6 +606,10 @@ const Packages: React.FC = () => {
               ? 'Booking both ceremonies with us? Complimentary extras are now shown on every package.'
               : 'Prices are per session. Switch to Muhurtham + Reception to see the complimentary extras.'}
           </p>
+          <Link to="/packages#booking-procedure" className="btn-outline !border-gray-300 !bg-gray-100 !px-4 !py-2.5 text-sm hover:!bg-gray-200 hover:!text-chocolate lg:absolute lg:right-0 lg:top-10">
+            <CalendarCheck aria-hidden="true" className="h-4 w-4 shrink-0" />
+            Booking Procedure
+          </Link>
         </div>
 
         {/* Package cards */}
@@ -596,34 +634,34 @@ const Packages: React.FC = () => {
         </div>
 
         {/* Add-ons + jewellery */}
-        <div className="mt-10 sm:mt-14 grid gap-6 lg:grid-cols-5">
-          <div className="card p-6 sm:p-8 lg:col-span-3">
+        <div className="mt-7 sm:mt-9 grid gap-4 lg:grid-cols-5">
+          <div className="card p-5 sm:p-6 lg:col-span-3">
             <p className="eyebrow">Good to know</p>
             <h3 className="mt-3 font-playfair text-2xl sm:text-3xl font-medium text-chocolate">
               Add-ons <span className="font-cormorant italic text-cocoa">&amp; extras</span>
             </h3>
-            <dl className="mt-6 divide-y divide-sand/70">
+            <dl className="mt-3 divide-y divide-sand/70">
               {packageAddOns.map((a) => (
-                <div key={a.label} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-4">
+                <div key={a.label} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
                   <dt className="font-inter text-[15px] font-medium text-chocolate">{a.label}</dt>
                   <dd className="font-cormorant text-xl italic text-cocoa">{a.value}</dd>
                 </div>
               ))}
             </dl>
-            <p className="mt-4 font-inter text-sm text-mocha">
+            <p className="mt-3 font-inter text-sm text-mocha">
               Not included in package prices. Travel within Chennai is always included.
             </p>
           </div>
 
           {/* Bottom padding leaves room for the necklace wherever the card isn't stretched taller than its text */}
-          <div className="relative overflow-hidden rounded-2xl bg-beige p-6 pb-44 sm:p-8 sm:pb-48 xl:pb-8 border border-sand lg:col-span-2">
+          <div className="relative overflow-hidden rounded-2xl bg-beige p-5 pb-32 sm:p-6 sm:pb-36 xl:pb-6 border border-sand lg:col-span-2">
             <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-champagne/40 blur-3xl" />
             <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 -right-6 h-56 w-56 rounded-full bg-champagne/30 blur-3xl" />
 
             {/* Jewellery illustrations */}
             <Jhumka thread={18} className="pointer-events-none absolute top-0 right-8 w-7 sm:right-12 sm:w-8" />
             <Jhumka thread={46} delay="-2.5s" className="pointer-events-none absolute top-0 right-20 w-6 sm:right-24 sm:w-7" />
-            <Necklace className="pointer-events-none absolute -bottom-4 right-2 w-52 sm:w-60 sm:right-6 drop-shadow-[0_8px_14px_rgba(59,38,30,0.12)]" />
+            <Necklace className="pointer-events-none absolute -bottom-4 right-2 w-40 sm:w-44 sm:right-6 drop-shadow-[0_8px_14px_rgba(59,38,30,0.12)]" />
             <Sparkles aria-hidden="true" className="pointer-events-none absolute bottom-36 right-56 h-4 w-4 text-mocha/60 animate-twinkle motion-reduce:animate-none hidden sm:block" />
             <Sparkles aria-hidden="true" className="pointer-events-none absolute bottom-10 right-64 h-3 w-3 text-mocha/50 animate-twinkle motion-reduce:animate-none [animation-delay:-1.5s] hidden sm:block" />
 
@@ -631,7 +669,7 @@ const Packages: React.FC = () => {
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-ivory text-cocoa ring-1 ring-champagne">
                 <Gem className="h-5 w-5" />
               </span>
-              <h3 className="mt-5 font-playfair text-2xl font-medium text-chocolate">Bridal Jewellery</h3>
+              <h3 className="mt-3 font-playfair text-2xl font-medium text-chocolate">Bridal Jewellery</h3>
               <p className="mt-3 font-inter text-[15px] leading-relaxed text-ink">
                 Book the Airbrush package for both Muhurtham &amp; Reception and one session's rental of a full bridal jewellery set is included.
                 Pick your favourite set from our jewellery collection.
@@ -640,7 +678,7 @@ const Packages: React.FC = () => {
                 href={JEWELLERY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-outline mt-6 !px-5 !py-3 text-sm"
+                className="btn-outline mt-4 !px-5 !py-3 text-sm"
               >
                 <Instagram className="h-4 w-4" />
                 @sk_bridal.collections
@@ -691,7 +729,7 @@ const Packages: React.FC = () => {
         </div>
 
         {/* Booking procedure */}
-        <div className="relative mt-10 sm:mt-14 overflow-hidden rounded-[2rem] border border-sand bg-beige p-6 sm:p-10 xl:p-14">
+        <div id="booking-procedure" className="relative mt-10 scroll-mt-28 sm:mt-14 overflow-hidden rounded-[2rem] border border-sand bg-beige p-6 sm:p-10 xl:p-14">
           <div aria-hidden="true" className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-blush/60 blur-3xl" />
           <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-champagne/40 blur-3xl" />
 

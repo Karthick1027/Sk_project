@@ -4,6 +4,7 @@ import { BRIDAL_ENQUIRY_SESSIONS, BRIDAL_DAY_ADVANCES, bridalPaymentDestination,
 import { normalizePhone } from '../lib/workshopPayment';
 import WorkshopDropdown from './WorkshopDropdown';
 import BridalDatePicker from './BridalDatePicker';
+import './BridalBookingEnquiry.css';
 
 export default function BridalBookingEnquiry({ availabilityConfirmed }: { availabilityConfirmed: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -50,35 +51,35 @@ export default function BridalBookingEnquiry({ availabilityConfirmed }: { availa
     catch { setHandoffError('Use Open WhatsApp below to send your details.'); }
   };
   const fieldClass = 'field min-h-11 min-w-0 !py-2 text-base';
-  const labelClass = 'mb-1 block text-sm font-medium text-cocoa';
+  const labelClass = 'mb-1 block text-[13px] font-medium text-cocoa';
   const fieldProps = (field: string) => ({ id: `booking-${field}`, name: field, 'aria-invalid': Boolean(errors[field]), 'aria-describedby': errors[field] ? `booking-${field}-error` : undefined });
   const fieldError = (field: string) => errors[field] && <p id={`booking-${field}-error`} className="mt-1 text-sm text-red-700">{errors[field]}</p>;
   return (
     <>
-      <button data-bridal-booking-trigger type="button" disabled={!availabilityConfirmed} aria-describedby="bridal-enquiry-help" onClick={() => dialog.current?.showModal()} className="btn-light mt-3 w-full !whitespace-normal text-center hover:!translate-y-0"><Lock aria-hidden="true" className="h-4 w-4 shrink-0" />Send Details &amp; Pay Advance</button>
+      <button data-bridal-booking-trigger type="button" disabled={!availabilityConfirmed} aria-describedby="bridal-enquiry-help" onClick={() => dialog.current?.showModal()} className="btn-light mt-3 w-full !whitespace-normal text-center hover:!translate-y-0"><Lock aria-hidden="true" className="h-4 w-4 shrink-0" />Details &amp; Pay</button>
       <p id="bridal-enquiry-help" className="mt-3 font-inter text-xs leading-relaxed text-sand/90">{availabilityConfirmed ? 'Choose 1–3 days, send your details on WhatsApp, then pay the total advance on Razorpay.' : 'Confirm your date with us first to enable payment.'}</p>
-      <dialog ref={dialog} aria-labelledby="bridal-enquiry-title" className="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl overflow-y-auto rounded-2xl border border-sand bg-ivory p-4 text-left text-chocolate shadow-luxe backdrop:bg-chocolate/60 sm:p-6">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-cocoa">Bridal booking advance</p><h3 id="bridal-enquiry-title" className="mt-1 font-playfair text-2xl">{whatsappUrl ? 'Send details, then pay' : 'Reserve your session'}</h3></div>
+      <dialog ref={dialog} aria-labelledby="bridal-enquiry-title" className="bridal-booking-dialog m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl overflow-y-auto rounded-2xl border border-sand bg-ivory p-4 text-left text-chocolate shadow-luxe backdrop:bg-chocolate/60">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cocoa">Bridal booking advance</p><h3 id="bridal-enquiry-title" className="mt-1 font-playfair text-xl">{whatsappUrl ? 'Send details, then pay' : 'Reserve your session'}</h3></div>
           <button type="button" aria-label="Close booking form" onClick={() => dialog.current?.close()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa"><X className="h-5 w-5" /></button>
         </div>
-        <div className="mb-4 grid grid-cols-2 gap-2 font-inter text-sm">
-          <span className={`rounded-lg border px-3 py-2 ${whatsappUrl ? 'border-sand text-cocoa' : 'border-champagne bg-beige font-semibold'}`}>1. Booking details</span>
-          <span className={`rounded-lg border px-3 py-2 ${whatsappUrl ? 'border-champagne bg-beige font-semibold' : 'border-sand text-cocoa'}`}>2. WhatsApp & payment</span>
+        <div className="mb-2.5 grid grid-cols-2 gap-2 font-inter text-[13px]">
+          <span className={`rounded-lg border px-2.5 py-1.5 ${whatsappUrl ? 'border-sand text-cocoa' : 'border-champagne bg-beige font-semibold'}`}>1. Booking details</span>
+          <span className={`rounded-lg border px-2.5 py-1.5 ${whatsappUrl ? 'border-champagne bg-beige font-semibold' : 'border-sand text-cocoa'}`}>2. WhatsApp & payment</span>
         </div>
         {!whatsappUrl ? (
-          <form onSubmit={submit} noValidate className="space-y-3 font-inter">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sand/70 bg-beige/60 px-3 py-2 text-sm text-ink"><span>Non-refundable advance</span><strong aria-live="polite" className="text-base text-chocolate">Total advance: {formattedTotal}</strong></div>
-            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 [&>div]:min-w-0">
+          <form onSubmit={submit} noValidate className="space-y-2.5 font-inter">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sand/70 bg-beige/60 px-2.5 py-1.5 text-[13px] text-ink"><span>Non-refundable advance</span><strong aria-live="polite" className="text-sm text-chocolate">Total advance: {formattedTotal}</strong></div>
+            <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 [&>div]:min-w-0">
               <div><label htmlFor="booking-name" className={labelClass}>Your name *</label><input {...fieldProps('name')} required maxLength={100} autoComplete="name" className={fieldClass} value={details.name} onChange={event => update('name', event.target.value)} />{fieldError('name')}</div>
               <div><label htmlFor="booking-email" className={labelClass}>Email *</label><input {...fieldProps('email')} type="email" required maxLength={150} autoComplete="email" className={fieldClass} value={details.email} onChange={event => update('email', event.target.value)} />{fieldError('email')}</div>
               <div><label htmlFor="booking-phone" className={labelClass}>WhatsApp number (+91) *</label><input {...fieldProps('phone')} type="tel" inputMode="numeric" required maxLength={10} autoComplete="tel-national" className={fieldClass} value={details.phone} onChange={event => update('phone', normalizePhone(event.target.value))} />{fieldError('phone')}</div>
               <div><label htmlFor="booking-venue" className={labelClass}>Venue / city <span className="font-normal">(optional)</span></label><input {...fieldProps('venue')} maxLength={200} className={fieldClass} value={details.venue} onChange={event => update('venue', event.target.value)} />{fieldError('venue')}</div>
-              <div className="rounded-xl border border-sand bg-beige/40 p-3 sm:col-span-2"><label id="booking-days-label" htmlFor="booking-days" className={labelClass}>Number of days *</label><WorkshopDropdown {...fieldProps('days')} inlineMenu value={String(details.days.length)} onChange={value => changeDays(Number(value))} options={[1, 2, 3].map(count => ({ value: String(count), label: `${count} ${count === 1 ? 'day' : 'days'} · ₹${BRIDAL_DAY_ADVANCES[count].toLocaleString('en-IN')} advance` }))} />{fieldError('days')}</div>
+              <div className="rounded-xl border border-sand bg-beige/40 p-2.5 sm:col-span-2"><label id="booking-days-label" htmlFor="booking-days" className={labelClass}>Number of days *</label><WorkshopDropdown {...fieldProps('days')} inlineMenu value={String(details.days.length)} onChange={value => changeDays(Number(value))} options={[1, 2, 3].map(count => ({ value: String(count), label: `${count} ${count === 1 ? 'day' : 'days'} · ₹${BRIDAL_DAY_ADVANCES[count].toLocaleString('en-IN')} advance` }))} />{fieldError('days')}</div>
               {details.days.map((day, index) => (
-                <fieldset key={index} className="min-w-0 rounded-xl border border-sand px-3 pb-3 pt-1 sm:col-span-2">
-                  <legend className="px-1 text-sm font-semibold text-cocoa">Day {index + 1}</legend>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 [&>div]:min-w-0">
+                <fieldset key={index} className="min-w-0 rounded-xl border border-sand px-2.5 pb-2.5 pt-1 sm:col-span-2">
+                  <legend className="px-1 text-[13px] font-semibold text-cocoa">Day {index + 1}</legend>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 [&>div]:min-w-0">
                     <div><label htmlFor={`booking-${bridalDayField(index, 'eventDate')}`} className={labelClass}>Event date *</label><BridalDatePicker {...fieldProps(bridalDayField(index, 'eventDate'))} value={day.eventDate} onChange={value => updateDay(index, 'eventDate', value)} />{fieldError(bridalDayField(index, 'eventDate'))}</div>
                     <div><label id={`booking-${bridalDayField(index, 'session')}-label`} htmlFor={`booking-${bridalDayField(index, 'session')}`} className={labelClass}>Session *</label><WorkshopDropdown {...fieldProps(bridalDayField(index, 'session'))} inlineMenu value={day.session} onChange={value => updateDay(index, 'session', value)} options={BRIDAL_ENQUIRY_SESSIONS.map(session => ({ value: session, label: session }))} />{fieldError(bridalDayField(index, 'session'))}</div>
                   </div>

@@ -53,6 +53,7 @@ const checks=`<script>
  check(pay.disabled,'Pay is disabled until date availability acknowledgement');
  const card=document.querySelector('[style*="rotateX"]');
  const wrapper=document.querySelector('[data-advance-card]');
+ check(getComputedStyle(wrapper.querySelector('[data-advance-card-motion]')).animationName==='advance-card-viewing','Card has a gentle viewing animation before interaction');
  const hit=async(element,label)=>{
   element.scrollIntoView({block:'center',behavior:'instant'});await new Promise(r=>setTimeout(r,80));
   const rect=element.getBoundingClientRect(),target=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);
@@ -76,6 +77,11 @@ const checks=`<script>
  }
  (await hit(contact,'Availability button')).click();
  check(clickedLink.includes('wa.me/918668038093'),'Availability button opens the studio WhatsApp URL');
+ await wait(()=>wrapper.dataset.motionStopped==='true');
+ check(getComputedStyle(wrapper.querySelector('[data-advance-card-motion]')).animationName==='none','First click stops the viewing animation');
+ wrapper.querySelector('p').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:100,clientY:100}));
+ await new Promise(resolve=>setTimeout(resolve,80));
+ check(card.style.getPropertyValue('--ry')==='0deg','Hover tilt stays stopped after clicking');
  (await hit(document.getElementById('bridal-availability-confirmed'),'Availability checkbox')).click();
  await wait(()=>!pay.disabled);
  (await hit(pay,'Pay button')).click();
@@ -88,9 +94,33 @@ const checks=`<script>
  dateField.nextElementSibling.click();await wait(()=>document.querySelector('[data-date]'));
  const calendar=dateField.closest('div').parentElement;
  const month=calendar.querySelector('[aria-live=polite]').textContent;
+ // Mobile browsers may blur the focused date with no relatedTarget before
+ // delivering the arrow click. This must not dismiss the calendar.
+ document.activeElement.dispatchEvent(new FocusEvent('focusout',{bubbles:true,relatedTarget:null}));
+ await new Promise(resolve=>setTimeout(resolve,50));
+ check(Boolean(calendar.querySelector('[aria-label="Next month"]')),'Mobile focus change does not close the calendar before an arrow tap');
  calendar.querySelector('[aria-label="Next month"]').click();
  await wait(()=>calendar.querySelector('[aria-live=polite]').textContent!==month);
  check(true,'Styled calendar supports month navigation');
+ calendar.querySelector('[aria-label="Previous month"]').click();
+ await wait(()=>calendar.querySelector('[aria-live=polite]').textContent===month);
+ check(true,'Previous-month arrow works after touch-style focus changes');
+ calendar.querySelector('[data-calendar-heading]').click();
+ await wait(()=>calendar.querySelectorAll('[data-month]').length===12);
+ check(true,'Clicking month/year heading opens the month selector');
+ calendar.querySelector('[data-calendar-heading]').click();
+ await wait(()=>calendar.querySelectorAll('[data-year]').length===12);
+ const firstYear=calendar.querySelector('[data-year]').dataset.year;
+ calendar.querySelector('[aria-label="Next 12 years"]').click();
+ await wait(()=>calendar.querySelector('[data-year]').dataset.year!==firstYear);
+ calendar.querySelector('[aria-label="Previous 12 years"]').click();
+ await wait(()=>calendar.querySelector('[data-year]').dataset.year===firstYear);
+ check(true,'Year selector navigates forward and backward through year ranges');
+ const yearChoices=calendar.querySelectorAll('[data-year]'),chosenYear=yearChoices[yearChoices.length-1].dataset.year;
+ yearChoices[yearChoices.length-1].click();await wait(()=>calendar.querySelector('[data-month]'));
+ calendar.querySelector('[data-month="2"]').click();
+ await wait(()=>calendar.querySelector('[data-date="'+chosenYear+'-03-01"]'));
+ check(true,'Choosing a year and month opens that calendar directly');
  const dateButton=calendar.querySelector('[data-date]'),chosenDate=dateButton.dataset.date;
  dateButton.click();await wait(()=>!calendar.querySelector('[data-date]'));
  check(dateField.value===chosenDate.split('-').reverse().join('/'),'Calendar selection displays DD/MM/YYYY');

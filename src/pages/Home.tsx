@@ -112,7 +112,7 @@ const Home: React.FC = () => {
               I create beauty that reflects your unique radiance.
             </p>
             <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row sm:flex-wrap gap-4 justify-center lg:justify-start">
-              <Link to="/contact" className="btn-primary">
+              <Link to="/packages#booking-options" className="btn-primary">
                 Book Your Makeup
                 <ArrowRight className="w-4 h-4" />
               </Link>
