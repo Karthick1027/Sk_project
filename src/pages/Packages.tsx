@@ -6,8 +6,8 @@ import {
   Smartphone, SmartphoneNfc, QrCode, Landmark, Banknote, CreditCard, type LucideIcon,
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
-import CtaBanner from '../components/CtaBanner';
 import BridalAdvancePayment from '../components/BridalAdvancePayment';
+import BridalAvailability from '../components/BridalAvailability';
 import { PackagesBackdrop } from '../components/PageBackdrops';
 import './Packages.css';
 import {
@@ -52,8 +52,6 @@ const noteIcon = (note: string) => {
   if (note.includes('Date')) return CalendarClock;
   return Lock;
 };
-
-const RESERVE_URL = `${WHATSAPP_URL}?text=${encodeURIComponent("Hi SK Bridal Studio! I'd like to check availability and reserve my date.")}`;
 
 const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
 
@@ -186,15 +184,7 @@ const DatePass: React.FC = () => {
               <span className="absolute -right-6 sm:-right-8 -top-3 h-6 w-3 rounded-l-full bg-beige" />
             </div>
 
-            <a
-              href={RESERVE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-light w-full !whitespace-normal text-center hover:!translate-y-0"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Check Date Availability
-            </a>
+            <BridalAvailability />
             <label htmlFor="bridal-availability-confirmed" className="mt-4 flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-champagne/25 bg-ivory/5 p-3 font-inter text-sm leading-relaxed text-sand">
               <input id="bridal-availability-confirmed" type="checkbox" checked={availabilityConfirmed} onChange={event => setAvailabilityConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-champagne" />
               <span>SK Bridal Studio has confirmed my date and session availability.</span>
@@ -814,20 +804,6 @@ const Packages: React.FC = () => {
         </div>
       </section>
 
-      <CtaBanner
-        eyebrow="Still deciding?"
-        title="Let's find the finish that's made for you"
-        text="Share your wedding date, venue and the look you love. We'll help you choose the package that suits your skin and your celebration."
-      >
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="btn-light">
-          <MessageCircle className="h-4 w-4" />
-          Chat on WhatsApp
-        </a>
-        <Link to="/contact" className="btn-ghost-light">
-          Contact Us
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </CtaBanner>
     </div>
   );
 };

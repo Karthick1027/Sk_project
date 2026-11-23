@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, GraduationCap, Heart, Award, Calendar, ArrowRight, Sparkles } from 'lucide-react';
+import { Star, GraduationCap, Heart, Award, ArrowRight, Sparkles } from 'lucide-react';
 // Service card photos come from the client gallery
 import bridalImage from '../images/gallery/client_2170.jpg';
 // Zoomed crop of gallery/4G4A3254.JPG.jpeg (client_3254)
@@ -275,13 +275,8 @@ const Home: React.FC = () => {
         title="Ready to Look Absolutely Stunning?"
         text="Whether it's your special day or you want to master the art of makeup, let's create something beautiful together."
       >
-        <Link to="/contact" className="btn-light">
-          <Calendar className="w-5 h-5" />
-          Book Appointment
-        </Link>
-        <Link to="/portfolio" className="btn-ghost-light">
-          <Award className="w-5 h-5" />
-          View Portfolio
+        <Link to="/packages#booking-options" className="btn-light">
+          View Booking Options
         </Link>
       </CtaBanner>
     </div>

@@ -909,10 +909,6 @@ const Workshops: React.FC = () => {
         title="New Workshops Are Announced on Instagram First"
         text="Choose a course and send your details to hear about the next session."
       >
-        <a href="#registration" className="btn-light">
-          <Send className="h-4 w-4" />
-          Register for a Course
-        </a>
         <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost-light">
           Follow @srinithimakeupartist
         </a>

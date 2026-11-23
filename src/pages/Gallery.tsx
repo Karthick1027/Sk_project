@@ -577,8 +577,8 @@ const Gallery: React.FC = () => {
                 </p>
               </div>
               <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-                <Link to="/contact" className="btn-primary">
-                  Book a Consultation <ArrowRight className="w-4 h-4" />
+                <Link to="/packages#booking-options" className="btn-primary">
+                  View Bridal Packages <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link to="/workshops" className="btn-outline">
                   <Star className="w-4 h-4" />
@@ -707,15 +707,11 @@ const Gallery: React.FC = () => {
                         Join Class
                       </Link>
                     ) : (
-                      <Link to="/contact" className="btn-primary">
+                      <a href={enquiryUrl(selectedImage)} target="_blank" rel="noopener noreferrer" className="btn-primary">
                         <Calendar className="w-5 h-5" />
-                        Book Similar Look
-                      </Link>
+                        Book This Look
+                      </a>
                     )}
-                    <a href={enquiryUrl(selectedImage)} target="_blank" rel="noopener noreferrer" className="btn-outline">
-                      <MessageCircle className="w-5 h-5" />
-                      Enquire
-                    </a>
                     <button
                       onClick={() => toggleLike(selectedImage.id)}
                       aria-label={liked ? 'Remove from wishlist' : 'Save to wishlist'}

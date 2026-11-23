@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Brush, Flower2, Sparkles, Gift, Eye, Aperture, Feather, Gem, MessageCircle, ArrowRight,
+  Brush, Flower2, Sparkles, Gift, Eye, Aperture, Feather, Gem,
   type LucideIcon,
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
@@ -289,13 +289,8 @@ const Services: React.FC = () => {
         title="Let's Plan Your Bridal Look"
         text="Tell me your wedding date, venue and the style you dream of, and I'll take care of every detail from makeup to the final drape."
       >
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="btn-light">
-          <MessageCircle className="h-4 w-4" />
-          Chat on WhatsApp
-        </a>
-        <Link to="/packages" className="btn-ghost-light">
+        <Link to="/packages" className="btn-light">
           View Packages
-          <ArrowRight className="h-4 w-4" />
         </Link>
       </CtaBanner>
     </div>

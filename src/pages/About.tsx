@@ -33,17 +33,17 @@ const About: React.FC = () => {
     <div className="pt-20">
       {/* Hero Section */}
       {/* Extra top padding on phones clears the 52px garland across the top of the backdrop */}
-      <section className="relative overflow-hidden pt-16 pb-10 sm:py-14 lg:pt-20 lg:pb-14 bg-gradient-to-b from-beige to-ivory">
+      <section className="relative overflow-hidden pt-16 pb-8 sm:pt-16 sm:pb-10 bg-gradient-to-b from-beige to-ivory">
         <AboutBackdrop />
         <div className="relative container mx-auto px-4 md:max-w-[90%]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-14 items-center">
-            <div className="animate-fade-in text-center lg:text-left">
-              <p className="eyebrow mb-2 sm:mb-5">The Artist Behind SK Bridal Studio</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+            <div className="animate-fade-in text-center lg:text-left lg:pt-6">
+              <p className="eyebrow mb-2 sm:mb-3">The Artist Behind SK Bridal Studio</p>
               <h1 className="font-playfair text-4xl sm:text-5xl md:text-6xl font-medium text-chocolate leading-[1.1]">
                 Meet <span className="font-cormorant italic text-cocoa">Srinithi.A.K</span>
               </h1>
-              <div className="ornament mt-4 sm:mt-8 mx-auto lg:mx-0" />
-              <p className="font-inter text-base sm:text-lg md:text-xl text-ink mt-4 sm:mt-8 mb-8 sm:mb-10 leading-relaxed">
+              <div className="ornament mt-4 mx-auto lg:mx-0" />
+              <p className="font-inter text-base sm:text-lg md:text-xl text-ink mt-4 mb-5 sm:mb-6 leading-relaxed">
                 Over 4 years into my professional makeup journey, which began in July 2022, I truly believe that beauty is not just about
                 looking good - it's about feeling confident, radiant, and authentically yourself.
               </p>
@@ -53,7 +53,7 @@ const About: React.FC = () => {
                   { value: '230+', label: 'Happy Brides' },
                   { value: '5+', label: 'Students Trained' },
                 ].map((stat) => (
-                  <div key={stat.label} className="px-2 sm:px-8 lg:px-4 xl:px-6 py-4 sm:py-5 text-center">
+                  <div key={stat.label} className="px-2 sm:px-8 lg:px-4 xl:px-6 py-3 sm:py-4 text-center">
                     <div className="font-playfair text-2xl sm:text-3xl font-medium text-chocolate">{stat.value}</div>
                     <div className="font-inter text-[10px] sm:text-[11px] uppercase tracking-[0.12em] sm:tracking-[0.2em] text-cocoa mt-1">{stat.label}</div>
                   </div>
@@ -67,7 +67,7 @@ const About: React.FC = () => {
                 <img
                   src={srinithiPic}
                   alt="Srinithi - Professional Makeup Artist"
-                  className="w-full h-[24rem] sm:h-[28rem] lg:h-[480px] xl:h-[540px] 2xl:h-[620px] object-cover object-[50%_15%]"
+                  className="w-full h-[24rem] sm:h-[28rem] lg:h-[440px] xl:h-[480px] 2xl:h-[540px] object-cover object-[50%_15%]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-chocolate/25 via-transparent to-transparent"></div>
               </div>

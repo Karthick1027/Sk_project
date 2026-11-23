@@ -59,9 +59,12 @@ export default function BridalBookingEnquiry({ availabilityConfirmed }: { availa
       <button data-bridal-booking-trigger type="button" disabled={!availabilityConfirmed} aria-describedby="bridal-enquiry-help" onClick={() => dialog.current?.showModal()} className="btn-light mt-3 w-full !whitespace-normal text-center hover:!translate-y-0"><Lock aria-hidden="true" className="h-4 w-4 shrink-0" />Details &amp; Pay</button>
       <p id="bridal-enquiry-help" className="mt-3 font-inter text-xs leading-relaxed text-sand/90">{availabilityConfirmed ? 'Choose 1–3 days, send your details on WhatsApp, then pay the total advance on Razorpay.' : 'Confirm your date with us first to enable payment.'}</p>
       <dialog ref={dialog} aria-labelledby="bridal-enquiry-title" className="bridal-booking-dialog m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl overflow-y-auto rounded-2xl border border-sand bg-ivory p-4 text-left text-chocolate shadow-luxe backdrop:bg-chocolate/60">
-        <div className="mb-2 flex items-start justify-between gap-2">
-          <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cocoa">Bridal booking advance</p><h3 id="bridal-enquiry-title" className="mt-1 font-playfair text-xl">{whatsappUrl ? 'Send details, then pay' : 'Reserve your session'}</h3></div>
-          <button type="button" aria-label="Close booking form" onClick={() => dialog.current?.close()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa"><X className="h-5 w-5" /></button>
+        <div className="sticky -top-4 z-30 -mx-4 -mt-4 mb-3 flex items-start justify-between gap-2 border-b border-sand bg-ivory px-4 py-3">
+          <div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cocoa">Bridal booking advance</p><h3 id="bridal-enquiry-title" className="mt-1 font-playfair text-xl">{whatsappUrl ? 'Send details, then pay' : 'Reserve your session'}</h3></div>
+          <div className="flex shrink-0 items-center gap-1">
+            {whatsappUrl && <button type="button" aria-label="Edit booking details" className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-inter text-sm text-cocoa hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa" onClick={() => { setWhatsappUrl(''); setSentDetails(false); }}><ArrowLeft aria-hidden="true" className="h-4 w-4" />Back</button>}
+            <button type="button" aria-label="Close booking form" onClick={() => dialog.current?.close()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa"><X className="h-5 w-5" /></button>
+          </div>
         </div>
         <div className="mb-2.5 grid grid-cols-2 gap-2 font-inter text-[13px]">
           <span className={`rounded-lg border px-2.5 py-1.5 ${whatsappUrl ? 'border-sand text-cocoa' : 'border-champagne bg-beige font-semibold'}`}>1. Booking details</span>
@@ -101,7 +104,6 @@ export default function BridalBookingEnquiry({ availabilityConfirmed }: { availa
             <label htmlFor="booking-details-sent" className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-sand p-3 text-cocoa"><input id="booking-details-sent" type="checkbox" checked={sentDetails} onChange={event => setSentDetails(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-chocolate" /><span>I have sent my booking details on WhatsApp.</span></label>
             {sentDetails && payment ? <a data-bridal-payment-link href={payment.url} target="_blank" rel="noopener noreferrer" className="btn-primary w-full !whitespace-normal !py-3"><ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" />Pay</a> : <button type="button" disabled className="btn-primary w-full !whitespace-normal !py-3"><Lock aria-hidden="true" className="h-4 w-4 shrink-0" />Pay</button>}
             <p className="flex items-start gap-2 text-cocoa"><Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" /><span>{payment === null ? 'Payment is temporarily unavailable. Contact SK Bridal Studio.' : <>Enter <strong className="text-chocolate">{total}</strong> as the amount on Razorpay.</>} After paying, send the receipt in the same WhatsApp chat. We will verify it and confirm your booking.</span></p>
-            <button type="button" className="flex min-h-11 items-center gap-2 rounded text-cocoa underline underline-offset-4" onClick={() => { setWhatsappUrl(''); setSentDetails(false); }}><ArrowLeft aria-hidden="true" className="h-4 w-4" />Edit booking details</button>
           </div>
         )}
       </dialog>

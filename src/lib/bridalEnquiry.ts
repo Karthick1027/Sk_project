@@ -34,18 +34,18 @@ export function buildBridalEnquiryUrl(details: BridalEnquiry): string {
   if (Object.keys(validateBridalEnquiry(details)).length) throw new Error('Please check your booking details.');
   const schedule = details.days.flatMap((entry, index) => {
     const [year, month, day] = entry.eventDate.split('-');
-    return [`Day ${index + 1}: ${day}/${month}/${year}`, `Session: ${entry.session}`];
+    return [...(index > 0 ? [''] : []), `*Day ${index + 1}* : ${day}/${month}/${year}`, `*Session* : ${entry.session}`];
   });
   const message = [
-    'BRIDAL MAKEUP ADVANCE BOOKING', '',
-    `Name: ${details.name.trim()}`,
-    `Email: ${details.email.trim().toLowerCase()}`,
-    `WhatsApp: +91 ${details.phone}`,
-    `Number of days: ${details.days.length}`,
-    ...schedule,
-    `Venue / city: ${details.venue.trim() || 'To be shared'}`, '',
+    '*BRIDAL MAKEUP ADVANCE BOOKING:*', '',
+    `*Name* : ${details.name.trim()}`,
+    `*Email* : ${details.email.trim().toLowerCase()}`,
+    `*WhatsApp* : +91 ${details.phone}`,
+    `*Number of days* : ${details.days.length}`, '',
+    ...schedule, '',
+    `*Venue / City* : ${details.venue.trim() || 'To be shared'}`, '',
     'I have confirmed date and session availability with SK Bridal Studio.',
-    `Total advance: INR ${bridalAdvanceTotal(details).toLocaleString('en-IN')}.`,
+    `*Total advance* : INR ${bridalAdvanceTotal(details).toLocaleString('en-IN')}`, '',
     `I will pay ${bridalAdvanceTotal(details)} on your Razorpay page and share the payment receipt for booking confirmation.`,
   ].join('\n');
   return `https://wa.me/${BRIDAL_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
