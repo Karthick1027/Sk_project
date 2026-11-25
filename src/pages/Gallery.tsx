@@ -32,7 +32,6 @@ interface Category {
 const clientPhotos = import.meta.glob<string>('../images/gallery/*.jpg', { eager: true, import: 'default' });
 const clientPhoto = (num: number) => clientPhotos[`../images/gallery/client_${num}.jpg`];
 
-const CLASS_FORM_URL = 'https://forms.gle/rfW2a95NHFgN874XA';
 const WHATSAPP_URL = 'https://wa.me/918668038093';
 
 const enquiryUrl = (img: GalleryImage) =>
@@ -578,13 +577,13 @@ const Gallery: React.FC = () => {
                 </p>
               </div>
               <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-                <Link to="/contact" className="btn-primary">
-                  Book a Consultation <ArrowRight className="w-4 h-4" />
+                <Link to="/packages#booking-options" className="btn-primary">
+                  View Bridal Packages <ArrowRight className="w-4 h-4" />
                 </Link>
-                <a href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className="btn-outline">
+                <Link to="/workshops" className="btn-outline">
                   <Star className="w-4 h-4" />
                   Join Makeup Class
-                </a>
+                </Link>
               </div>
             </div>
           </div>
@@ -703,20 +702,16 @@ const Gallery: React.FC = () => {
 
                   <div className="mt-7 flex flex-wrap items-center gap-3">
                     {selectedImage.category === 'Bridal Class' ? (
-                      <a href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
+                      <Link to="/workshops" className="btn-primary">
                         <GraduationCap className="w-5 h-5" />
                         Join Class
-                      </a>
-                    ) : (
-                      <Link to="/contact" className="btn-primary">
-                        <Calendar className="w-5 h-5" />
-                        Book Similar Look
                       </Link>
+                    ) : (
+                      <a href={enquiryUrl(selectedImage)} target="_blank" rel="noopener noreferrer" className="btn-primary">
+                        <Calendar className="w-5 h-5" />
+                        Book This Look
+                      </a>
                     )}
-                    <a href={enquiryUrl(selectedImage)} target="_blank" rel="noopener noreferrer" className="btn-outline">
-                      <MessageCircle className="w-5 h-5" />
-                      Enquire
-                    </a>
                     <button
                       onClick={() => toggleLike(selectedImage.id)}
                       aria-label={liked ? 'Remove from wishlist' : 'Save to wishlist'}

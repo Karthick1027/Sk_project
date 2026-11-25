@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, GraduationCap, Heart, Award, Calendar, ArrowRight, Sparkles } from 'lucide-react';
+import { Star, GraduationCap, Heart, Award, ArrowRight, Sparkles } from 'lucide-react';
 // Service card photos come from the client gallery
 import bridalImage from '../images/gallery/client_2170.jpg';
 // Zoomed crop of gallery/4G4A3254.JPG.jpeg (client_3254)
@@ -11,8 +11,6 @@ import clientImage from '../images/hero_bride_2127.jpg';
 import SectionHeading from '../components/SectionHeading';
 import CtaBanner from '../components/CtaBanner';
 import HeroBackdrop, { LotusFlower } from '../components/HeroBackdrop';
-
-const CLASS_FORM_URL = 'https://forms.gle/rfW2a95NHFgN874XA';
 
 const Counter: React.FC<{ end: number; duration: number; label: string; icon: React.ReactNode }> = ({
   end, duration, label, icon
@@ -114,19 +112,17 @@ const Home: React.FC = () => {
               I create beauty that reflects your unique radiance.
             </p>
             <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row sm:flex-wrap gap-4 justify-center lg:justify-start">
-              <Link to="/contact" className="btn-primary">
+              <Link to="/packages#booking-options" className="btn-primary">
                 Book Your Makeup
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <a
-                href={CLASS_FORM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/workshops"
                 className="btn-secondary"
               >
                 Join Makeup Class
                 <ArrowRight className="w-4 h-4" />
-              </a>
+              </Link>
             </div>
 
             <div className="mt-8 sm:mt-10 flex items-center justify-center lg:justify-start gap-4 sm:gap-6 text-cocoa">
@@ -261,9 +257,9 @@ const Home: React.FC = () => {
               );
 
               return isClass ? (
-                <a key={service.title} href={CLASS_FORM_URL} target="_blank" rel="noopener noreferrer" className={cardClass}>
+                <Link key={service.title} to="/workshops" className={cardClass}>
                   {cardContent}
-                </a>
+                </Link>
               ) : (
                 <Link key={service.title} to="/contact" className={cardClass}>
                   {cardContent}
@@ -279,13 +275,8 @@ const Home: React.FC = () => {
         title="Ready to Look Absolutely Stunning?"
         text="Whether it's your special day or you want to master the art of makeup, let's create something beautiful together."
       >
-        <Link to="/contact" className="btn-light">
-          <Calendar className="w-5 h-5" />
-          Book Appointment
-        </Link>
-        <Link to="/portfolio" className="btn-ghost-light">
-          <Award className="w-5 h-5" />
-          View Portfolio
+        <Link to="/packages#booking-options" className="btn-light">
+          View Booking Options
         </Link>
       </CtaBanner>
     </div>

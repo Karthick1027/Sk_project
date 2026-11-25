@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, MessageCircle } from 'lucide-react';
 import Logo_white from '../../src/images/SK_logo_white.png';
+
+const WHATSAPP_ENQUIRY_URL = `https://wa.me/918668038093?text=${encodeURIComponent("Hi SK Bridal Studio! I'd like to enquire about your makeup services and check date availability.")}`;
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,9 +38,9 @@ const Header: React.FC = () => {
         : 'bg-ivory/40 backdrop-blur-sm border-transparent'
     }`}>
       <nav className="container mx-auto px-4 py-3 md:max-w-[90%]">
-        <div className="flex items-center justify-between gap-6">
+        <div className="flex items-center justify-between gap-4 xl:grid xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-5 2xl:gap-8">
           {/* Logo */}
-          <Link to="/" className="flex min-w-0 items-center gap-3 group">
+          <Link to="/" className="flex min-w-0 shrink-0 items-center gap-3 group">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-chocolate ring-1 ring-champagne ring-offset-2 ring-offset-ivory transition-transform duration-500 group-hover:scale-105">
               <img
                 src={Logo_white}
@@ -46,28 +48,27 @@ const Header: React.FC = () => {
                 className="w-11"
               />
             </div>
-            {/* Brand text is hidden on the narrowest phones and on laptops below 1440px, where the full nav needs the room */}
-            <div className="hidden min-[360px]:block lg:hidden min-[1440px]:block leading-none">
-              <span className="block font-playfair text-base sm:text-xl font-medium uppercase tracking-[0.15em] sm:tracking-[0.2em] text-chocolate whitespace-nowrap">
-                SK Bridal Studio
+            <div className="hidden min-[360px]:block leading-none">
+              <span className="block font-playfair text-base sm:text-xl xl:text-base 2xl:text-xl font-medium uppercase tracking-[0.15em] text-chocolate whitespace-nowrap">
+                 Bridal Studio
               </span>
-              <span className="mt-1.5 flex items-center gap-2 font-inter text-[9px] sm:text-[10px] uppercase tracking-[0.25em] sm:tracking-[0.35em] text-mocha whitespace-nowrap">
-                <span className="h-px w-2 sm:w-3 bg-mocha/60" aria-hidden="true" />
+              <span className="mt-1.5 flex items-center gap-2 font-inter text-[9px] sm:text-[10px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-mocha whitespace-nowrap">
+                {/* <span className="h-px w-2 sm:w-3 bg-mocha/60" aria-hidden="true" /> */}
                 Beauty. Elegance. Grace.
-                <span className="h-px w-2 sm:w-3 bg-mocha/60" aria-hidden="true" />
+                {/* <span className="h-px w-2 sm:w-3 bg-mocha/60" aria-hidden="true" /> */}
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-3 xl:gap-5 2xl:gap-6">
+          <div className="hidden min-w-0 items-center justify-center gap-3 xl:flex min-[1360px]:gap-4 2xl:gap-6">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`relative group rounded-sm py-1 font-inter text-[13px] font-medium uppercase tracking-[0.1em] xl:tracking-[0.15em] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-4 focus-visible:ring-offset-ivory ${
+                  className={`relative group whitespace-nowrap rounded-sm py-2 font-inter text-[13px] font-medium uppercase tracking-[0.1em] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne focus-visible:ring-offset-4 focus-visible:ring-offset-ivory ${
                     isActive ? 'text-chocolate' : 'text-cocoa/80 hover:text-chocolate'
                   }`}
                 >
@@ -78,20 +79,20 @@ const Header: React.FC = () => {
                 </Link>
               );
             })}
+          </div>
             <a
-              href="https://wa.me/918668038093"
+              href={WHATSAPP_ENQUIRY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary !px-5 !py-2.5 text-sm"
+              className="btn-primary hidden justify-self-end !px-5 !py-2.5 text-sm xl:inline-flex"
             >
-              Book Now
-              <ArrowRight className="w-4 h-4" />
+              <MessageCircle aria-hidden="true" className="w-4 h-4 shrink-0" />
+              WhatsApp Us
             </a>
-          </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden shrink-0 p-2 rounded-lg text-chocolate hover:bg-beige transition-colors duration-300"
+            className="xl:hidden shrink-0 p-2 rounded-lg text-chocolate hover:bg-beige transition-colors duration-300"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMenuOpen}
@@ -102,7 +103,7 @@ const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="lg:hidden mt-4 mb-2 py-3 max-h-[calc(100dvh-6rem)] overflow-y-auto bg-ivory rounded-2xl shadow-luxe border border-sand/60 animate-fade-in">
+          <div className="xl:hidden mt-4 mb-2 py-3 max-h-[calc(100dvh-6rem)] overflow-y-auto bg-ivory rounded-2xl shadow-luxe border border-sand/60 animate-fade-in">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -119,14 +120,14 @@ const Header: React.FC = () => {
             ))}
             <div className="px-6 pt-3 pb-1">
               <a
-                href="https://wa.me/918668038093"
+                href={WHATSAPP_ENQUIRY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary w-full"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Book Your Makeup
-                <ArrowRight className="w-4 h-4" />
+                <MessageCircle aria-hidden="true" className="w-4 h-4 shrink-0" />
+                WhatsApp Us
               </a>
             </div>
           </div>

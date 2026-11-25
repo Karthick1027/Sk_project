@@ -1,0 +1,15 @@
+.advance-card-motion {
+  animation: advance-card-viewing 8s ease-in-out infinite;
+  will-change: transform;
+}
+.advance-card-motion-stopped {
+  transition: transform 500ms cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes advance-card-viewing {
+  0%, 100% { transform: rotateX(-1deg) rotateY(-2deg); }
+  50% { transform: rotateX(1deg) rotateY(2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .advance-card-motion { animation: none; }
+  .advance-card-motion-stopped { transition: none; }
+}

@@ -85,7 +85,7 @@ const AboutBackdrop: React.FC = () => {
       <div className="absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-blush/40 blur-3xl" />
 
       {/* Flower garland (toran) along the top edge */}
-      <svg className="absolute top-0 left-0 h-[52px] w-full opacity-70">
+      <svg className="absolute top-0 left-0 h-[52px] w-full opacity-70 lg:opacity-40">
         <defs>
           <pattern id={garlandId} width="120" height="52" patternUnits="userSpaceOnUse">
             <path d="M0 4 Q 60 46, 120 4" fill="none" stroke="#A78B73" strokeWidth="0.9" />

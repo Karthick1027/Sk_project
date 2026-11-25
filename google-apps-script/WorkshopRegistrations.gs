@@ -1,17 +1,15 @@
-
 // =====================================================
 // SK BRIDAL STUDIO - WORKSHOP REGISTRATION SYSTEM
-// Google Sheets + WhatsApp Payment Confirmation
+// Google Sheets + AUTOMATIC Payment Verification + WhatsApp Confirmation
 // =====================================================
 
 const CONFIG = {
   SPREADSHEET_ID: "1TdrQD7sq_uRgLkPoKwubH23QJY-reCejaNTVgvr3ows",
   SHEET_NAME: "Form Responses 1",
   FIRST_DATA_ROW: 2,
-  SUGGESTED_PAYMENT_RUPEES: 500,
+  PAYMENT_AMOUNT: 50000,
   CURRENCY: "INR",
-  TIME_ZONE: "Asia/Kolkata",
-  BACKEND_VERSION: "workshop-spark-v3-sheet-pending",
+  BACKEND_VERSION: "workshop-auto-verify-v8-bridal-advances",
 
   // Registration columns
   COURSE_COL: 15,          // O
@@ -34,36 +32,89 @@ const CONFIG = {
   WHATSAPP_LINK_COL: 14    // N
 };
 
+const COURSE_FEES = {
+  "2-Day Online Live Demo Workshop": 3999,
+  "15-Day Bridal Makeup Masterclass": 29999,
+  "30-Day Professional Bridal Makeup Masterclass": 49999
+};
+const COURSE_ADVANCES = {
+  "2-Day Online Live Demo Workshop": 500,
+  "15-Day Bridal Makeup Masterclass": 5000,
+  "30-Day Professional Bridal Makeup Masterclass": 10000
+};
+
 const ALLOWED_COURSES = [
+  "2-Day Online Live Demo Workshop", "15-Day Bridal Makeup Masterclass", "30-Day Professional Bridal Makeup Masterclass"
+];
+// Keep existing saved registrations verifiable without offering these for new orders.
+const LEGACY_SAVED_COURSES = [
   "Full 2-day masterclass", "Muhurtham Look (Day 1)", "Reception Look (Day 2)"
 ];
 
-function validateRegistration_(data) {
-  const fields = {};
-  const registration = {};
-  const limits = { name: 100, email: 150, gender: 50, goal: 500, question: 1000, experience: 150, city: 100, course: 150, paymentScreenshot: 1000 };
+function validateRegistration_(data, allowLegacySavedCourse) {
   data = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+
+  // Accept the field names used by both the current website and older form versions.
+  const normalized = {
+    name: data.name || data.fullName || "",
+    email: data.email || data.emailAddress || "",
+    phone: data.phone || data.whatsapp || data.whatsappNumber || data.contact || "",
+    gender: data.gender || "",
+    goal: data.goal || data.mainGoal || data.main_goal || "",
+    question: data.question || data.comments || data.additionalComments || "",
+    experience: data.experience || data.currentExperience || data.makeupExperience || "",
+    city: data.city || data.location || data.cityLocation || "",
+    course: data.course || data.selectedCourse || "",
+    paymentScreenshot: data.paymentScreenshot || data.paymentProofUrl || ""
+  };
+
+  const limits = {
+    name: 100, email: 150, gender: 50, goal: 500, question: 1000,
+    experience: 150, city: 100, course: 150, paymentScreenshot: 1000
+  };
+  const registration = {};
+  const fields = {};
+
   Object.keys(limits).forEach(function(field) {
-    registration[field] = String(data[field] == null ? "" : data[field]).trim();
-    if (registration[field].length > limits[field]) fields[field] = "Please use " + limits[field] + " characters or fewer.";
+    registration[field] = String(normalized[field] == null ? "" : normalized[field]).trim();
+    if (registration[field].length > limits[field]) {
+      fields[field] = "Please use " + limits[field] + " characters or fewer.";
+    }
   });
+
   registration.email = registration.email.toLowerCase();
-  registration.phone = String(data.phone || "").replace(/\D/g, "");
-  if (registration.phone.length === 10) registration.phone = "91" + registration.phone;
-  else if (registration.phone.length === 11 && registration.phone.charAt(0) === "0") registration.phone = "91" + registration.phone.substring(1);
+  registration.phone = String(normalized.phone || "").replace(/\D/g, "");
+
+  if (registration.phone.length === 10) {
+    registration.phone = "91" + registration.phone;
+  } else if (registration.phone.length === 11 && registration.phone.charAt(0) === "0") {
+    registration.phone = "91" + registration.phone.substring(1);
+  }
+
   ["name", "phone", "email", "gender", "experience", "goal", "course"].forEach(function(field) {
     if (!registration[field]) fields[field] = "This field is required.";
   });
-  if (registration.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registration.email)) fields.email = "Please enter a valid email address.";
-  if (!/^91[6-9][0-9]{9}$/.test(registration.phone)) fields.phone = "Enter a valid Indian WhatsApp number.";
-  if (ALLOWED_COURSES.indexOf(registration.course) === -1) fields.course = "Please select one of the available courses.";
-  if (registration.gender && ["Female", "Male", "Prefer not to say"].indexOf(registration.gender) === -1) fields.gender = "Please select a valid gender.";
+
+  if (registration.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registration.email)) {
+    fields.email = "Please enter a valid email address.";
+  }
+  if (!/^91[6-9][0-9]{9}$/.test(registration.phone)) {
+    fields.phone = "Enter a valid Indian WhatsApp number.";
+  }
+  if (ALLOWED_COURSES.indexOf(registration.course) === -1 && !(allowLegacySavedCourse === true && LEGACY_SAVED_COURSES.indexOf(registration.course) !== -1)) {
+    fields.course = "Please select one of the available courses.";
+  }
+  if (registration.gender && ["Female", "Male", "Prefer not to say"].indexOf(registration.gender) === -1) {
+    fields.gender = "Please select a valid gender.";
+  }
+
   if (Object.keys(fields).length) {
     const error = new Error("Please correct the highlighted registration fields.");
     error.code = "VALIDATION_ERROR";
     error.fields = fields;
     throw error;
   }
+
   return registration;
 }
 
@@ -103,11 +154,13 @@ function getResponseSheet_() {
   const sheet = getExistingResponseSheet_();
   const columns = sheet.getMaxColumns();
   if (columns < 18) sheet.insertColumnsAfter(columns, 18 - columns);
-  // Google Forms owns A-K. Never rename, clear or rewrite those headers.
-  const headers = sheet.getRange(1, 12, 1, 7).getValues()[0];
-  headers.forEach(function(value, index) {
-    if (value === "" || value == null) sheet.getRange(1, 12 + index).setValue(HEADERS[11 + index]);
-  });
+
+  // Google Forms owns A-K. The website automation owns L-R.
+  // Repair only the automation headers; never alter the Google Form columns.
+  const automationHeaders = HEADERS.slice(11, 18);
+  sheet.getRange(1, 12, 1, 7).setValues([automationHeaders]);
+  SpreadsheetApp.flush();
+
   return sheet;
 }
 
@@ -119,28 +172,55 @@ function backendError_(code, message, fields) {
 }
 
 function doPost(event) {
-  const requestReference = Utilities.getUuid().substring(0, 8);
-  let action = "unknown";
   try {
-    if (!event || !event.postData || !event.postData.contents) throw backendError_("INVALID_REQUEST", "Request data is missing.");
+    if (!event || !event.postData || !event.postData.contents) {
+      throw backendError_("INVALID_REQUEST", "Request data is missing.");
+    }
+
     const request = JSON.parse(event.postData.contents);
-    if (!request || typeof request !== "object" || Array.isArray(request)) throw backendError_("INVALID_REQUEST", "Request data is invalid.");
-    if (request.action === "create_order" || request.action === "verify_payment") action = request.action;
-    console.log(JSON.stringify({ event: "workshop_request_started", action: action, reference: requestReference, version: CONFIG.BACKEND_VERSION }));
-    let result;
-    if (action === "create_order") result = createWorkshopOrder_(request.registration, request.amount);
-    else if (action === "verify_payment") result = verifyWorkshopPayment_(request);
-    // No public append/mark-verified action or legacy token callback is allowed.
-    else throw backendError_("UNKNOWN_ACTION", "Unknown registration action.");
-    console.log(JSON.stringify({ event: "workshop_request_completed", action: action, reference: requestReference, verified: result.verified === true, saved: result.saved === true, row: result.row || undefined, duplicate: result.duplicate === true }));
-    return jsonResponse(result);
+
+    if (!request || typeof request !== "object" || Array.isArray(request)) {
+      throw backendError_("INVALID_REQUEST", "Request data is invalid.");
+    }
+
+    const action = String(request.action || request.type || "").trim().toLowerCase();
+    console.log("Workshop request action: " + action);
+
+    if (action === "create_bridal_order") return jsonResponse(createBridalOrder_(request));
+    if (action === "verify_bridal_payment") return jsonResponse(verifyBridalPayment_(request));
+
+    if (action === "create_order" || action === "createworkshoporder") {
+      const result = createWorkshopOrder_(request.registration, request.amount, request.paymentProof);
+      console.log("Razorpay order created successfully.");
+      return jsonResponse(result);
+    }
+
+    if (action === "verify_payment" || action === "verifyworkshoppayment") {
+      const result = verifyWorkshopPayment_(request);
+      console.log("Workshop payment verification result: " + JSON.stringify(result));
+      return jsonResponse(result);
+    }
+
+    throw backendError_("UNKNOWN_ACTION", "Unknown registration action.");
+
   } catch (error) {
-    const reference = error.reference || requestReference;
-    const code = error.code || "REQUEST_FAILED";
-    // doPost catches errors, so Apps Script can label rejected requests
-    // Completed. Explicitly log the action and rejection without the payload.
-    console.error(JSON.stringify({ event: "workshop_request_failed", action: action, reference: reference, code: code, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, version: CONFIG.BACKEND_VERSION }));
-    return jsonResponse({ ok: false, error: String(error.message || error), code: code, fields: error.fields || undefined, reference: reference, saveStage: error.saveStage || undefined, saveCause: error.saveCause || undefined, verified: code === "REGISTRATION_SAVE_FAILED", saved: false });
+    console.error(
+      "Workshop backend error: " +
+      (error.code || "REQUEST_FAILED") +
+      " - " +
+      "Request rejected"
+    );
+
+    return jsonResponse({
+      ok: false,
+      error: error.code ? String(error.message) : "The registration server could not complete this request. Contact SK Bridal Studio; do not pay again if charged.",
+      code: error.code || "REQUEST_FAILED",
+      fields: error.fields || undefined,
+      verified: error.verified === true,
+      paymentCaptured: error.paymentCaptured === true,
+      saveCause: error.saveCause || undefined,
+      saved: false
+    });
   }
 }
 
@@ -179,40 +259,222 @@ function registrationHash_(registration) {
     .map(function(byte) { return (byte & 255).toString(16).padStart(2, "0"); }).join("");
 }
 
-function sheetRegistrationHash_(registration) {
-  const stored = Object.assign({}, registration, {
-    name: cleanValue(registration.name, 100), gender: cleanValue(registration.gender, 50),
-    goal: cleanValue(registration.goal, 500), question: cleanValue(registration.question, 1000),
-    experience: cleanValue(registration.experience, 150), email: cleanValue(registration.email, 150),
-    city: cleanValue(registration.city, 100), paymentScreenshot: cleanValue(registration.paymentScreenshot || "", 1000),
-    course: cleanValue(registration.course, 150)
-  });
-  return registrationHash_(stored);
-}
-
-function createWorkshopOrder_(data, requestedAmount) {
+function createWorkshopOrder_(data, requestedAmount, paymentProof) {
   const registration = validateRegistration_(data);
-  const amount = paymentAmountPaise_(requestedAmount);
-  // Check destination access before creating an order. This never creates a tab.
-  getExistingResponseSheet_();
+  const amount = paymentAmountPaise_(requestedAmount, registration.course);
+
+  // Save the registration FIRST. Checkout must never open unless this row
+  // has been written to and read back from Google Sheets successfully.
+  const saved = appendPendingRegistration_(registration, amount, paymentProof);
+  const proofUrl = saved.paymentProofUrl;
+  if (proofUrl) registration.paymentScreenshot = proofUrl;
+  if (proofUrl && String(getExistingResponseSheet_().getRange(saved.row, CONFIG.PAYMENT_SCREENSHOT_COL).getValue()) !== proofUrl) {
+    throw backendError_("REGISTRATION_SAVE_FAILED", "The payment proof link could not be confirmed in your registration. Checkout was not opened.");
+  }
+
+  // Keep Razorpay Checkout enabled, but do not verify or capture payments here.
+  // If order creation fails, the Pending registration remains in the Sheet.
   const credentials = razorpayCredentials_();
   const order = razorpayRequest_("/orders", "post", {
-    amount: amount, currency: CONFIG.CURRENCY,
+    amount: amount,
+    currency: CONFIG.CURRENCY,
     receipt: "ws_" + Date.now() + "_" + Utilities.getUuid().substring(0, 8),
-    notes: { type: "workshop_advance", backend: CONFIG.BACKEND_VERSION, course: registration.course, registration_hash: sheetRegistrationHash_(registration) }
+    notes: {
+      type: "workshop_advance",
+      backend: CONFIG.BACKEND_VERSION,
+      course: registration.course,
+      registration_hash: registrationHash_(registration)
+    }
   });
-  if (!/^order_[A-Za-z0-9]+$/.test(order.id || "") || order.amount !== amount || order.currency !== CONFIG.CURRENCY) throw backendError_("ORDER_FAILED", "The payment service returned an invalid order. Checkout was not opened.");
-  try {
-    savePendingRegistration_(registration, order.id, amount);
-  } catch (error) {
-    const reference = Utilities.getUuid().substring(0, 8);
-    console.error(JSON.stringify({ event: "workshop_pending_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", message: String(error.message || error), spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
-    const failure = backendError_("PENDING_REGISTRATION_SAVE_FAILED", "Your registration could not be saved, so Checkout was not opened. Please try again.");
-    failure.reference = reference;
-    failure.saveStage = error.saveStage || "unknown";
-    throw failure;
+
+  if (!/^order_[A-Za-z0-9]+$/.test(order.id || "") ||
+      order.amount !== amount ||
+      order.currency !== CONFIG.CURRENCY) {
+    throw backendError_("ORDER_FAILED", "The payment service returned an invalid order. Your registration is saved as Pending; contact SK Bridal Studio before retrying.");
   }
-  return { ok: true, keyId: credentials.keyId, orderId: order.id, amount: order.amount, currency: order.currency };
+
+  // Add the Razorpay order ID to the SAME Pending row.
+  const sheet = getResponseSheet_();
+  sheet.getRange(saved.row, CONFIG.ORDER_ID_COL).setNumberFormat("@");
+  sheet.getRange(saved.row, CONFIG.ORDER_ID_COL).setValue(order.id);
+  SpreadsheetApp.flush();
+
+  if (String(sheet.getRange(saved.row, CONFIG.ORDER_ID_COL).getDisplayValue()).trim() !== order.id) {
+    throw backendError_("SHEET_WRITE_ERROR", "Your registration was saved as Pending, but the order reference could not be confirmed. Contact SK Bridal Studio.");
+  }
+
+  return {
+    ok: true,
+    registrationSaved: true,
+    paymentProofSaved: Boolean(proofUrl),
+    saved: true,
+    row: saved.row,
+    keyId: credentials.keyId,
+    orderId: order.id,
+    amount: order.amount,
+    currency: CONFIG.CURRENCY,
+    paymentVerification: "AUTOMATIC"
+  };
+}
+
+// Run once as the owner to authorize Drive and create/select the proof folder.
+// Uploads inherit this folder's existing access; no public sharing is enabled.
+function setupWorkshopProofUploads() {
+  const properties = PropertiesService.getScriptProperties();
+  const folderId = properties.getProperty("WORKSHOP_PROOF_FOLDER_ID");
+  const folder = folderId ? DriveApp.getFolderById(folderId) : DriveApp.createFolder("SK Bridal Studio - Workshop Payment Proofs");
+  properties.setProperty("WORKSHOP_PROOF_FOLDER_ID", folder.getId());
+  const report = { ready: true, folderId: folder.getId(), folderUrl: folder.getUrl() };
+  console.log(JSON.stringify(report));
+  return report;
+}
+
+function uploadWorkshopProof_(proof) {
+  const maxBytes = 5 * 1024 * 1024;
+  const types = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+  const invalid = function(message) { return backendError_("VALIDATION_ERROR", message, { paymentScreenshot: message }); };
+  if (!proof || typeof proof !== "object" || !Object.prototype.hasOwnProperty.call(types, proof.mimeType)) throw invalid("Choose a JPG, PNG, WEBP image or a PDF.");
+  const data = proof.base64;
+  if (typeof data !== "string" || !data.length || data.length > 4 * Math.ceil(maxBytes / 3) || data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) throw invalid("Choose a valid payment proof file up to 5 MB.");
+  let bytes;
+  try { bytes = Utilities.base64Decode(data); } catch (_) { throw invalid("The payment proof could not be read. Please choose it again."); }
+  if (!bytes.length || bytes.length > maxBytes) throw invalid("Choose a payment proof file up to 5 MB.");
+  const starts = function(offset, expected) { return expected.every(function(value, index) { return (bytes[offset + index] & 255) === value; }); };
+  const valid = proof.mimeType === "image/jpeg" ? starts(0, [255, 216, 255])
+    : proof.mimeType === "image/png" ? starts(0, [137, 80, 78, 71, 13, 10, 26, 10])
+    : proof.mimeType === "image/webp" ? starts(0, [82, 73, 70, 70]) && starts(8, [87, 69, 66, 80])
+    : starts(0, [37, 80, 68, 70, 45]);
+  if (!valid) throw invalid("The file content does not match the selected image or PDF type.");
+  const folderId = PropertiesService.getScriptProperties().getProperty("WORKSHOP_PROOF_FOLDER_ID");
+  if (!folderId) throw backendError_("PROOF_UPLOAD_NOT_CONFIGURED", "Payment proof uploads are unavailable. Contact SK Bridal Studio or remove the selected file to continue with Razorpay.");
+  try {
+    const filename = "payment-proof_" + Utilities.getUuid().replace(/-/g, "") + "." + types[proof.mimeType];
+    const file = DriveApp.getFolderById(folderId).createFile(Utilities.newBlob(bytes, proof.mimeType, filename));
+    return file.getUrl();
+  } catch (_) {
+    throw backendError_("PROOF_UPLOAD_FAILED", "Your payment proof could not be uploaded. Please try again or contact SK Bridal Studio. Checkout was not opened.");
+  }
+}
+
+/**
+ * Find the first completely empty row in A:R, starting below the headers.
+ * A row is considered empty only when every cell in A:R has no displayed
+ * value and no formula. If no gap exists, return the next row after lastRow.
+ */
+function findFirstEmptyDataRow_(sheet) {
+  const lastRow = Math.max(sheet.getLastRow(), CONFIG.FIRST_DATA_ROW - 1);
+  if (lastRow < CONFIG.FIRST_DATA_ROW) return CONFIG.FIRST_DATA_ROW;
+
+  const rowCount = lastRow - CONFIG.FIRST_DATA_ROW + 1;
+  const range = sheet.getRange(CONFIG.FIRST_DATA_ROW, 1, rowCount, 18);
+  const values = range.getDisplayValues();
+  const formulas = range.getFormulas();
+
+  for (let i = 0; i < values.length; i++) {
+    let isEmpty = true;
+    for (let j = 0; j < 18; j++) {
+      if (String(values[i][j] || "").trim() !== "" || formulas[i][j]) {
+        isEmpty = false;
+        break;
+      }
+    }
+    if (isEmpty) return CONFIG.FIRST_DATA_ROW + i;
+  }
+
+  return lastRow + 1;
+}
+
+/**
+ * Append one Pending registration row to the existing Form Responses 1 tab.
+ * A-K are populated with registration details; L-R are website automation fields.
+ * Existing Google Forms rows and headers are not modified.
+ */
+function appendPendingRegistration_(registration, amountPaise, paymentProof) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+
+  try {
+    const sheet = getResponseSheet_();
+    const details = validateRegistration_(registration);
+    // Check and reserve contacts under the same lock, including Pending and
+    // older Google Form rows, so simultaneous requests cannot reuse them.
+    assertUnusedRegistrationContacts_(sheet, details);
+    const proofUrl = paymentProof ? uploadWorkshopProof_(paymentProof) : "";
+    if (proofUrl) details.paymentScreenshot = proofUrl;
+
+    // Reuse the first completely empty row after the header instead of
+    // always appending after getLastRow(). This preserves existing responses
+    // while filling any genuine gaps in the response table.
+    const targetRow = findFirstEmptyDataRow_(sheet);
+    const amountInRupees = amountPaise / 100;
+
+    // Preserve phone numbers as text so the leading country code is retained.
+    sheet.getRange(targetRow, CONFIG.PHONE_COL).setNumberFormat("@");
+
+    const rowValues = [[
+      new Date(),                                      // A Timestamp
+      cleanValue(details.name, 100),                  // B Full Name
+      details.phone,                                  // C Contact/WhatsApp
+      cleanValue(details.gender, 50),                 // D Gender
+      cleanValue(details.goal, 500),                  // E Main Goal
+      cleanValue(details.question, 1000),             // F Comments
+      cleanValue(details.experience, 150),            // G Experience
+      cleanValue(details.email, 150),                 // H Email
+      cleanValue(details.city, 100),                  // I City
+      "",                                             // J Score
+      cleanValue(details.paymentScreenshot || "", 1000), // K Screenshot URL
+      "Pending",                                      // L Payment Status
+      "No",                                           // M Confirmation Sent
+      "",                                             // N WhatsApp Link
+      cleanValue(details.course, 150),                // O Course
+      "",                                             // P Razorpay Payment ID
+      "",                                             // Q Razorpay Order ID (filled after order creation)
+      amountInRupees                                  // R Advance Paid (INR)
+    ]];
+
+    sheet.getRange(targetRow, 1, 1, 18).setValues(rowValues);
+    SpreadsheetApp.flush();
+
+    // Read back the saved data to verify the row before allowing Checkout.
+    const savedValues = sheet.getRange(targetRow, 1, 1, 18).getValues()[0];
+    const savedName = String(savedValues[1] || "").trim();
+    const savedPhone = String(savedValues[2] || "").replace(/^'/, "").trim();
+    const savedEmail = String(savedValues[7] || "").trim().toLowerCase();
+    const savedStatus = String(savedValues[11] || "").trim();
+
+    if (savedName !== details.name ||
+        savedPhone !== details.phone ||
+        savedEmail !== details.email ||
+        savedStatus !== "Pending" ||
+        Number(savedValues[17]) !== amountInRupees) {
+      throw backendError_("REGISTRATION_SAVE_FAILED", "The Pending registration could not be confirmed in Google Sheets. Checkout was not opened.");
+    }
+
+    return { row: targetRow, paymentProofUrl: proofUrl };
+  } catch (error) {
+    if (error && error.code) throw error;
+    console.error("Pending registration save failed: " + String(error.message || error));
+    throw backendError_("REGISTRATION_SAVE_FAILED", "Could not save your registration to Google Sheets. Checkout was not opened.");
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function assertUnusedRegistrationContacts_(sheet, registration) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < CONFIG.FIRST_DATA_ROW) return;
+  const rows = sheet.getRange(CONFIG.FIRST_DATA_ROW, 1, lastRow - CONFIG.FIRST_DATA_ROW + 1, 8).getValues();
+  const fields = {};
+  rows.forEach(function(row) {
+    let phone = String(row[CONFIG.PHONE_COL - 1] || "").replace(/\D/g, "");
+    if (phone.length === 10) phone = "91" + phone;
+    else if (phone.length === 11 && phone.charAt(0) === "0") phone = "91" + phone.substring(1);
+    else if (phone.length === 14 && phone.substring(0, 4) === "0091") phone = phone.substring(2);
+    const email = String(row[CONFIG.EMAIL_COL - 1] || "").trim().replace(/^'/, "").toLowerCase();
+    if (phone === registration.phone) fields.phone = "WhatsApp number already registered.";
+    if (email === registration.email) fields.email = "Email already registered.";
+  });
+  if (Object.keys(fields).length) throw backendError_("DUPLICATE_REGISTRATION", "This phone number or email address has already been registered.", fields);
 }
 
 function verifySignature_(orderId, paymentId, signature) {
@@ -224,11 +486,12 @@ function verifySignature_(orderId, paymentId, signature) {
   if (difference !== 0) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment signature could not be verified.");
 }
 
-function paymentAmountPaise_(value) {
-  const text = String(value === undefined || value === null ? "" : value).trim();
-  const rupees = Number(text);
-  const amount = rupees * 100;
-  if (!/^\d+$/.test(text) || !Number.isSafeInteger(rupees) || rupees < 1 || !Number.isSafeInteger(amount)) throw backendError_("VALIDATION_ERROR", "Enter a whole-rupee amount of at least INR 1.", { amount: "Enter a whole-rupee amount of at least INR 1." });
+function paymentAmountPaise_(value, course) {
+  const suggestedAdvance = COURSE_ADVANCES[course] || CONFIG.PAYMENT_AMOUNT / 100;
+  const text = String(value === undefined || value === null || value === "" ? suggestedAdvance : value).trim();
+  const parts = text.split('.');
+  const amount = Number(parts[0]) * 100 + Number((parts[1] || '').padEnd(2, '0'));
+  if (!/^\d+(?:\.\d{1,2})?$/.test(text) || !Number.isSafeInteger(amount) || amount < 100) throw backendError_("VALIDATION_ERROR", "Enter an amount of at least INR 1 with up to two decimal places.", { amount: "Enter an amount of at least INR 1 with up to two decimal places." });
   return amount;
 }
 
@@ -236,87 +499,11 @@ function paymentMatchesOrder_(payment, orderId, amount) {
   return payment && payment.order_id === orderId && payment.amount === amount && payment.currency === CONFIG.CURRENCY;
 }
 
-function findRegistrationRows_(sheet, orderId, paymentId) {
-  const lastRow = sheet.getLastRow();
-  const result = { orderRows: [], paymentRows: [] };
-  if (lastRow < CONFIG.FIRST_DATA_ROW) return result;
-  const ids = sheet.getRange(CONFIG.FIRST_DATA_ROW, CONFIG.PAYMENT_ID_COL, lastRow - CONFIG.FIRST_DATA_ROW + 1, 2).getValues();
-  ids.forEach(function(row, index) {
-    if (orderId && String(row[1] || "") === orderId) result.orderRows.push(CONFIG.FIRST_DATA_ROW + index);
-    if (paymentId && String(row[0] || "") === paymentId) result.paymentRows.push(CONFIG.FIRST_DATA_ROW + index);
-  });
-  return result;
-}
-
-function registrationFromSheetRow_(sheet, row) {
-  const values = sheet.getRange(row, 1, 1, 18).getValues()[0];
-  return {
-    registration: validateRegistration_({
-      name: values[1], phone: values[2], gender: values[3], goal: values[4], question: values[5],
-      experience: values[6], email: values[7], city: values[8], paymentScreenshot: values[10], course: values[14]
-    }),
-    values: values
-  };
-}
-
-function setTextCell_(sheet, row, column, value) {
-  const cell = sheet.getRange(row, column);
-  cell.setNumberFormat("@");
-  cell.setValue(String(value || ""));
-}
-
-function appendPendingRow_(sheet, registration, orderId, amount) {
-  const timestamp = new Date();
-  sheet.appendRow([
-    timestamp, cleanValue(registration.name, 100), registration.phone, cleanValue(registration.gender, 50),
-    cleanValue(registration.goal, 500), cleanValue(registration.question, 1000), cleanValue(registration.experience, 150),
-    cleanValue(registration.email, 150), cleanValue(registration.city, 100), "", cleanValue(registration.paymentScreenshot || "", 1000),
-    "Pending", "No", "", registration.course, "", orderId, amount / 100
-  ]);
-  SpreadsheetApp.flush();
-  const matches = findRegistrationRows_(sheet, orderId, "");
-  if (matches.orderRows.length !== 1) throw backendError_("SHEET_WRITE_ERROR", "The pending registration row could not be confirmed.");
-  const row = matches.orderRows[0];
-  setTextCell_(sheet, row, CONFIG.PHONE_COL, registration.phone);
-  setTextCell_(sheet, row, CONFIG.PAYMENT_ID_COL, "");
-  setTextCell_(sheet, row, CONFIG.ORDER_ID_COL, orderId);
-  SpreadsheetApp.flush();
-  return row;
-}
-
-function savePendingRegistration_(registration, orderId, amount) {
-  const lock = LockService.getScriptLock();
-  let locked = false;
-  let stage = "acquire_lock";
-  try {
-    lock.waitLock(20000);
-    locked = true;
-    stage = "prepare_sheet";
-    const sheet = getResponseSheet_();
-    stage = "check_duplicate";
-    const matches = findRegistrationRows_(sheet, orderId, "");
-    if (matches.orderRows.length) throw backendError_("ORDER_ALREADY_EXISTS", "This payment order already has a registration row.");
-    stage = "append_pending_row";
-    const row = appendPendingRow_(sheet, registration, orderId, amount);
-    stage = "read_back_pending_row";
-    const saved = sheet.getRange(row, 1, 1, 18).getValues()[0];
-    if (String(saved[11]).toLowerCase() !== "pending" || String(saved[16]) !== orderId || Number(saved[17]) !== amount / 100) {
-      throw backendError_("SHEET_WRITE_ERROR", "The pending registration row did not match the payment order.");
-    }
-    return row;
-  } catch (error) {
-    error.saveStage = stage;
-    throw error;
-  } finally {
-    if (locked) lock.releaseLock();
-  }
-}
-
 function pendingRegistration_(record) {
   const raw = record.registration;
   const registration = validateRegistration_(Object.assign({}, raw, { goal: raw.goal || raw.mainGoal }));
   const hashes = [registrationHash_(registration)];
-  // Recover an order created by the former Firebase bridge when its
+  // Recover an INR 500 order created by the former Firebase bridge when its
   // original server-side registration is still present. Never trust a newly
   // supplied frontend registration during payment verification.
   if (typeof raw.mainGoal === "string") {
@@ -329,185 +516,363 @@ function pendingRegistration_(record) {
   return { registration: registration, hashes: hashes };
 }
 
-function verifyWorkshopPayment_(request, trustedRecovery) {
-  if (typeof request.orderId !== "string" || !/^order_[A-Za-z0-9]+$/.test(request.orderId) || request.orderId.length > 100 ||
-      typeof request.paymentId !== "string" || !/^pay_[A-Za-z0-9]+$/.test(request.paymentId) || request.paymentId.length > 100 ||
-      (!trustedRecovery && (typeof request.signature !== "string" || !/^[a-f0-9]{64}$/i.test(request.signature)))) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment verification details are invalid.");
-  if (!trustedRecovery) verifySignature_(request.orderId, request.paymentId, request.signature);
-  const properties = PropertiesService.getScriptProperties();
-  const key = "WORKSHOP_ORDER_" + request.orderId;
-  const stored = properties.getProperty(key);
-  let record = null;
-  try { record = stored ? JSON.parse(stored) : null; } catch (_) { /* A sheet row is the primary recovery record. */ }
-  const sheet = getResponseSheet_();
-  const matches = findRegistrationRows_(sheet, request.orderId, request.paymentId);
-  if (matches.orderRows.length > 1 || matches.paymentRows.length > 1) throw backendError_("SHEET_ROW_CONFLICT", "Multiple registration rows match this payment. Please contact SK Bridal Studio.");
-  if (matches.paymentRows.length && matches.paymentRows[0] !== matches.orderRows[0]) throw backendError_("PAYMENT_ALREADY_USED", "This payment ID is already associated with a different order.");
+/**
+ * Find the existing Pending registration by its Razorpay Order ID.
+ * This never creates a second registration row.
+ */
+function findRegistrationRowByOrderId_(sheet, orderId) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < CONFIG.FIRST_DATA_ROW) return null;
 
-  let pending = null;
-  let sheetRow = 0;
-  let expectedAmount = 0;
-  if (matches.orderRows.length) {
-    sheetRow = matches.orderRows[0];
-    const found = registrationFromSheetRow_(sheet, sheetRow);
-    const values = found.values;
-    const status = String(values[11] || "").trim().toLowerCase();
-    const existingPaymentId = String(values[15] || "");
-    if (status !== "pending" && status !== "verified") throw backendError_("SHEET_ROW_CONFLICT", "The registration row is not in a recoverable payment state.");
-    if (existingPaymentId && existingPaymentId !== request.paymentId) throw backendError_("ORDER_ALREADY_VERIFIED", "This order is already associated with a different payment.");
-    const rupees = Number(values[17]);
-    if (!Number.isSafeInteger(rupees) || rupees < 1 || !Number.isSafeInteger(rupees * 100)) throw backendError_("SHEET_ROW_CONFLICT", "The pending registration has an invalid advance amount.");
-    expectedAmount = rupees * 100;
-    pending = { registration: found.registration, hashes: [sheetRegistrationHash_(found.registration)] };
-  } else if (record && record.registration) {
-    pending = pendingRegistration_(record);
-    expectedAmount = Number(record.amount);
-  }
-  if (!pending) throw backendError_("ORDER_NOT_FOUND", "The original registration is missing from the response sheet and Script Properties. Contact SK Bridal Studio with your payment and order IDs.");
+  const orderValues = sheet.getRange(
+    CONFIG.FIRST_DATA_ROW,
+    CONFIG.ORDER_ID_COL,
+    lastRow - CONFIG.FIRST_DATA_ROW + 1,
+    1
+  ).getDisplayValues();
 
-  const order = razorpayRequest_("/orders/" + encodeURIComponent(request.orderId));
-  if (order.id !== request.orderId || !Number.isSafeInteger(order.amount) || order.amount < 100 || order.currency !== CONFIG.CURRENCY || !order.notes || order.notes.type !== "workshop_advance" || !order.notes.registration_hash) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment does not match this workshop order.");
-  if (!Number.isSafeInteger(expectedAmount) || expectedAmount < 100 || expectedAmount !== order.amount || order.notes.course !== pending.registration.course || pending.hashes.indexOf(order.notes.registration_hash) === -1) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment does not match the saved registration or its expected amount.");
-  const path = "/payments/" + encodeURIComponent(request.paymentId);
-  let payment = razorpayRequest_(path);
-  if (payment.id !== request.paymentId || !paymentMatchesOrder_(payment, request.orderId, order.amount)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment amount, currency or order could not be verified.");
-  if (payment.status === "authorized") {
-    try { razorpayRequest_(path + "/capture", "post", { amount: order.amount, currency: CONFIG.CURRENCY }); }
-    catch (_) { /* Another concurrent verification may already have captured it. Refetch below. */ }
-    payment = razorpayRequest_(path);
+  let found = null;
+  for (let i = 0; i < orderValues.length; i++) {
+    const savedOrderId = String(orderValues[i][0] || "").replace(/^'/, "").trim();
+    if (savedOrderId === orderId) {
+      if (found !== null) throw backendError_("SHEET_ROW_CONFLICT", "Multiple registrations match this order ID.");
+      found = CONFIG.FIRST_DATA_ROW + i;
+    }
   }
-  if (!paymentMatchesOrder_(payment, request.orderId, order.amount) || payment.id !== request.paymentId || payment.status !== "captured" || payment.captured !== true) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment has not been captured. If you were charged, retry verification without paying again.");
-  let result;
-  try {
-    result = saveVerifiedRegistration_(pending.registration, request.orderId, request.paymentId, payment.amount);
-  } catch (error) {
-    if (error.code === "PAYMENT_ALREADY_USED") throw error;
-    const reference = Utilities.getUuid().substring(0, 8);
-    // Keep the actual Google Sheets exception in owner-only execution logs.
-    // Return only a stage/reference to the browser, never student data or secrets.
-    console.error(JSON.stringify({ event: "workshop_registration_save_failed", reference: reference, stage: error.saveStage || "unknown", cause: error.code || "SHEET_WRITE_ERROR", message: String(error.message || error), stack: String(error.stack || ""), spreadsheetId: CONFIG.SPREADSHEET_ID, sheetName: CONFIG.SHEET_NAME }));
-    const failure = backendError_("REGISTRATION_SAVE_FAILED", "Your payment was verified, but registration could not be saved. Reference: " + reference + ". Try Again will retry saving without charging you again.");
-    failure.reference = reference;
-    failure.saveStage = error.saveStage || "unknown";
-    failure.saveCause = error.code || "SHEET_WRITE_ERROR";
-    throw failure;
-  }
-  // New registrations are recovered from the sheet; this removes only legacy fallback data.
-  try { properties.deleteProperty(key); } catch (_) { /* Saving already succeeded. */ }
-  return { ok: true, verified: true, saved: true, orderId: request.orderId, paymentId: request.paymentId, amount: payment.amount, currency: payment.currency, duplicate: result.duplicate, row: result.row };
+  return found;
 }
 
-// Owner-run recovery: supply payment and order IDs only. Registration data is
-// loaded from the pending sheet row, then checked against Razorpay's API.
-function recoverCapturedWorkshopPayment(paymentId) {
-  const properties = PropertiesService.getScriptProperties();
-  paymentId = String(paymentId || properties.getProperty("WORKSHOP_RECOVERY_PAYMENT_ID") || "").trim();
-  if (!/^pay_[A-Za-z0-9]+$/.test(paymentId) || paymentId.length > 100) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Set WORKSHOP_RECOVERY_PAYMENT_ID to a valid Razorpay payment ID, or pass one to this function.");
-  const payment = razorpayRequest_("/payments/" + encodeURIComponent(paymentId));
-  if (payment.id !== paymentId || typeof payment.order_id !== "string" || !/^order_[A-Za-z0-9]+$/.test(payment.order_id)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Razorpay did not return a valid order for this payment ID.");
-  const result = verifyWorkshopPayment_({
-    paymentId: paymentId,
-    orderId: payment.order_id
+/** Rebuild the normalized registration from the saved Sheet row. */
+function registrationFromSheetRow_(sheet, row) {
+  const values = sheet.getRange(row, 1, 1, 18).getValues()[0];
+  return validateRegistration_({
+    name: values[1],
+    phone: values[2],
+    gender: values[3],
+    goal: values[4],
+    question: values[5],
+    experience: values[6],
+    email: values[7],
+    city: values[8],
+    course: values[14],
+    paymentScreenshot: values[10]
   }, true);
-  console.log(JSON.stringify({ event: "workshop_manual_recovery_completed", orderId: result.orderId, paymentId: result.paymentId, verified: result.verified, saved: result.saved, row: result.row, duplicate: result.duplicate }));
-  return result;
 }
 
-function saveVerifiedRegistration_(registration, orderId, paymentId, amount) {
+/**
+ * Verify Razorpay Checkout signature, confirm the payment with Razorpay,
+ * capture an authorized payment if necessary, then update the SAME Pending row.
+ */
+function verifyWorkshopPayment_(request) {
+  const orderId = request.orderId || request.razorpay_order_id;
+  const paymentId = request.paymentId || request.razorpay_payment_id;
+  const signature = request.signature || request.razorpay_signature;
+
+  if (typeof orderId !== "string" || !/^order_[A-Za-z0-9]+$/.test(orderId) ||
+      typeof paymentId !== "string" || !/^pay_[A-Za-z0-9]+$/.test(paymentId) ||
+      typeof signature !== "string" || !/^[a-f0-9]{64}$/i.test(signature)) {
+    throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment verification details are invalid.");
+  }
+
+  verifySignature_(orderId, paymentId, signature);
+
+  const sheet = getResponseSheet_();
+  const initialRow = findRegistrationRowByOrderId_(sheet, orderId);
+  if (!initialRow) {
+    throw backendError_("ORDER_NOT_FOUND", "The Pending registration for this Razorpay order could not be found. Contact SK Bridal Studio with your payment ID.");
+  }
+
   const lock = LockService.getScriptLock();
-  let locked = false;
-  let stage = "acquire_lock";
+  lock.waitLock(20000);
   try {
-    lock.waitLock(20000);
-    locked = true;
-    stage = "prepare_sheet";
-    const sheet = getResponseSheet_();
-    stage = "check_duplicate";
-    let matches = findRegistrationRows_(sheet, orderId, paymentId);
-    let duplicate = false;
-    if (matches.orderRows.length > 1 || matches.paymentRows.length > 1) throw backendError_("SHEET_ROW_CONFLICT", "Multiple registration rows match this payment.");
-    if (matches.paymentRows.length && matches.paymentRows[0] !== matches.orderRows[0]) throw backendError_("PAYMENT_ALREADY_USED", "This payment ID is already associated with a different order.");
-    if (matches.orderRows.length) {
-      const row = matches.orderRows[0];
-      const values = sheet.getRange(row, 1, 1, 18).getValues()[0];
-      const status = String(values[11] || "").trim().toLowerCase();
-      const existingPaymentId = String(values[15] || "");
-      if (existingPaymentId && existingPaymentId !== paymentId) throw backendError_("ORDER_ALREADY_VERIFIED", "This order is already associated with a different payment.");
-      if (status === "verified" && existingPaymentId === paymentId) {
-        if (Number(values[17]) !== amount / 100) throw backendError_("SHEET_ROW_CONFLICT", "The verified registration amount does not match this payment.");
-        duplicate = true;
-      } else {
-        if (status !== "pending") throw backendError_("SHEET_ROW_CONFLICT", "The registration row is not pending payment.");
-        const existing = registrationFromSheetRow_(sheet, row).registration;
-        if (sheetRegistrationHash_(existing) !== sheetRegistrationHash_(registration)) throw backendError_("SHEET_ROW_CONFLICT", "The pending registration details changed before payment verification.");
-      }
-    } else {
-      stage = "restore_pending_row";
-      if (!registration) throw backendError_("ORDER_NOT_FOUND", "The original registration is missing from the response sheet.");
-      appendPendingRow_(sheet, validateRegistration_(registration), orderId, amount);
-      matches = findRegistrationRows_(sheet, orderId, paymentId);
-      if (matches.orderRows.length !== 1) throw backendError_("SHEET_WRITE_ERROR", "The recovered pending row could not be confirmed.");
+    const row = findRegistrationRowByOrderId_(sheet, orderId);
+    if (!row) throw backendError_("ORDER_NOT_FOUND", "The registration row could not be found.");
+
+    const rowValues = sheet.getRange(row, 1, 1, 18).getValues()[0];
+    const currentStatus = String(rowValues[11] || "").trim().toLowerCase();
+    const existingPaymentId = String(rowValues[15] || "").replace(/^'/, "").trim();
+    const registration = registrationFromSheetRow_(sheet, row);
+    const expectedAmountPaise = Math.round(Number(rowValues[17]) * 100);
+
+    if (!Number.isSafeInteger(expectedAmountPaise) || expectedAmountPaise < 100) {
+      throw backendError_("SHEET_ROW_CONFLICT", "The saved advance amount is invalid. Please contact SK Bridal Studio.");
     }
 
-    const row = matches.orderRows[0];
-    stage = "update_verified_row";
-    const sheetValues = sheet.getRange(row, 1, 1, 18).getValues()[0];
-    const details = registrationFromSheetRow_(sheet, row).registration;
-    const previousConfirmation = String(sheetValues[12] || "").trim();
-    const confirmation = /^(yes|sent|confirmation sent)$/i.test(previousConfirmation) ? previousConfirmation : "Ready to Send";
-    const whatsapp = "https://wa.me/" + details.phone + "?text=" + encodeURIComponent(buildConfirmationMessage_(details.name, amount / 100));
-    const paymentCells = sheet.getRange(row, CONFIG.PAYMENT_COL, 1, 7);
-    sheet.getRange(row, CONFIG.PAYMENT_ID_COL).setNumberFormat("@");
-    sheet.getRange(row, CONFIG.ORDER_ID_COL).setNumberFormat("@");
-    paymentCells.setValues([["Verified", confirmation, whatsapp, details.course, paymentId, orderId, amount / 100]]);
-    stage = "flush_verified_row";
-    SpreadsheetApp.flush();
-    stage = "read_back_verified_row";
-    const verified = sheet.getRange(row, 1, 1, 18).getValues()[0];
-    if (String(verified[11]).toLowerCase() !== "verified" || String(verified[15]) !== paymentId || String(verified[16]) !== orderId || Number(verified[17]) !== amount / 100) {
-      throw backendError_("SHEET_WRITE_ERROR", "The verified registration row could not be confirmed.");
+    // Idempotent retry: a previously verified row is accepted only for the same payment.
+    if (currentStatus === "verified") {
+      if (existingPaymentId !== paymentId) {
+        throw backendError_("PAYMENT_ALREADY_USED", "This order is already linked to a different payment ID.");
+      }
+      // Recheck the payment with Razorpay on retries before confirming success.
     }
-    return { duplicate: duplicate, row: row };
-  } catch (error) {
-    error.saveStage = stage;
-    throw error;
-  } finally { if (locked) lock.releaseLock(); }
+
+    if (currentStatus !== "pending" && currentStatus !== "verified") {
+      throw backendError_("SHEET_ROW_CONFLICT", "This registration is not Pending and needs review.");
+    }
+
+    const order = razorpayRequest_("/orders/" + encodeURIComponent(orderId));
+    if (order.id !== orderId ||
+        order.currency !== CONFIG.CURRENCY ||
+        order.amount !== expectedAmountPaise ||
+        !order.notes ||
+        order.notes.type !== "workshop_advance" ||
+        order.notes.course !== registration.course ||
+        order.notes.registration_hash !== registrationHash_(registration)) {
+      throw backendError_("PAYMENT_VERIFICATION_FAILED", "The Razorpay order does not match the saved registration or advance amount.");
+    }
+
+    const paymentPath = "/payments/" + encodeURIComponent(paymentId);
+    let payment = razorpayRequest_(paymentPath);
+
+    if (!payment || payment.id !== paymentId ||
+        !paymentMatchesOrder_(payment, orderId, expectedAmountPaise)) {
+      throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment ID, order, amount or currency does not match.");
+    }
+
+    // If auto-capture is enabled, payment is already captured and this is skipped.
+    if (payment.status === "authorized") {
+      try {
+        razorpayRequest_(paymentPath + "/capture", "post", {
+          amount: expectedAmountPaise,
+          currency: CONFIG.CURRENCY
+        });
+      } catch (captureError) {
+        console.warn("Capture request returned an error; checking payment status again.");
+      }
+      payment = razorpayRequest_(paymentPath);
+    }
+
+    if (payment.status !== "captured" || payment.captured !== true ||
+        !paymentMatchesOrder_(payment, orderId, expectedAmountPaise)) {
+      throw backendError_("PAYMENT_NOT_CAPTURED", "Payment is not captured yet. If you were charged, do not pay again; contact SK Bridal Studio.");
+    }
+
+    try {
+      return saveVerifiedRegistration_(row, registration, orderId, paymentId, expectedAmountPaise);
+    } catch (error) {
+      const failure = backendError_("REGISTRATION_SAVE_FAILED", "Your payment was captured, but the registration update could not be confirmed. Contact SK Bridal Studio with your payment ID. Do not pay again; retry only verification.");
+      failure.verified = true;
+      failure.paymentCaptured = true;
+      failure.saveCause = error.code || "SHEET_WRITE_ERROR";
+      throw failure;
+    }
+  } finally {
+    lock.releaseLock();
+  }
 }
 
-// Run manually in the Apps Script editor. Read-only: no test registrations,
-// payments, new tabs or changes to existing response rows are created.
-function diagnoseWorkshopSaving() {
-  const sheet = getExistingResponseSheet_();
-  const report = {
-    version: CONFIG.BACKEND_VERSION,
-    spreadsheetId: CONFIG.SPREADSHEET_ID,
-    sheetName: sheet.getName(),
-    sheetId: sheet.getSheetId(),
-    timeZone: SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSpreadsheetTimeZone(),
-    lastUsedRow: sheet.getLastRow(),
-    columnCount: sheet.getMaxColumns(),
-    hasFilter: Boolean(sheet.getFilter())
-  };
-  console.log(JSON.stringify(report));
-  return report;
+/** Update the existing Pending row; never append a duplicate registration. */
+function saveVerifiedRegistration_(row, registration, orderId, paymentId, amountPaise) {
+  const sheet = getResponseSheet_();
+  validateRegistration_(registration, true);
+  // Re-resolve the order after network calls; row numbers can move.
+  row = findRegistrationRowByOrderId_(sheet, orderId);
+  if (!row) throw backendError_("ORDER_NOT_FOUND", "The Pending registration for this order is missing.");
+  const values = sheet.getRange(row, 1, 1, 18).getValues()[0];
+  const status = String(values[11] || "").trim().toLowerCase();
+  const existingPaymentId = String(values[15] || "").replace(/^'/, "").trim();
+  if ((status !== "pending" && status !== "verified") || (existingPaymentId && existingPaymentId !== paymentId) || (status === "verified" && existingPaymentId !== paymentId)) throw backendError_("SHEET_ROW_CONFLICT", "The registration payment state needs review.");
+  if (Math.round(Number(values[17]) * 100) !== amountPaise) throw backendError_("SHEET_ROW_CONFLICT", "The registration amount changed during verification.");
+  if (registrationHash_(registrationFromSheetRow_(sheet, row)) !== registrationHash_(registration)) throw backendError_("SHEET_ROW_CONFLICT", "The registration details changed during verification.");
+  const paymentRows = sheet.getRange(CONFIG.FIRST_DATA_ROW, CONFIG.PAYMENT_ID_COL, sheet.getLastRow() - CONFIG.FIRST_DATA_ROW + 1, 1).getValues();
+  paymentRows.forEach(function(value, index) {
+    if (String(value[0] || "").replace(/^'/, "").trim() === paymentId && CONFIG.FIRST_DATA_ROW + index !== row) throw backendError_("PAYMENT_ALREADY_USED", "This payment is already linked to another registration.");
+  });
+  const duplicate = status === "verified";
+  const previousConfirmation = String(values[12] || "").trim();
+  const confirmation = duplicate && /^(yes|sent|confirmation sent)$/i.test(previousConfirmation) ? previousConfirmation : "Ready to Send";
+  const whatsapp = buildWhatsAppLinks_(registration.phone, buildConfirmationMessage_(registration.name, amountPaise / 100, registration.course)).app;
+  // Only L-R change. Keep A-K and the existing first-empty-row saver intact.
+  // IDs are already text; do not require typed-column number-format changes.
+  sheet.getRange(row, CONFIG.PAYMENT_COL, 1, 7).setValues([["Verified", confirmation, whatsapp, registration.course, paymentId, orderId, amountPaise / 100]]);
+  SpreadsheetApp.flush();
+  const saved = sheet.getRange(row, 1, 1, 18).getValues()[0];
+  if (String(saved[11]).toLowerCase() !== "verified" || !saved[13] || String(saved[15]) !== paymentId || String(saved[16]) !== orderId || Math.round(Number(saved[17]) * 100) !== amountPaise) throw backendError_("REGISTRATION_SAVE_FAILED", "The verified row could not be read back.");
+  // A plain, valid URL is already saved; keep the existing rich-link workflow.
+  if (confirmation === "Ready to Send") {
+    try { createWhatsAppLink_(sheet, row); SpreadsheetApp.flush(); }
+    catch (_) { console.warn("Registration saved; the plain WhatsApp link remains available."); }
+  }
+  return { ok: true, verified: true, saved: true, duplicate: duplicate, row: row,
+    paymentId: paymentId, orderId: orderId, amount: amountPaise, currency: CONFIG.CURRENCY };
+}
+
+// Bridal advances use the same Razorpay account but a separate worksheet.
+// A customer acknowledgement records that availability was discussed; it is
+// not an automatic calendar check or a replacement for studio confirmation.
+const BRIDAL_HEADERS = ["Created", "Name", "Email", "Phone", "Event Date", "Session", "Advance (INR)", "Payment Status", "Order ID", "Payment ID", "Verified At", "Availability Acknowledged", "Booking Hash", "Request ID"];
+
+function bridalSheet_() {
+  const book = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  let sheet = book.getSheetByName("Bridal Bookings");
+  if (!sheet) {
+    sheet = book.insertSheet("Bridal Bookings");
+    sheet.getRange(1, 1, 1, BRIDAL_HEADERS.length).setValues([BRIDAL_HEADERS]);
+    SpreadsheetApp.flush();
+  }
+  if (JSON.stringify(sheet.getRange(1, 1, 1, BRIDAL_HEADERS.length).getValues()[0]) !== JSON.stringify(BRIDAL_HEADERS)) throw backendError_("BRIDAL_SHEET_CONFLICT", "The Bridal Bookings worksheet needs review by SK Bridal Studio.");
+  return sheet;
+}
+
+function validateBridalBooking_(raw) {
+  raw = raw && typeof raw === "object" ? raw : {};
+  const booking = {};
+  ["name", "email", "phone", "eventDate", "session"].forEach(function(key) { booking[key] = String(raw[key] || "").trim(); });
+  booking.email = booking.email.toLowerCase();
+  booking.phone = booking.phone.replace(/\D/g, "");
+  if (booking.phone.length === 10) booking.phone = "91" + booking.phone;
+  const date = new Date(booking.eventDate + "T12:00:00Z");
+  if (!booking.name || booking.name.length > 100 || booking.email.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(booking.email) || !/^91[6-9][0-9]{9}$/.test(booking.phone) || !/^\d{4}-\d{2}-\d{2}$/.test(booking.eventDate) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== booking.eventDate || ["Muhurtham", "Reception", "Engagement", "Other bridal session"].indexOf(booking.session) === -1) {
+    throw backendError_("VALIDATION_ERROR", "Enter your name, valid email, Indian mobile number, event date and session.");
+  }
+  return booking;
+}
+
+function createBridalOrder_(request) {
+  const booking = validateBridalBooking_(request.booking);
+  if (request.availabilityConfirmed !== true) throw backendError_("AVAILABILITY_REQUIRED", "Contact SK Bridal Studio and confirm availability before paying.");
+  const requestId = String(request.requestId || "");
+  if (!/^[a-zA-Z0-9-]{16,80}$/.test(requestId)) throw backendError_("INVALID_REQUEST", "The booking reference is invalid. Refresh and try again.");
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sheet = bridalSheet_();
+    const hash = registrationHash_(booking);
+    const values = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 14).getValues() : [];
+    let row = 0;
+    let existing;
+    values.forEach(function(value, index) {
+      if (String(value[13]) === requestId || (String(value[3]) === booking.phone && String(value[4]) === booking.eventDate && String(value[5]) === booking.session)) {
+        if (row) throw backendError_("BRIDAL_SHEET_CONFLICT", "Multiple bridal bookings match these details. Contact SK Bridal Studio before paying.");
+        row = index + 2; existing = value;
+      }
+    });
+    const credentials = razorpayCredentials_();
+    if (existing) {
+      if (String(existing[12]) !== hash) throw backendError_("BOOKING_EXISTS", "A booking already exists for this phone, date and session. Contact SK Bridal Studio before changing the details.");
+      if (String(existing[7]) === "Verified") throw backendError_("BOOKING_ALREADY_PAID", "Your advance is already verified. Contact SK Bridal Studio for your booking confirmation; do not pay again.");
+      if (String(existing[7]) !== "Pending" || Number(existing[6]) !== 2000 || String(existing[11]) !== "Yes") throw backendError_("BRIDAL_SHEET_CONFLICT", "Your existing booking needs review. Contact SK Bridal Studio before paying.");
+      if (existing[8]) return { ok: true, bookingSaved: true, orderId: String(existing[8]), keyId: credentials.keyId, amount: 200000, currency: "INR" };
+    } else {
+      row = sheet.getLastRow() + 1;
+      sheet.getRange(row, 1, 1, 14).setNumberFormat("@");
+      sheet.getRange(row, 1, 1, 14).setValues([[new Date(), cleanValue(booking.name,100), cleanValue(booking.email,150), booking.phone, booking.eventDate, booking.session, 2000, "Pending", "", "", "", "Yes", hash, requestId]]);
+      SpreadsheetApp.flush();
+      const saved = sheet.getRange(row, 1, 1, 14).getValues()[0];
+      if (String(saved[12]) !== hash || String(saved[13]) !== requestId || String(saved[7]) !== "Pending") throw backendError_("REGISTRATION_SAVE_FAILED", "Your bridal booking details could not be confirmed. Checkout was not opened.");
+    }
+    const order = razorpayRequest_("/orders", "post", { amount: 200000, currency: "INR", receipt: "bridal_" + requestId.slice(0, 28), notes: { type: "bridal_advance", booking_hash: hash, event_date: booking.eventDate, session: booking.session } });
+    if (!/^order_[A-Za-z0-9]+$/.test(order.id || "") || order.amount !== 200000 || order.currency !== "INR") throw backendError_("ORDER_FAILED", "The bridal payment order could not be confirmed. Contact SK Bridal Studio before paying.");
+    sheet.getRange(row, 9).setValue(order.id);
+    SpreadsheetApp.flush();
+    if (String(sheet.getRange(row, 9).getValue()) !== order.id) throw backendError_("REGISTRATION_SAVE_FAILED", "The bridal payment reference could not be saved. Checkout was not opened.");
+    return { ok: true, bookingSaved: true, orderId: order.id, keyId: credentials.keyId, amount: 200000, currency: "INR" };
+  } finally { lock.releaseLock(); }
+}
+
+function verifyBridalPayment_(request) {
+  const orderId = request.orderId, paymentId = request.paymentId, signature = request.signature;
+  if (typeof orderId !== "string" || !/^order_[A-Za-z0-9]+$/.test(orderId) || typeof paymentId !== "string" || !/^pay_[A-Za-z0-9]+$/.test(paymentId) || typeof signature !== "string" || !/^[a-f0-9]{64}$/i.test(signature)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "Payment verification details are invalid.");
+  verifySignature_(orderId, paymentId, signature);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sheet = bridalSheet_();
+    const rows = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 14).getValues() : [];
+    let row = 0, saved;
+    rows.forEach(function(value, index) {
+      if (String(value[9]) === paymentId && String(value[8]) !== orderId) throw backendError_("PAYMENT_ALREADY_USED", "This payment is linked to another booking.");
+      if (String(value[8]) === orderId) {
+        if (row) throw backendError_("BRIDAL_SHEET_CONFLICT", "Multiple bridal bookings match this order.");
+        row = index + 2; saved = value;
+      }
+    });
+    if (!row) throw backendError_("ORDER_NOT_FOUND", "No bridal booking matches this payment order.");
+    if ((String(saved[7]) !== "Pending" && String(saved[7]) !== "Verified") || (saved[9] && String(saved[9]) !== paymentId) || Number(saved[6]) !== 2000) throw backendError_("BRIDAL_SHEET_CONFLICT", "This booking payment needs studio review. Do not pay again.");
+    const booking = validateBridalBooking_({ name: String(saved[1]).replace(/^'/,""), email: String(saved[2]).replace(/^'/,""), phone: saved[3], eventDate: saved[4], session: saved[5] });
+    if (registrationHash_(booking) !== String(saved[12]) || String(saved[11]) !== "Yes") throw backendError_("BRIDAL_SHEET_CONFLICT", "The saved bridal booking details changed. Contact SK Bridal Studio.");
+    const order = razorpayRequest_("/orders/" + encodeURIComponent(orderId));
+    if (order.id !== orderId || order.amount !== 200000 || order.currency !== "INR" || !order.notes || order.notes.type !== "bridal_advance" || order.notes.booking_hash !== String(saved[12])) throw backendError_("PAYMENT_VERIFICATION_FAILED", "The payment order does not match the bridal booking.");
+    const path = "/payments/" + encodeURIComponent(paymentId);
+    let payment = razorpayRequest_(path);
+    if (payment.id !== paymentId || !paymentMatchesOrder_(payment,orderId,200000)) throw backendError_("PAYMENT_VERIFICATION_FAILED", "The payment does not match this booking.");
+    if (payment.status === "authorized") {
+      try { razorpayRequest_(path + "/capture", "post", { amount: 200000, currency: "INR" }); } catch (_) { console.warn("Checking bridal payment capture status."); }
+      payment = razorpayRequest_(path);
+    }
+    if (payment.id !== paymentId || payment.status !== "captured" || payment.captured !== true || !paymentMatchesOrder_(payment,orderId,200000)) throw backendError_("PAYMENT_NOT_CAPTURED", "Payment is not confirmed yet. If charged, do not pay again; retry verification.");
+    try {
+      // Sheet rows may be sorted manually while Razorpay requests are in flight.
+      const current = sheet.getRange(2, 1, sheet.getLastRow() - 1, 14).getValues();
+      const matches = [];
+      current.forEach(function(value, index) { if (String(value[8]) === orderId) matches.push({ row: index + 2, value: value }); });
+      if (matches.length !== 1) throw new Error("Booking row changed during verification");
+      row = matches[0].row;
+      const latest = matches[0].value;
+      if ([1,2,3,4,5,6,11,12].some(function(index) { return String(latest[index]) !== String(saved[index]); }) || (latest[9] && String(latest[9]) !== paymentId) || (String(latest[7]) !== "Pending" && String(latest[7]) !== "Verified")) throw new Error("Booking details changed during verification");
+      sheet.getRange(row, 8, 1, 4).setValues([["Verified", orderId, paymentId, saved[10] || new Date()]]);
+      SpreadsheetApp.flush();
+      const confirmed = sheet.getRange(row, 8, 1, 4).getValues()[0];
+      if (String(confirmed[0]) !== "Verified" || String(confirmed[1]) !== orderId || String(confirmed[2]) !== paymentId) throw new Error("Read-back failed");
+    } catch (_) {
+      const error = backendError_("REGISTRATION_SAVE_FAILED", "Your bridal advance was captured but its saved status is not confirmed. Do not pay again. Retry verification or contact SK Bridal Studio.");
+      error.verified = true; error.paymentCaptured = true; throw error;
+    }
+    return { ok: true, verified: true, saved: true, orderId: orderId, paymentId: paymentId, amount: 200000, currency: "INR" };
+  } finally { lock.releaseLock(); }
 }
 
 function doGet() {
   const properties = PropertiesService.getScriptProperties();
   let sheetAccessible = false;
-  try { sheetAccessible = Boolean(getExistingResponseSheet_()); } catch (_) { /* Expose readiness, never student rows or credentials. */ }
-  const credentialsConfigured = Boolean(properties.getProperty("RAZORPAY_KEY_ID") && properties.getProperty("RAZORPAY_KEY_SECRET"));
-  return jsonResponse({ ok: sheetAccessible && credentialsConfigured, backend: "google-apps-script", version: CONFIG.BACKEND_VERSION, sheet: CONFIG.SHEET_NAME, sheetAccessible: sheetAccessible, credentialsConfigured: credentialsConfigured, suggestedAmountRupees: CONFIG.SUGGESTED_PAYMENT_RUPEES, minimumAmountRupees: 1, currency: CONFIG.CURRENCY });
+  let sheetError = null;
+  try {
+    getResponseSheet_();
+    SpreadsheetApp.flush();
+    sheetAccessible = true;
+  } catch (error) {
+    sheetError = String(error.message || error);
+  }
+  const credentialsConfigured = Boolean(
+    properties.getProperty("RAZORPAY_KEY_ID") &&
+    properties.getProperty("RAZORPAY_KEY_SECRET")
+  );
+  return jsonResponse({
+    ok: sheetAccessible && credentialsConfigured,
+    backend: "google-apps-script",
+    version: CONFIG.BACKEND_VERSION,
+    sheet: CONFIG.SHEET_NAME,
+    sheetAccessible: sheetAccessible,
+    sheetError: sheetError,
+    credentialsConfigured: credentialsConfigured,
+    defaultAmount: CONFIG.PAYMENT_AMOUNT / 100,
+    courseFees: COURSE_FEES,
+    courseAdvances: COURSE_ADVANCES,
+    bridalPayments: true,
+    bridalAdvance: 2000,
+    minimumAmount: 1,
+    currency: CONFIG.CURRENCY
+  });
+}
+
+function testWorkshopSheetConnection() {
+  const sheet = getResponseSheet_();
+  SpreadsheetApp.flush();
+  const result = {
+    spreadsheetName: sheet.getParent().getName(),
+    sheetName: sheet.getName(),
+    lastRow: sheet.getLastRow(),
+    maxColumns: sheet.getMaxColumns(),
+    headersLtoR: sheet.getRange(1, 12, 1, 7).getDisplayValues()[0]
+  };
+  Logger.log(JSON.stringify(result));
+  return result;
 }
 
 function setupWorkshopRegistration() {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
-  try {
-    SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).setSpreadsheetTimeZone(CONFIG.TIME_ZONE);
-    getResponseSheet_();
-    SpreadsheetApp.flush();
-  }
+  try { getResponseSheet_(); SpreadsheetApp.flush(); }
   finally { lock.releaseLock(); }
   const status = JSON.parse(doGet().getContent());
   console.log(JSON.stringify(status));
@@ -609,12 +974,36 @@ function createWhatsAppLink_(sheet, row) {
   }
 
   const advance = Number(sheet.getRange(row, CONFIG.ADVANCE_COL).getValue());
-  const url = "https://wa.me/" + phone + "?text=" + encodeURIComponent(buildConfirmationMessage_(name, advance));
-  linkCell.setValue(url);
+  const course = String(sheet.getRange(row, CONFIG.COURSE_COL).getDisplayValue()).trim();
+  const message = buildConfirmationMessage_(name, advance, course);
 
-  const confirmationCell = sheet.getRange(row, CONFIG.CONFIRMATION_COL);
-  const currentStatus = String(confirmationCell.getValue() || "").trim();
-  if (!/^(yes|sent|confirmation sent)$/i.test(currentStatus)) confirmationCell.setValue("Ready to Send");
+  const links = buildWhatsAppLinks_(phone, message);
+  // Open Web directly on a computer; use App on a phone. Both links carry
+  // the same UTF-8 message without passing through the wa.me short link.
+  const webLabel = "WhatsApp Web";
+  const appLabel = "WhatsApp App";
+  const label = webLabel + " | " + appLabel;
+  const richText = SpreadsheetApp.newRichTextValue()
+    .setText(label)
+    .setLinkUrl(0, webLabel.length, links.web)
+    .setLinkUrl(webLabel.length + 3, label.length, links.app)
+    .build();
+
+  linkCell.setRichTextValue(richText);
+
+  // Update confirmation status.
+  const confirmationCell = sheet.getRange(
+    row,
+    CONFIG.CONFIRMATION_COL
+  );
+
+  const currentStatus = String(
+    confirmationCell.getDisplayValue()
+  ).trim();
+
+  if (currentStatus !== "Confirmation Sent") {
+    confirmationCell.setValue("Ready to Send");
+  }
 }
 
 
@@ -622,20 +1011,83 @@ function createWhatsAppLink_(sheet, row) {
 // 8. WHATSAPP CONFIRMATION MESSAGE
 // =====================================================
 
-function buildConfirmationMessage_(name, advance) {
+function buildWhatsAppLinks_(phone, message) {
+  // Encode the complete Unicode string once; never encode individual UTF-16
+  // halves of emoji or encode an already encoded message a second time.
+  const encoded = encodeURIComponent(message);
+  if (decodeURIComponent(encoded) !== message || /%EF%BF%BD/i.test(encoded)) {
+    throw new Error("WhatsApp message contains damaged text. Check the saved student details and rebuild the link.");
+  }
+  const query = "?phone=" + encodeURIComponent(phone) + "&text=" + encoded;
+  return {
+    web: "https://web.whatsapp.com/send" + query,
+    app: "https://api.whatsapp.com/send" + query
+  };
+}
+
+function buildConfirmationMessage_(name, advance, course) {
+  // Build emojis from Unicode code points at runtime to avoid source-file
+  // encoding corruption when copied into the Apps Script editor.
+  const emoji = function() {
+    return Array.prototype.map.call(arguments, function(point) {
+      return String.fromCodePoint(point);
+    }).join("");
+  };
+
+  const studentName = String(name || "Student").trim();
+  const selectedCourse = String(course || "").trim();
+  const totalFee = COURSE_FEES[selectedCourse];
+  // Legacy saved courses may not have a configured total fee.
+  const paidValue = Number(advance);
+  const paid = Number.isFinite(paidValue) && paidValue >= 0 ? paidValue : 500;
+  const remaining = totalFee ? Math.max(0, totalFee - paid) : null;
+  const money = function(value) {
+    return String.fromCodePoint(0x20B9) + Number(value).toLocaleString("en-IN");
+  };
+
+  const party = emoji(0x1F389);
+  const heart = emoji(0x1F496);
+  const check = emoji(0x2705);
+  const makeup = emoji(0x1F484);
+  const sparkles = emoji(0x2728);
+  const books = emoji(0x1F4DA);
+  const calendar = emoji(0x1F4C5);
+  const globe = emoji(0x1F310);
+  const speaking = emoji(0x1F5E3, 0xFE0F);
+  const moneyBag = emoji(0x1F4B0);
+  const pin = emoji(0x1F4CC);
+  const redHeart = emoji(0x2764, 0xFE0F);
 
   return [
-    "Hi " + name + "! 💖",
+    party + " REGISTRATION CONFIRMED! " + party,
     "",
-    "Congratulations! 🎉",
+    "Hi " + studentName + "! " + heart,
     "",
-    "Your advance payment" + (Number.isFinite(advance) && advance >= 1 ? " of INR " + advance.toFixed(2) : "") + " has been successfully verified.",
+    "Congratulations! Your advance payment of " + money(paid) + " has been successfully verified. " + check,
     "",
-    "Your seat for the Professional Bridal Makeup & Hairstyle Course at SK BRIDAL STUDIO is officially CONFIRMED! 💄✨",
+    "Your seat for the following SK BRIDAL STUDIO course is confirmed: " + makeup + sparkles,
+    selectedCourse,
     "",
-    "Thank you for choosing us! ❤️",
+    books + " COURSE DETAILS:",
     "",
-    "SK BRIDAL STUDIO"
+    calendar + " Schedule: Details will be shared separately",
+    globe + " Mode: Online Live",
+    speaking + " Language: Tamil + English",
+    "",
+    moneyBag + " PAYMENT DETAILS:",
+    "",
+    "Advance Paid: " + money(paid),
+    "Remaining Balance: " + (remaining === null ? "Please contact SK Bridal Studio" : money(remaining)),
+    "Please pay the remaining balance as per the payment schedule shared by SK Bridal Studio.",
+    "",
+    pin + " The session details and joining instructions will be shared with you before the course.",
+    "",
+    "Thank you for choosing SK Bridal Studio! " + redHeart,
+    "",
+    "We're excited to be part of your makeup learning journey!",
+    "",
+    "Warm regards,",
+    "SK BRIDAL STUDIO " + heart
   ].join("\n");
 }
 
@@ -755,23 +1207,36 @@ function regenerateSelectedStudentLink() {
 // 12. TEST WHATSAPP EMOJI ENCODING
 // =====================================================
 
-function testWhatsAppEmojiLink() {
+function testWhatsAppEmojiEncoding() {
+  const message = buildConfirmationMessage_("Emoji Test", 500, "2-Day Online Live Demo Workshop");
+  const encoded = encodeURIComponent(message);
+  const replacementCharacterFound = message.indexOf(String.fromCharCode(0xFFFD)) !== -1;
+  const encodedEmojiFound = /%F0%9F/i.test(encoded);
+  const courseNameFound = message.indexOf("2-Day Online Live Demo Workshop") !== -1;
+  const links = buildWhatsAppLinks_("919876543210", message);
+  const linksPreserveMessage = [links.web, links.app].every(function(url) {
+    return decodeURIComponent(url.split("&text=")[1]) === message;
+  });
 
-  const emoji = "💖 🎉 💄 ✨ ❤️";
+  console.log("Generated message: " + message);
+  console.log("Encoded WhatsApp text: " + encoded);
+  console.log("Replacement character found: " + replacementCharacterFound);
+  console.log("Emoji UTF-8 encoding found: " + encodedEmojiFound);
 
-  const encoded = encodeURIComponent(emoji);
+  if (replacementCharacterFound || !encodedEmojiFound || !courseNameFound || !linksPreserveMessage) {
+    throw new Error("Emoji generation or URL encoding failed.");
+  }
 
-  Logger.log("Original: " + emoji);
-  Logger.log("Encoded: " + encoded);
-
-  Logger.log(
-    "Replacement character exists: " +
-    emoji.includes("\uFFFD")
-  );
-
-  const testUrl =
-    "https://web.whatsapp.com/send?phone=918668038093&text=" +
-    encoded;
-
-  Logger.log("Test URL: " + testUrl);
+  return {
+    ok: true,
+    replacementCharacterFound: false,
+    encodedEmojiFound: true,
+    courseNameFound: courseNameFound,
+    linksPreserveMessage: linksPreserveMessage,
+    webTestUrl: links.web,
+    appTestUrl: links.app
+  };
 }
+
+
+function testWhatsAppEmojiLink() { return testWhatsAppEmojiEncoding(); }

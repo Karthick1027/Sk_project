@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MessageCircle, ArrowRight } from 'lucide-react';
+import { Star, ArrowRight } from 'lucide-react';
 import PageHero from '../components/PageHero';
 import CtaBanner from '../components/CtaBanner';
 import TestimonialSlider from '../components/TestimonialSlider';
@@ -11,8 +11,6 @@ import { useGoogleReviews } from '../hooks/useGoogleReviews';
 const SEO_TITLE = 'Client Reviews | SK Bridal Studio';
 const SEO_DESCRIPTION =
   'Read what brides and families say about their bridal, engagement and reception makeup with SK Bridal Studio in Chennai.';
-
-const WHATSAPP_URL = 'https://wa.me/918668038093';
 
 const Reviews: React.FC = () => {
   // Live rating, count and latest reviews from Google, falling back to data/reviews.ts
@@ -85,11 +83,7 @@ const Reviews: React.FC = () => {
         title="Let's make your day one to remember"
         text="Share your wedding date and the look you have in mind, and let's plan a finish you'll love in person and in every photo."
       >
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="btn-light">
-          <MessageCircle className="h-4 w-4" />
-          Chat on WhatsApp
-        </a>
-        <Link to="/portfolio" className="btn-ghost-light">
+        <Link to="/portfolio" className="btn-light">
           View Portfolio
           <ArrowRight className="h-4 w-4" />
         </Link>

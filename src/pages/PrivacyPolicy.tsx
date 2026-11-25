@@ -30,7 +30,7 @@ const sections: PolicySection[] = [
   {
     title: 'How We Collect It',
     points: [
-      'Contact form on this website: your details are passed straight to our email and WhatsApp so we can reply. The website itself does not store them.',
+      'Booking and workshop registration forms on this website.',
       'Enquiry and lead forms on Instagram or Facebook: when you submit one of our forms, Meta shares the details you entered with us.',
       'Class registration through Google Forms.',
       'Phone calls, WhatsApp, email and Instagram direct messages.',

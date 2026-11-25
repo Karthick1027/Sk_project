@@ -1,11 +1,34 @@
 export const initialRegistration = {
-  name: '', email: '', phone: '', course: 'Full 2-day masterclass', city: '',
+  name: '', email: '', phone: '', course: '2-Day Online Live Demo Workshop', city: '',
   gender: '', mainGoal: '', experience: '', question: '',
 };
 export type Registration = typeof initialRegistration;
-export type RegistrationField = keyof Registration | 'amount';
+export type RegistrationField = keyof Registration | 'amount' | 'paymentScreenshot';
 export type RegistrationErrors = Partial<Record<RegistrationField, string>>;
 export const DEFAULT_PAYMENT_AMOUNT = '500';
+export const MAX_PAYMENT_PROOF_BYTES = 5 * 1024 * 1024;
+export const PAYMENT_PROOF_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const;
+interface PaymentProofUpload { mimeType: string; base64: string }
+export function validatePaymentProofFile(file: Pick<File, 'size' | 'type'>): void {
+  const message = file.size <= 0 ? 'Please select a file that is not empty.'
+    : file.size > MAX_PAYMENT_PROOF_BYTES ? 'Choose a payment proof file of 5 MB or smaller.'
+    : !(PAYMENT_PROOF_TYPES as readonly string[]).includes(file.type) ? 'Choose a JPG, PNG, WEBP image or a PDF.' : '';
+  if (message) throw new RegistrationValidationError({ paymentScreenshot: message });
+}
+export async function readPaymentProofFile(file: File): Promise<PaymentProofUpload> {
+  validatePaymentProofFile(file);
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result.split(',')[1] : '';
+      if (result) resolve(result);
+      else reject(new RegistrationValidationError({ paymentScreenshot: 'Could not read this file. Please choose it again.' }));
+    };
+    reader.onerror = reader.onabort = () => reject(new RegistrationValidationError({ paymentScreenshot: 'Could not read this file. Please choose it again.' }));
+    reader.readAsDataURL(file);
+  });
+  return { mimeType: file.type, base64 };
+}
 export function paymentAmountPaise(value: string): number {
   const text = value.trim();
   const rupees = Number(text);
@@ -18,7 +41,12 @@ export function paymentAmountPaise(value: string): number {
 export function formatPaymentAmount(amount: number): string {
   return amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
-export const WORKSHOP_COURSES = ['Full 2-day masterclass', 'Muhurtham Look (Day 1)', 'Reception Look (Day 2)'] as const;
+export const WORKSHOP_COURSES = ['2-Day Online Live Demo Workshop', '15-Day Bridal Makeup Masterclass', '30-Day Professional Bridal Makeup Masterclass'] as const;
+export const WORKSHOP_ADVANCES: Record<string, string> = {
+  '2-Day Online Live Demo Workshop': '500',
+  '15-Day Bridal Makeup Masterclass': '5000',
+  '30-Day Professional Bridal Makeup Masterclass': '10000',
+};
 export class RegistrationValidationError extends Error {
   constructor(public fields: RegistrationErrors, message = 'Please check the highlighted registration fields.') {
     super(message);
@@ -31,13 +59,13 @@ export class WorkshopApiError extends Error {
     this.name = 'WorkshopApiError';
   }
 }
-export type PaymentStage = 'idle' | 'creating' | 'opening' | 'checkout' | 'verifying' | 'saving';
+export type PaymentStage = 'idle' | 'creating' | 'opening' | 'checkout' | 'verifying';
 export interface PaymentProof {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
 }
-export interface PendingPayment { proof: PaymentProof; registration: Registration; amount?: number }
+export interface PendingPayment { paymentId: string; registration: Registration; amount?: number; registrationSaved?: boolean; proof?: PaymentProof }
 interface WorkshopOrder { orderId: string; amount: number; currency: string; keyId: string }
 interface CheckoutOptions {
   key: string; amount: number; currency: string; order_id: string;
@@ -73,7 +101,7 @@ export class WorkshopCommunicationError extends Error {
   }
 }
 
-async function postWorkshopAction(payload: object): Promise<Record<string, unknown>> {
+export async function postWorkshopAction(payload: object): Promise<Record<string, unknown>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 90000);
   try {
@@ -96,20 +124,26 @@ async function postWorkshopAction(payload: object): Promise<Record<string, unkno
       if (backendFields && typeof backendFields === 'object') {
         for (const [key, value] of Object.entries(backendFields)) {
           const field = key === 'goal' ? 'mainGoal' : key;
-          if ((field === 'amount' || Object.prototype.hasOwnProperty.call(initialRegistration, field)) && typeof value === 'string') fields[field as RegistrationField] = value.slice(0, 500);
+          if ((field === 'amount' || field === 'paymentScreenshot' || Object.prototype.hasOwnProperty.call(initialRegistration, field)) && typeof value === 'string') fields[field as RegistrationField] = value.slice(0, 500);
         }
       }
+      if (result.code === 'DUPLICATE_REGISTRATION') {
+        if (fields.email) fields.email = 'Email already registered.';
+        if (fields.phone) fields.phone = 'WhatsApp number already registered.';
+      }
       if (action === 'create_order' && (result.code === 'VALIDATION_ERROR' || Object.keys(fields).length || /required fields|registration details|invalid email|invalid course|valid Indian WhatsApp/i.test(message))) {
-        if (/email/i.test(message)) fields.email ||= 'Please enter a valid email address.';
-        if (/course/i.test(message)) fields.course ||= 'Please select one of the available courses.';
-        if (/WhatsApp|phone/i.test(message)) fields.phone ||= 'Enter a valid 10-digit Indian mobile number.';
+        if (!Object.keys(fields).length) {
+          if (/email/i.test(message)) fields.email = 'Please enter a valid email address.';
+          if (/course/i.test(message)) fields.course = 'Please select one of the available courses.';
+          if (/WhatsApp|phone/i.test(message)) fields.phone = 'Enter a valid 10-digit Indian mobile number.';
+        }
         throw new RegistrationValidationError(fields, message);
       }
-      const saving = result.code === 'REGISTRATION_SAVE_FAILED' || result.stage === 'saving' || /registration.*(?:could not be saved|not saved)|(?:saving|save).*(?:registration|sheet)/i.test(message);
+      const saving = result.code === 'REGISTRATION_SAVE_FAILED' || result.paymentCaptured === true || result.stage === 'saving' || /registration.*(?:could not be saved|not saved)|(?:saving|save).*(?:registration|sheet)/i.test(message);
       // Preserve only bounded diagnostic tokens. Never log the raw response,
       // registration details, signatures or credentials.
       const token = (value: unknown) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(value) ? value : undefined;
-      const diagnostics = { code: token(result.code), reference: token(result.reference), saveStage: token(result.saveStage), saveCause: token(result.saveCause) };
+      const diagnostics = { code: token(result.code), reference: token(result.reference), saveStage: token(result.saveStage) || token(result.stage), saveCause: token(result.saveCause) };
       const context = [diagnostics.code, diagnostics.saveStage, diagnostics.saveCause, diagnostics.reference ? 'Reference: ' + diagnostics.reference : undefined].filter(Boolean).join(' / ');
       throw new WorkshopApiError(saving ? 'saving' : action === 'create_order' ? 'order' : 'payment', context ? message + ' (' + context + ')' : message, diagnostics);
     }
@@ -122,7 +156,7 @@ async function postWorkshopAction(payload: object): Promise<Record<string, unkno
   }
 }
 
-export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYMENT_AMOUNT }: { registration: Registration; amount?: string }): Promise<WorkshopOrder> {
+export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYMENT_AMOUNT, paymentProof }: { registration: Registration; amount?: string; paymentProof?: File | null }): Promise<WorkshopOrder> {
   const normalized = Object.fromEntries(Object.entries(registration).map(([key, value]) => [key, value.trim()])) as Registration;
   normalized.email = normalized.email.toLowerCase();
   if (/^91[6-9][0-9]{9}$/.test(normalized.phone)) normalized.phone = normalized.phone.slice(2);
@@ -132,9 +166,14 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
     if (error instanceof RegistrationValidationError) Object.assign(errors, error.fields); else throw error;
   }
   if (Object.keys(errors).length) throw new RegistrationValidationError(errors);
+  const proofUpload = paymentProof ? await readPaymentProofFile(paymentProof) : undefined;
+  // The form and Apps Script request use rupees. The backend converts to
+  // paise for Razorpay; its response and Checkout amount remain in paise.
+  const amountRupees = Number(amount.trim());
   const { mainGoal, ...details } = normalized;
   const data = await postWorkshopAction({
-    action: 'create_order', amount: paise / 100, registration: { ...details, phone: `91${normalized.phone}`, goal: mainGoal },
+    action: 'create_order', amount: amountRupees, registration: { ...details, phone: `91${normalized.phone}`, goal: mainGoal },
+    ...(proofUpload ? { paymentProof: proofUpload } : {}),
   });
   // Do not open Checkout just because the POST was sent or returned HTTP 200.
   if (typeof data.orderId !== 'string' || !/^order_[A-Za-z0-9]+$/.test(data.orderId) ||
@@ -142,18 +181,25 @@ export async function createWorkshopOrder({ registration, amount = DEFAULT_PAYME
       data.amount !== paise || data.currency !== 'INR') {
     throw new Error('The registration server returned an invalid payment order. Checkout was not opened. Please contact SK Bridal Studio.');
   }
+  if (data.registrationSaved !== true || typeof data.row !== 'number' || !Number.isSafeInteger(data.row) || data.row < 2) {
+    throw new WorkshopApiError('order', 'We could not confirm that your registration was saved. Checkout was not opened. Please contact SK Bridal Studio before trying again.', { code: 'PENDING_SAVE_NOT_CONFIRMED' });
+  }
+  if (proofUpload && data.paymentProofSaved !== true) {
+    throw new WorkshopApiError('order', 'Your payment proof upload was not confirmed. Checkout was not opened. Please contact SK Bridal Studio before trying again.', { code: 'PAYMENT_PROOF_NOT_CONFIRMED' });
+  }
+  const modes = [data.verificationMode, data.paymentVerification].filter(value => value !== undefined);
+  if (!modes.length || !modes.every(value => typeof value === 'string' && value.trim().toLowerCase() === 'automatic')) {
+    throw new WorkshopApiError('order', 'Payment verification is unavailable. Please contact SK Bridal Studio before paying.', { code: 'AUTOMATIC_WORKFLOW_REQUIRED' });
+  }
   return { orderId: data.orderId, keyId: data.keyId, amount: data.amount, currency: data.currency };
 }
 
 export async function verifyWorkshopPayment(proof: PaymentProof, expectedPaise?: number): Promise<number> {
-  const result = await postWorkshopAction({
-    action: 'verify_payment', orderId: proof.razorpay_order_id,
-    paymentId: proof.razorpay_payment_id, signature: proof.razorpay_signature,
-  });
-  // Require the action-specific confirmation, not a generic health-check ok.
-  if (result.verified === true && result.saved !== true) throw new WorkshopApiError('saving', 'Your payment was verified, but registration saving was not confirmed. Retry the existing payment without paying again.');
-  if (result.verified !== true || result.saved !== true) throw new WorkshopApiError('payment', 'Payment verification and registration saving have not been confirmed. Please retry the existing payment.');
-  if (typeof result.amount !== 'number' || !Number.isSafeInteger(result.amount) || result.amount < 100 || result.currency !== 'INR' || (expectedPaise != null && result.amount !== expectedPaise)) throw new WorkshopApiError('payment', 'The verified payment amount does not match your order. Please contact SK Bridal Studio.');
+  const result = await postWorkshopAction({ action: 'verify_payment', orderId: proof.razorpay_order_id,
+    paymentId: proof.razorpay_payment_id, signature: proof.razorpay_signature });
+  if (result.verified === true && result.saved !== true) throw new WorkshopApiError('saving', 'Your payment was verified, but the registration update was not confirmed. Contact SK Bridal Studio. Do not pay again; retry only verification.');
+  if (result.verified !== true || result.saved !== true) throw new WorkshopApiError('payment', 'Payment verification has not been confirmed. If charged, do not pay again. Retry verification or contact SK Bridal Studio.');
+  if (typeof result.amount !== 'number' || !Number.isSafeInteger(result.amount) || result.amount < 100 || result.currency !== 'INR' || (expectedPaise !== undefined && result.amount !== expectedPaise) || (result.orderId !== undefined && result.orderId !== proof.razorpay_order_id) || (result.paymentId !== undefined && result.paymentId !== proof.razorpay_payment_id)) throw new WorkshopApiError('payment', 'The verified payment does not match your registration. Contact SK Bridal Studio; do not pay again.');
   return result.amount / 100;
 }
 
@@ -241,16 +287,22 @@ export function validateRegistration(registration: Registration) {
 const pendingKey = 'sk-workshop-pending-payment';
 export function readPendingPayment(): PendingPayment | null {
   try {
-    const pending = JSON.parse(sessionStorage.getItem(pendingKey) || 'null') as PendingPayment | null;
-    if (!pending?.proof || !pending.registration) return null;
-    const validProof = Object.values(pending.proof).length === 3 &&
-      ['razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature'].every((key) => typeof pending.proof[key as keyof PaymentProof] === 'string' && pending.proof[key as keyof PaymentProof].length > 0);
-    const validRegistration = Object.keys(initialRegistration).every((key) => typeof pending.registration[key as keyof Registration] === 'string');
-    return validProof && validRegistration ? pending : null;
+    const raw = JSON.parse(sessionStorage.getItem(pendingKey) || 'null');
+    const paymentId = raw?.paymentId || raw?.proof?.razorpay_payment_id;
+    if (typeof paymentId !== 'string' || !/^pay_[A-Za-z0-9]+$/.test(paymentId) || !raw.registration) return null;
+    if (!Object.keys(initialRegistration).every(key => typeof raw.registration[key] === 'string')) return null;
+    const amount = Number.isSafeInteger(raw.amount) && raw.amount >= 100 ? raw.amount : undefined;
+    const pending: PendingPayment = { paymentId, registration: raw.registration, amount, registrationSaved: raw.registrationSaved === true };
+    const proof = raw.proof;
+    if (proof && typeof proof.razorpay_order_id === 'string' && /^order_[A-Za-z0-9]+$/.test(proof.razorpay_order_id) && proof.razorpay_payment_id === paymentId && typeof proof.razorpay_signature === 'string' && /^[a-f0-9]{64}$/i.test(proof.razorpay_signature)) pending.proof = { razorpay_order_id: proof.razorpay_order_id, razorpay_payment_id: paymentId, razorpay_signature: proof.razorpay_signature };
+    // Older manual receipts lack a signature and stay available for studio review.
+    storePendingPayment(pending);
+    return pending;
   } catch { return null; }
 }
 export function storePendingPayment(pending: PendingPayment | null) {
-  // The signature is a payment receipt, never a Razorpay API secret. The backend revalidates it on every retry.
+  // Retain the Checkout receipt for verification-only retries. This signature
+  // is not the API secret; only the backend can confirm payment and Sheet saving.
   try {
     if (pending) sessionStorage.setItem(pendingKey, JSON.stringify(pending));
     else sessionStorage.removeItem(pendingKey);
