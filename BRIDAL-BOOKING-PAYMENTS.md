@@ -2,27 +2,29 @@
 
 ## Live session availability
 
-The Packages page availability modal posts `check_bridal_availability` to the existing Apps Script Web App URL in `src/lib/workshopPayment.ts`. This keeps availability, workshop registration and bridal payment actions on the same existing `SK Bridal Studio WhatsApp Automation` project and deployment.
+The Packages page availability modal posts `check_bridal_availability` to `BRIDAL_AVAILABILITY_API_URL` in `src/lib/bridalAvailability.ts`, using the studio-supplied deployment ending `NgrWsNYgQlw/exec`. Workshop payment requests retain the separate default `WORKSHOP_API_URL` in `src/lib/workshopPayment.ts`.
 
-The lookup reads only date/year (C-D), confirmation (N), session (P) and booking status (Q) from the existing `Customer Booking Details` tab in spreadsheet `1m5sE85VjltmUIaVyYMleLZ8Ai1UeFD3Gr4zZ33G0fwA`. It does not read or return customer details, does not inspect Fully Settled (O), and does not write or reserve rows. `CONFIRMED`, `PENDING` and `COMPLETED` block that session; `CANCELLED` does not. A dated non-cancelled row with a blank or invalid session blocks both slots until corrected. Muhurtham defaults to Morning and Reception to Evening; the other supported occasions default to Morning and can use either session.
+The lookup reads only date/year (C-D), confirmation (N), session (P) and booking status (Q) from the booking tab with **sheet ID `0` (`gid=0`)** in spreadsheet `1m5sE85VjltmUIaVyYMleLZ8Ai1UeFD3Gr4zZ33G0fwA`. The tab is selected by `getSheetById(0)`, so trailing spaces or renaming `Customer Booking Details` do not break the lookup. A missing ID returns an error; there is no fallback to a different or newly created tab. It does not read or return customer details, does not inspect Fully Settled (O), and does not write or reserve rows. `CONFIRMED`, `PENDING` and `COMPLETED` block that session; `CANCELLED` does not. A dated non-cancelled row with a blank or invalid session blocks both slots until corrected. Muhurtham defaults to Morning and Reception to Evening; customers can also select Full Day. Full Day requires both Morning and Evening to be available and overlaps either slot on the same date. The frontend checks the two existing slot actions for compatibility with the current deployment. In the booking register, set Session (column P) to `Full Day` to block both slots; a cancelled booking releases both. The updated Apps Script also accepts direct Full Day checks.
 
 The frontend checks each event after its date, occasion or session changes, rejects duplicate date/session selections within the request, and rechecks all events immediately before opening WhatsApp Web. The backend serializes availability reads with `LockService` and checks the register while holding the script lock. The action remains read-only and does not reserve a slot; preventing two customers from both receiving an available result before a booking is written requires the booking write path to recheck and save the reservation while holding the same script lock.
 
-## Current flow: hosted Razorpay payment page
+## Current flow: API-generated fixed-amount payment links
 
-### Common payment link
+After availability confirmation, customers send their booking details on WhatsApp and acknowledge sending them. Pay now calls the separate `create_bridal_payment_link` action on `BRIDAL_AVAILABILITY_API_URL`. The server validates 1-3 distinct event dates and calculates INR 2,000 / 3,000 / 4,000 in paise from the day count, ignoring any client amount. It creates a Standard Razorpay Payment Link with partial payments disabled; customers no longer enter an amount manually.
 
-All package session counts open the same owner-requested URL: `https://razorpay.me/@skbridalstudio`. Customers manually enter the displayed total advance on Razorpay: INR 2,000 for 1 day/session, INR 3,000 for 2, or INR 4,000 for 3. The website does not prefill or lock the Razorpay amount. Separate session links and environment overrides are no longer used.
+The server uses `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` from Apps Script Script Properties. No secret is sent to the browser. Customer details accompany the link request; notifications and reminders are disabled. Opening the payment link is a customer action. The API does not reserve dates, write booking rows, or mark payments successful. Customers still share the receipt on WhatsApp for studio verification.
 
-After acknowledging confirmed date availability, customers select Pay INR 2,000 Advance to open a compact booking form. Name, email, Indian WhatsApp number, event date and session are required; venue/city is optional. Submitting prepares a WhatsApp message addressed to `+91 86680 38093` and opens WhatsApp. Customers must tap Send themselves; the website does not claim to send or verify delivery automatically.
+A deterministic booking reference and the Apps Script lock reuse existing links for identical details, including after a lost create response. Paid or partially paid links block another payment; expired/cancelled links require studio review. The client checks the response amount, currency, link ID and provider hostname before navigating. Changed details invalidate the local link; a blocked popup leaves a validated Pay link available for a second tap.
 
-Customers can select 1, 2 or 3 days. Each selected day requires its own date and session, with one session per day. The form and WhatsApp message use the agreed advances: INR 2,000 for 1 day, INR 3,000 for 2 days, INR 4,000 for 3 days. All dates must be distinct. Reducing the number of days removes the unused day from the message and total while preserving the remaining schedule. The payment link stays the same.
+### Activate this backend before publishing the frontend
 
-The customer returns to the form and acknowledges sending their details. Only then is the common Pay link enabled. The website tells the customer which amount to enter and asks them to share the receipt in the same WhatsApp conversation. Editing details resets the acknowledgement. The live availability check is separate from this hosted payment flow and does not change order creation or payment verification.
+1. Copy the updated `WorkshopRegistrations.gs` and new `BridalPaymentLinks.gs` into the existing Apps Script project serving `BRIDAL_AVAILABILITY_API_URL`.
+2. Keep the studio's matching Razorpay key pair in that project's Script Properties. Use test credentials for owner-run acceptance before using live credentials. Do not place secrets in frontend files or chat.
+3. Save and deploy a New version of that existing Web App, preserving its URL and execution/access settings.
+4. Send the read-only `bridal_payment_link_status` POST action. It must return `api: bridal-payment-links-v1` and `ready: true`. This checks deployment capability and credential presence; it does not prove a live payment or create a link.
+5. Build, verify the booking UI, then publish Firebase Hosting. Until activation, keep the current live frontend in place. No live links, charges, SMS or email notifications were created by the automated checks; provider calls are mocked.
 
-The website displays the advance for the selected number of days. The hosted page controls the actual payable amount; the website does not override it or infer payment success from opening the link. After payment, customers share their receipt on WhatsApp and the studio verifies it before confirming the booking. The link's amount configuration must be checked in Razorpay by the owner.
-
-Existing signed receipts from the earlier API flow retain verification-only recovery, preventing a customer with a captured payment from being directed to pay again. The implementation below documents that earlier API path and its deployment requirements only.
+Existing signed receipts from the older order/Checkout flow retain verification-only recovery. Workshop registration and payment verification retain their existing API connection.
 
 ## Earlier API integration and receipt recovery
 
@@ -44,11 +46,11 @@ Each order covers one session. Muhurtham and Reception require separate session 
 
 ## Deployment
 
-1. Open the existing `SK Bridal Studio WhatsApp Automation` Apps Script project. Do not create a project or deployment.
+1. Open the existing `SK Bridal Register - Automation` Apps Script project for `BRIDAL_AVAILABILITY_API_URL`. Keep its existing deployment URL.
 2. Copy the updated local [WorkshopRegistrations.gs](google-apps-script/WorkshopRegistrations.gs) into the existing project. It contains the availability constants/helpers and the `check_bridal_availability` dispatch in the existing `doPost(e)`. Do not add another Apps Script project or deploy the standalone Bridal Availability project. Keep the existing `doGet`, workshop actions, payment actions and Script Properties unchanged.
 3. Ensure P1 and Q1 in the existing booking tab are labelled `Session` and `Booking Status`; do not move or rewrite columns A-O. Fill in existing bookings' sessions/statuses as appropriate. Blank sessions are intentionally treated as blocking both slots unless cancelled.
-4. Save and deploy a new version of the existing Web App deployment. Keep its deployment URL, execute-as-owner setting and current website access setting. The script owner must have read access to the bridal booking spreadsheet. The existing frontend API URL remains in `src/lib/workshopPayment.ts`; no new frontend secret or API URL is needed.
-5. In Apps Script, update the existing Web App deployment to a new version containing `check_bridal_availability`. Keep the existing deployment URL, execute-as-owner setting and access policy; the separate Bridal Availability URL currently returns “Script function not found” and is not used by the site.
+4. Copy the updated `BridalAvailabilityDiagnostics.gs` into the same Apps Script project, save both files, and run `testBridalAvailabilityConnection` in the editor. It should report `ok: true` and `sheetId: 0`. It reads the existing booking register and does not change rows or payments. Resolve any diagnostic error before publishing.
+5. Update the existing availability Web App deployment: Deploy > Manage deployments > Edit > New version > Deploy. Preserve its URL and current execution/access settings. The deploying account must have access to the booking spreadsheet. Workshop payments continue using the separate `WORKSHOP_API_URL`.
 6. Build and publish the frontend to the existing Firebase Hosting site: run `npm run build`, then `firebase deploy --only hosting` from the project directory.
 
 The `Bridal Bookings` tab is created on the first bridal order. If a tab with that name already exists with different headers, the backend rejects the request rather than overwriting it. Workshop rows and unique-contact rules remain separate.

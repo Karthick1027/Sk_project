@@ -186,6 +186,8 @@ function doPost(event) {
     const action = String(request.action || request.type || "").trim().toLowerCase();
     console.log("Workshop request action: " + action);
 
+    if (action === "bridal_payment_link_status") return jsonResponse(bridalPaymentLinkStatus_());
+    if (action === "create_bridal_payment_link") return jsonResponse(createBridalPaymentLink_(request));
     if (action === "check_bridal_availability") return jsonResponse(checkBridalAvailability_(request));
     if (action === "create_bridal_order") return jsonResponse(createBridalOrder_(request));
     if (action === "verify_bridal_payment") return jsonResponse(verifyBridalPayment_(request));
@@ -227,9 +229,10 @@ function doPost(event) {
 
 const BRIDAL_AVAILABILITY_CONFIG = {
   SPREADSHEET_ID: "1m5sE85VjltmUIaVyYMleLZ8Ai1UeFD3Gr4zZ33G0fwA",
+  SHEET_ID: 0, // Confirmed gid from the booking spreadsheet URL; independent of tab name.
   SHEET_NAME: "Customer Booking Details",
   OCCASIONS: ["Muhurtham", "Reception", "Engagement", "Baby Shower", "Puberty Ceremony"],
-  SESSIONS: ["Morning", "Evening"]
+  SESSIONS: ["Morning", "Evening", "Full Day"]
 };
 
 function checkBridalAvailability_(parameters) {
@@ -239,7 +242,7 @@ function checkBridalAvailability_(parameters) {
   const session = String(parameters.session || "").trim();
   if (!normalizedDate) return bridalAvailabilityError_(date, session, "Enter a valid date in DD/MM/YYYY or YYYY-MM-DD format.");
   if (BRIDAL_AVAILABILITY_CONFIG.OCCASIONS.indexOf(occasion) === -1) return bridalAvailabilityError_(date, session, "Choose a valid occasion.");
-  if (BRIDAL_AVAILABILITY_CONFIG.SESSIONS.indexOf(session) === -1) return bridalAvailabilityError_(date, session, "Choose Morning or Evening.");
+  if (BRIDAL_AVAILABILITY_CONFIG.SESSIONS.indexOf(session) === -1) return bridalAvailabilityError_(date, session, "Choose Morning, Evening or Full Day.");
 
   const lock = LockService.getScriptLock();
   let locked = false;
@@ -256,8 +259,8 @@ function checkBridalAvailability_(parameters) {
     const spreadsheet = SpreadsheetApp.openById(BRIDAL_AVAILABILITY_CONFIG.SPREADSHEET_ID);
     diagnostics.spreadsheetOpened = true;
     diagnostics.phase = "sheet_lookup";
-    const sheet = spreadsheet.getSheetByName(BRIDAL_AVAILABILITY_CONFIG.SHEET_NAME);
-    if (!sheet) throw new Error("Booking sheet not found.");
+    const sheet = spreadsheet.getSheetById(BRIDAL_AVAILABILITY_CONFIG.SHEET_ID);
+    if (!sheet) throw new Error("Booking tab with gid=" + BRIDAL_AVAILABILITY_CONFIG.SHEET_ID + " not found.");
     diagnostics.sheetFound = true;
     diagnostics.phase = "required_column_access";
     if (sheet.getMaxColumns() < 17) throw new Error("Required bridal availability columns C-D, N, and P-Q are not present.");
@@ -281,7 +284,7 @@ function checkBridalAvailability_(parameters) {
           booked = true;
           break;
         }
-        if (bookedSession !== session) continue;
+        if (session !== "Full Day" && bookedSession !== "Full Day" && bookedSession !== session) continue;
         booked = true;
         break;
       }
@@ -306,6 +309,7 @@ function checkBridalAvailability_(parameters) {
       phase: diagnostics.phase,
       spreadsheetId: BRIDAL_AVAILABILITY_CONFIG.SPREADSHEET_ID,
       sheetName: BRIDAL_AVAILABILITY_CONFIG.SHEET_NAME,
+      sheetId: BRIDAL_AVAILABILITY_CONFIG.SHEET_ID,
       spreadsheetOpened: diagnostics.spreadsheetOpened,
       sheetFound: diagnostics.sheetFound,
       requiredColumnsAccessible: diagnostics.requiredColumnsAccessible

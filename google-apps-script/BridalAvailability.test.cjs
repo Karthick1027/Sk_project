@@ -7,9 +7,11 @@ const spreadsheetId = '1m5sE85VjltmUIaVyYMleLZ8Ai1UeFD3Gr4zZ33G0fwA';
 
 function backend(rows = [], options = {}) {
   const reads = [];
+  const sheetIds = [];
   const logs = [];
   const lockStats = { acquired: 0, released: 0 };
   const sheet = {
+    getName: () => options.sheetName || 'Customer Booking Details',
     getLastRow: () => rows.length + 1,
     getMaxColumns: () => options.maxColumns === undefined ? 17 : options.maxColumns,
     getRange(row, column, count, width) {
@@ -30,6 +32,7 @@ function backend(rows = [], options = {}) {
         assert.equal(id, spreadsheetId);
         if (options.openError) throw new Error(options.openError);
         return {
+          getSheetById: id => { sheetIds.push(id); assert.equal(id, 0); return options.sheetMissing ? null : sheet; },
           getSheetByName: name => options.sheetMissing || name !== 'Customer Booking Details' ? null : sheet,
           getSpreadsheetTimeZone: () => 'Asia/Kolkata',
         };
@@ -40,7 +43,7 @@ function backend(rows = [], options = {}) {
   };
   vm.createContext(context);
   vm.runInContext(readFileSync(__dirname + '/WorkshopRegistrations.gs', 'utf8'), context);
-  return { context, reads, logs, lockStats, post: parameters => context.doPost({ postData: { contents: JSON.stringify(parameters) } }) };
+  return { context, reads, sheetIds, logs, lockStats, post: parameters => context.doPost({ postData: { contents: JSON.stringify(parameters) } }) };
 }
 
 function booking({ date = '2027-01-20', year = 2027, confirmation = 'CONFIRMED', session = 'Morning', status = '' } = {}) {
@@ -138,4 +141,82 @@ test('spreadsheet failures log diagnostic phase and access flags without custome
     assert.equal(api.logs[0].includes('9876543210'), false);
     assert.equal(api.logs[0].includes('2027-01-20'), false);
   }
+});
+
+test('editor diagnostic exposes the exact read failure without requiring Cloud logs', () => {
+  const cases = [
+    { options: { openError: 'Spreadsheet permission denied.' }, phase: 'spreadsheet_open', message: 'Spreadsheet permission denied.' },
+    { options: { sheetMissing: true }, phase: 'sheet_lookup', message: 'Booking tab not found' },
+    { options: { maxColumns: 16 }, phase: 'required_column_access', message: 'at least 17' },
+    { options: { rangeError: 'Column range unavailable.' }, phase: 'date_columns_C_D', message: 'Column range unavailable.' },
+  ];
+  for (const entry of cases) {
+    const api = backend([booking()], entry.options);
+    vm.runInContext(readFileSync(__dirname + '/BridalAvailabilityDiagnostics.gs', 'utf8'), api.context);
+    assert.throws(() => api.context.testBridalAvailabilityConnection(), error => {
+      assert.ok(error.message.includes('phase=' + entry.phase));
+      assert.ok(error.message.includes(entry.message));
+      return true;
+    });
+  }
+});
+
+test('editor diagnostic can complete a read-only booking lookup without returning customer data', () => {
+  const api = backend([booking()]);
+  vm.runInContext(readFileSync(__dirname + '/BridalAvailabilityDiagnostics.gs', 'utf8'), api.context);
+  const result = api.context.testBridalAvailabilityConnection();
+  assert.equal(result.ok, true);
+  assert.equal(result.bookingRows, 1);
+  assert.equal(result.columns, 17);
+  assert.equal(result.sheetName, 'Customer Booking Details');
+  assert.equal(result.status, 'AVAILABLE');
+  assert.deepEqual(Object.keys(result).sort(), ['ok', 'sheetName', 'sheetId', 'columns', 'bookingRows', 'timezone', 'status'].sort());
+});
+
+
+test('booking tab is selected by confirmed gid even when renamed or padded with spaces', () => {
+  for (const sheetName of ['Customer Booking Details ', 'Customer Booking Details\u00a0', 'Bookings 2026']) {
+    const api = backend([booking()], { sheetName });
+    const result = JSON.parse(api.post(request()).content);
+    assert.equal(result.ok, true);
+    assert.equal(result.status, 'BOOKED');
+    assert.deepEqual(api.sheetIds, [0]);
+    vm.runInContext(readFileSync(__dirname + '/BridalAvailabilityDiagnostics.gs', 'utf8'), api.context);
+    const diagnostic = api.context.testBridalAvailabilityConnection();
+    assert.equal(diagnostic.sheetName, sheetName);
+    assert.equal(diagnostic.sheetId, 0);
+  }
+});
+
+test('missing configured gid returns an error rather than checking a different or empty tab', () => {
+  const api = backend([], { sheetMissing: true });
+  const result = JSON.parse(api.post(request()).content);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 'ERROR');
+  assert.deepEqual(api.sheetIds, [0]);
+});
+
+
+test('Full Day bookings block both sessions and full-day inquiries', () => {
+  for (const status of ['CONFIRMED', 'PENDING', 'COMPLETED']) {
+    const api = backend([booking({ session: 'Full Day', confirmation: '', status })]);
+    for (const session of ['Morning', 'Evening', 'Full Day']) {
+      assert.equal(JSON.parse(api.post(request('2027-01-20', session, 'Reception')).content).status, 'BOOKED');
+    }
+  }
+});
+
+test('Full Day requests are booked when either slot is occupied', () => {
+  for (const bookedSession of ['Morning', 'Evening']) {
+    const api = backend([booking({ session: bookedSession })]);
+    assert.equal(JSON.parse(api.post(request('2027-01-20', 'Full Day')).content).status, 'BOOKED');
+  }
+});
+
+test('cancelled full-day bookings release both sessions and an empty date is available all day', () => {
+  for (const status of ['CANCELLED', 'CANCELED']) {
+    const api = backend([booking({ session: 'Full Day', confirmation: '', status })]);
+    for (const session of ['Morning', 'Evening', 'Full Day']) assert.equal(JSON.parse(api.post(request('2027-01-20', session)).content).status, 'AVAILABLE');
+  }
+  assert.equal(JSON.parse(backend().post(request('2027-01-20', 'Full Day')).content).status, 'AVAILABLE');
 });

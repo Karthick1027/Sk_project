@@ -44,14 +44,3 @@ test('every selected day needs its own valid date and session',()=>{
   assert.ok(api.validateBridalEnquiry({...details,days})['eventDate-2']);
   assert.ok(api.validateBridalEnquiry({...details,days:[details.days[0],details.days[0]]})['eventDate-2']);
 });
-
-test('all booking durations use the common Razorpay link with manual amount entry',()=>{
-  for(const count of [1,2,3]){
-    const booking={...details,days:Array.from({length:count},()=>details.days[0])};
-    const destination=api.bridalPaymentDestination(booking);
-    assert.equal(destination.url,'https://razorpay.me/@skbridalstudio');assert.equal(destination.amountPreset,false);
-  }
-});
-test('unsupported booking durations cannot produce a payment destination',()=>{
-  for (const count of [0,4]) assert.throws(()=>api.bridalPaymentDestination({...details,days:Array.from({length:count},()=>details.days[0])}));
-});

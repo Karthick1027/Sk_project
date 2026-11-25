@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, ExternalLink, Lock, MessageCircle, X } from 'lucide-react';
-import { BRIDAL_ENQUIRY_SESSIONS, BRIDAL_DAY_ADVANCES, bridalPaymentDestination, bridalAdvanceTotal, bridalDayField, buildBridalEnquiryUrl, validateBridalEnquiry, type BridalEnquiry, type BridalDay } from '../lib/bridalEnquiry';
+import { ArrowLeft, Check, ExternalLink, Loader2, Lock, MessageCircle, X } from 'lucide-react';
+import { BRIDAL_ENQUIRY_SESSIONS, BRIDAL_DAY_ADVANCES, bridalAdvanceTotal, bridalDayField, buildBridalEnquiryUrl, validateBridalEnquiry, type BridalEnquiry, type BridalDay } from '../lib/bridalEnquiry';
 import { normalizePhone } from '../lib/workshopPayment';
+import { createBridalPaymentLink, type BridalPaymentLink } from '../lib/bridalPaymentLink';
 import WorkshopDropdown from './WorkshopDropdown';
 import BridalDatePicker from './BridalDatePicker';
 import './BridalBookingEnquiry.css';
@@ -13,29 +14,33 @@ export default function BridalBookingEnquiry({ availabilityConfirmed }: { availa
   const [whatsappUrl, setWhatsappUrl] = useState('');
   const [sentDetails, setSentDetails] = useState(false);
   const [handoffError, setHandoffError] = useState('');
+  const [paymentLink, setPaymentLink] = useState<BridalPaymentLink | null>(null);
+  const [creatingPayment, setCreatingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const paymentBusy = useRef(false);
+  const paymentRevision = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const resetPayment = () => { paymentRevision.current += 1; setPaymentLink(null); setPaymentError(''); };
   useEffect(() => {
-    if (!availabilityConfirmed) { setSentDetails(false); dialog.current?.close(); }
+    if (!availabilityConfirmed) { setSentDetails(false); paymentRevision.current += 1; setPaymentLink(null); dialog.current?.close(); }
   }, [availabilityConfirmed]);
   const total = bridalAdvanceTotal(details);
   const formattedTotal = `₹${total.toLocaleString('en-IN')}`;
-  let payment: { url: string; amountPreset: boolean } | null = null;
-  try {
-    payment = bridalPaymentDestination(details);
-  } catch { /* Keep payment disabled if a configured URL is invalid. */ }
   const update = (field: Exclude<keyof BridalEnquiry, 'days'>, value: string) => {
     setDetails(previous => ({ ...previous, [field]: value }));
     setErrors(previous => ({ ...previous, [field]: undefined }));
-    setWhatsappUrl(''); setSentDetails(false);
+    setWhatsappUrl(''); setSentDetails(false); resetPayment();
   };
   const changeDays = (count: number) => {
     if (![1, 2, 3].includes(count)) return;
     setDetails(previous => ({ ...previous, days: Array.from({ length: count }, (_, index) => previous.days[index] || { eventDate: '', session: 'Muhurtham' }) }));
-    setErrors({}); setWhatsappUrl(''); setSentDetails(false);
+    setErrors({}); setWhatsappUrl(''); setSentDetails(false); resetPayment();
   };
   const updateDay = (index: number, field: keyof BridalDay, value: string) => {
     setDetails(previous => ({ ...previous, days: previous.days.map((day, dayIndex) => dayIndex === index ? { ...day, [field]: value } : day) }));
     setErrors(previous => ({ ...previous, [bridalDayField(index, field)]: undefined }));
-    setWhatsappUrl(''); setSentDetails(false);
+    setWhatsappUrl(''); setSentDetails(false); resetPayment();
   };
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -50,6 +55,27 @@ export default function BridalBookingEnquiry({ availabilityConfirmed }: { availa
     try { window.open(url, '_blank', 'noopener,noreferrer'); }
     catch { setHandoffError('Use Open WhatsApp below to send your details.'); }
   };
+  const startPayment = async () => {
+    if (!availabilityConfirmed || !sentDetails || paymentBusy.current) return;
+    paymentBusy.current = true;
+    setCreatingPayment(true); setPaymentError('');
+    const revision = paymentRevision.current;
+    let paymentWindow: Window | null = null;
+    try { paymentWindow = window.open('about:blank', '_blank'); if (paymentWindow) paymentWindow.opener = null; } catch { /* The validated link remains available for a second tap. */ }
+    try {
+      const link = await createBridalPaymentLink(details);
+      if (!mounted.current || paymentRevision.current !== revision) { paymentWindow?.close(); return; }
+      setPaymentLink(link);
+      if (dialog.current?.open && paymentWindow && !paymentWindow.closed) paymentWindow.location.replace(link.url);
+      else paymentWindow?.close();
+    } catch (error) {
+      paymentWindow?.close();
+      if (mounted.current && paymentRevision.current === revision) setPaymentError(error instanceof Error ? error.message : 'Unable to prepare your payment link. Please try again.');
+    } finally {
+      paymentBusy.current = false;
+      if (mounted.current) setCreatingPayment(false);
+    }
+  };
   const fieldClass = 'field min-h-11 min-w-0 !py-2 text-base';
   const labelClass = 'mb-1 block text-[13px] font-medium text-cocoa';
   const fieldProps = (field: string) => ({ id: `booking-${field}`, name: field, 'aria-invalid': Boolean(errors[field]), 'aria-describedby': errors[field] ? `booking-${field}-error` : undefined });
@@ -62,7 +88,7 @@ export default function BridalBookingEnquiry({ availabilityConfirmed }: { availa
         <div className="sticky -top-4 z-30 -mx-4 -mt-4 mb-3 flex items-start justify-between gap-2 border-b border-sand bg-ivory px-4 py-3">
           <div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cocoa">Bridal booking advance</p><h3 id="bridal-enquiry-title" className="mt-1 font-playfair text-xl">{whatsappUrl ? 'Send details, then pay' : 'Reserve your session'}</h3></div>
           <div className="flex shrink-0 items-center gap-1">
-            {whatsappUrl && <button type="button" aria-label="Edit booking details" className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-inter text-sm text-cocoa hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa" onClick={() => { setWhatsappUrl(''); setSentDetails(false); }}><ArrowLeft aria-hidden="true" className="h-4 w-4" />Back</button>}
+            {whatsappUrl && <button type="button" aria-label="Edit booking details" className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-inter text-sm text-cocoa hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa" onClick={() => { setWhatsappUrl(''); setSentDetails(false); resetPayment(); }}><ArrowLeft aria-hidden="true" className="h-4 w-4" />Back</button>}
             <button type="button" aria-label="Close booking form" onClick={() => dialog.current?.close()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa"><X className="h-5 w-5" /></button>
           </div>
         </div>
@@ -101,9 +127,11 @@ export default function BridalBookingEnquiry({ availabilityConfirmed }: { availa
             </div>
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn-outline w-full !whitespace-normal !py-3"><MessageCircle aria-hidden="true" className="h-4 w-4 shrink-0" />Open WhatsApp Again</a>
             {handoffError && <p role="alert" className="text-red-700">{handoffError}</p>}
-            <label htmlFor="booking-details-sent" className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-sand p-3 text-cocoa"><input id="booking-details-sent" type="checkbox" checked={sentDetails} onChange={event => setSentDetails(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-chocolate" /><span>I have sent my booking details on WhatsApp.</span></label>
-            {sentDetails && payment ? <a data-bridal-payment-link href={payment.url} target="_blank" rel="noopener noreferrer" className="btn-primary w-full !whitespace-normal !py-3"><ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" />Pay</a> : <button type="button" disabled className="btn-primary w-full !whitespace-normal !py-3"><Lock aria-hidden="true" className="h-4 w-4 shrink-0" />Pay</button>}
-            <p className="flex items-start gap-2 text-cocoa"><Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" /><span>{payment === null ? 'Payment is temporarily unavailable. Contact SK Bridal Studio.' : <>Enter <strong className="text-chocolate">{total}</strong> as the amount on Razorpay.</>} After paying, send the receipt in the same WhatsApp chat. We will verify it and confirm your booking.</span></p>
+            <label htmlFor="booking-details-sent" className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-sand p-3 text-cocoa"><input id="booking-details-sent" type="checkbox" checked={sentDetails} onChange={event => { setSentDetails(event.target.checked); if (!event.target.checked) resetPayment(); }} className="mt-1 h-4 w-4 shrink-0 accent-chocolate" /><span>I have sent my booking details on WhatsApp.</span></label>
+            {sentDetails && paymentLink ? <a data-bridal-payment-link href={paymentLink.url} target="_blank" rel="noopener noreferrer" className="btn-primary w-full !whitespace-normal !py-3"><ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" />Pay {formattedTotal}</a> : <button data-bridal-payment-create type="button" disabled={!sentDetails || creatingPayment} onClick={() => { void startPayment(); }} className="btn-primary w-full !whitespace-normal !py-3">{creatingPayment ? <Loader2 aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" /> : <Lock aria-hidden="true" className="h-4 w-4 shrink-0" />}{creatingPayment ? 'Preparing payment link...' : 'Pay ' + formattedTotal}</button>}
+            {paymentError && <p role="alert" className="text-red-700">{paymentError}</p>}
+            {paymentLink && <p role="status" className="text-center text-sm text-cocoa">Your payment link is ready. Tap Pay if the payment tab did not open.</p>}
+            <p className="flex items-start gap-2 text-cocoa"><Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" /><span>Your advance of <strong className="text-chocolate">{formattedTotal}</strong> will be set automatically on Razorpay. After paying, send the receipt in the same WhatsApp chat. We will verify it and confirm your booking.</span></p>
           </div>
         )}
       </dialog>

@@ -7,8 +7,8 @@ const {spawn}=require('node:child_process');
 const browser=process.argv[2];if(!browser)throw Error('Pass an installed Edge/Chrome executable.');
 const root=resolve(__dirname,'../dist');
 const setup=`<script>
-window.bridalQA={orders:0,verifications:0,availability:[],failVerify:true};
-window.bridalQA.opened=[];window.open=url=>{if(url)window.bridalQA.opened.push(String(url));return null;};
+window.bridalQA={orders:0,verifications:0,availability:[],paymentLinks:[],failVerify:true};
+window.bridalQA.opened=[];window.open=url=>{if(url && url!=='about:blank')window.bridalQA.opened.push(String(url));return null;};
 if(location.search.includes('recovery=1')) sessionStorage.setItem('sk-bridal-payment-receipt-v1',JSON.stringify({proof:{razorpay_order_id:'order_bridal',razorpay_payment_id:'pay_bridal',razorpay_signature:'a'.repeat(64)},verified:false}));
 window.fetch=async(url,options)=>{
  const payload=JSON.parse(options.body),qa=window.bridalQA;
@@ -16,6 +16,12 @@ window.fetch=async(url,options)=>{
   qa.availability.push(payload);
   const blocked=qa.blockedSlots?.includes(payload.date+'|'+payload.session)===true;
   return {ok:true,json:async()=>({ok:true,available:!blocked,date:payload.date,session:payload.session,status:blocked?'BOOKED':'AVAILABLE'})};
+ }
+ if(payload.action==='create_bridal_payment_link'){
+  qa.paymentLinks.push(payload);
+  if(qa.failPaymentLink)return {ok:true,json:async()=>({ok:false,code:'PAYMENT_LINK_UNAVAILABLE',error:'Payment link temporarily unavailable. Please retry.'})};
+  const total={1:2000,2:3000,3:4000}[payload.booking.days.length];
+  return {ok:true,json:async()=>({ok:true,paymentLinkId:'plink_example'+total,url:'https://rzp.io/i/advance'+total,amount:total*100,currency:'INR',status:'created',amountPreset:true})};
  }
  if(payload.action==='create_bridal_order'){
   qa.orders++;qa.payload=payload;
@@ -56,7 +62,6 @@ const checks=`<script>
  await wait(()=>document.querySelector('[data-bridal-booking-trigger]'));
  const pay=document.querySelector('[data-bridal-booking-trigger]');
  check(pay.disabled,'Pay is disabled until date availability acknowledgement');
- const card=document.querySelector('[style*="rotateX"]');
  const wrapper=document.querySelector('[data-advance-card]');
  check(getComputedStyle(wrapper.querySelector('[data-advance-card-motion]')).animationName==='advance-card-viewing','Card has a gentle viewing animation before interaction');
  const hit=async(element,label)=>{
@@ -66,20 +71,7 @@ const checks=`<script>
  };
  const contact=wrapper.querySelector('[data-bridal-availability-trigger]');
  let clickedLink='';wrapper.addEventListener('click',event=>{const anchor=event.target.closest('a');if(anchor){event.preventDefault();clickedLink=anchor.href;}});
- if(matchMedia('(hover: hover) and (pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches){
-  const bounds=wrapper.getBoundingClientRect(),point={bubbles:true,pointerType:'mouse',clientX:bounds.left+bounds.width*.8,clientY:bounds.top+bounds.height*.2};
-  const surface=wrapper.querySelector('p');
-  const before=contact.getBoundingClientRect(),origin=wrapper.getBoundingClientRect();
-  const buttonBefore={left:before.left-origin.left,top:before.top-origin.top};
-  surface.dispatchEvent(new PointerEvent('pointermove',point));await wait(()=>Boolean(card.style.getPropertyValue('--ry')));
-  const rotation=card.style.getPropertyValue('--ry');
-  check(Math.abs(parseFloat(rotation)-2.4)<.01,'Hover uses a gentle bounded tilt ('+rotation+')');
-  const after=contact.getBoundingClientRect(),updatedOrigin=wrapper.getBoundingClientRect();
-  check(Math.abs(buttonBefore.left-(after.left-updatedOrigin.left))<.1 && Math.abs(buttonBefore.top-(after.top-updatedOrigin.top))<.1,'3D animation never moves the button hit target');
-  for(let i=0;i<5;i++){surface.dispatchEvent(new PointerEvent('pointermove',point));await new Promise(r=>setTimeout(r,100));check(card.style.getPropertyValue('--ry')===rotation,'Stationary pointer does not change tilt '+i);}
-  wrapper.dispatchEvent(new PointerEvent('pointerout',{bubbles:true,pointerType:'mouse',relatedTarget:document.body}));
-  check(card.style.getPropertyValue('--ry')==='0deg','Card returns to neutral when pointer leaves');
- }
+ // Motion, hover, focus, and reduced-motion checks use actual rendered frames in check-package-scroll.cjs.
  (await hit(contact,'Availability button')).click();
  await wait(()=>document.querySelector('dialog[open] #availability-date-0'));
  const availabilityForm=document.querySelector('dialog[open] form');
@@ -87,6 +79,7 @@ const checks=`<script>
  await wait(()=>document.getElementById('availability-date-0').getAttribute('aria-invalid')==='true');
  check(window.bridalQA.opened.length===0,'Availability requires an event date before opening WhatsApp');
  const fillAvailability=(id,value)=>{const el=document.getElementById(id);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));};
+ const initialAvailabilitySession=document.getElementById('availability-session-0').textContent;
  window.bridalQA.blockedSlots=['2027-01-25|Morning'];
  fillAvailability('availability-date-0','25/01/2027');
  await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Morning is booked')));
@@ -94,11 +87,22 @@ const checks=`<script>
  const chooseSession=async(value)=>{const selector='[role="option"][data-value="'+value+'"]';document.getElementById('availability-session-0').click();await wait(()=>document.querySelector(selector));document.querySelector(selector).click();};
  await chooseSession('Evening');
  await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for evening')));
+ await chooseSession('Full Day');
+ await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Full day is blocked')));
+ check(availabilityForm.querySelector('button[type="submit"]').disabled,'A booked Morning blocks Full Day');
+ window.bridalQA.blockedSlots=[];
+ await chooseSession('Evening');
+ await chooseSession('Full Day');
+ await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for full day')));
+
  [...availabilityForm.querySelectorAll('button')].find(button=>button.textContent.includes('Add another event')).click();
  await wait(()=>document.getElementById('availability-date-1'));
+ fillAvailability('availability-date-1','25/01/2027');
+ await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('overlaps another selected session')));
+ check(availabilityForm.querySelector('button[type="submit"]').disabled,'Full Day cannot overlap another event on the same date');
  fillAvailability('availability-date-1','26/01/2027');
- await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for morning')) && [...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for evening')));
- check(document.getElementById('availability-session-0').textContent.includes('Morning') && document.getElementById('availability-session-1').textContent.includes('Evening'),'Muhurtham defaults to Morning and Reception defaults to Evening');
+ await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for full day')) && [...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for evening')));
+ check(initialAvailabilitySession.includes('Morning') && document.getElementById('availability-session-1').textContent.includes('Evening'),'Muhurtham defaults to Morning and Reception defaults to Evening');
  fillAvailability('availability-venue','Chennai Hall');
  [...availabilityForm.querySelectorAll('button')].find(button=>button.textContent.includes('Add another event')).click();
  await wait(()=>document.getElementById('availability-date-2'));
@@ -114,21 +118,24 @@ const checks=`<script>
  const availabilityUrl=new URL(window.bridalQA.opened.find(url=>url.includes('web.whatsapp.com/send')));
  const availabilityMessage=availabilityUrl.searchParams.get('text');
  check(availabilityUrl.pathname==='/send' && availabilityUrl.searchParams.get('phone')==='918668038093','Availability inquiry opens WhatsApp Web for the studio number');
- check(availabilityMessage.includes('25/01/2027 - Muhurtham - Evening') && availabilityMessage.includes('26/01/2027 - Reception - Evening') && availabilityMessage.includes('Chennai Hall'),'Availability message includes both event dates, sessions and venue');
+ check(availabilityMessage.includes('25/01/2027 - Muhurtham - Full Day') && availabilityMessage.includes('26/01/2027 - Reception - Evening') && availabilityMessage.includes('Chennai Hall'),'Availability message includes both event dates, sessions and venue');
  check(availabilityMessage.startsWith('Hi *SK Bridal Studio*!') && availabilityMessage.includes('*Event 1*:') && availabilityMessage.includes('*Venue / city*: Chennai Hall'),'Availability message includes the studio and venue details');
  check(!availabilityMessage.includes('I have confirmed') && !availabilityMessage.includes('I will pay'),'Availability inquiry does not claim confirmation or payment');
  check(pay.disabled,'Sending an availability inquiry does not enable payment');
- document.querySelector('[aria-label="Close availability form"]').click();
+ await wait(()=>availabilityForm.querySelector('[data-bridal-continue]'));
+ check(availabilityForm.querySelector('[data-bridal-continue]').textContent.includes('Details & Pay'),'WhatsApp handoff changes the primary action to Details & Pay');
+ availabilityForm.querySelector('[data-bridal-continue]').click();
+ await wait(()=>!document.querySelector('dialog[open]'));
+ check(pay.disabled && document.activeElement?.id==='bridal-availability-confirmed','Continue preserves the studio availability confirmation requirement');
  window.bridalQA.opened=[];
- await wait(()=>wrapper.dataset.motionStopped==='true');
- check(getComputedStyle(wrapper.querySelector('[data-advance-card-motion]')).animationName==='none','First click stops the viewing animation');
- wrapper.querySelector('p').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:100,clientY:100}));
- await new Promise(resolve=>setTimeout(resolve,80));
- check(card.style.getPropertyValue('--ry')==='0deg','Hover tilt stays stopped after clicking');
+ check(getComputedStyle(wrapper.querySelector('[data-advance-card-motion]')).animationName==='advance-card-viewing','Using the availability dialog does not permanently disable the loop');
  (await hit(document.getElementById('bridal-availability-confirmed'),'Availability checkbox')).click();
  await wait(()=>!pay.disabled);
- (await hit(pay,'Pay button')).click();
- await wait(()=>document.querySelector('dialog[open] form'));
+ (await hit(contact,'Reopen availability')).click();
+ await wait(()=>document.querySelector('dialog[open] [data-bridal-continue]'));
+ document.querySelector('dialog[open] [data-bridal-continue]').click();
+ await wait(()=>document.querySelector('dialog[open] #booking-name'));
+ check(true,'Details & Pay opens the booking form after studio availability confirmation');
  check(!document.querySelector('a[data-bridal-payment-link]'),'Payment link is unavailable before booking details are sent');
  const form=document.querySelector('dialog[open] form');
  form.requestSubmit();await wait(()=>document.querySelector('#booking-name[aria-invalid=true]'));
@@ -170,6 +177,7 @@ const checks=`<script>
  dateField.nextElementSibling.click();await wait(()=>calendar.querySelector('[data-date]'));
  const selectedDay=calendar.querySelector('[aria-pressed=true]');
  check(Boolean(selectedDay),'Calendar highlights the selected date');
+ await wait(()=>document.activeElement===selectedDay);
  selectedDay.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
  await wait(()=>document.activeElement?.hasAttribute('data-date') && document.activeElement.dataset.date!==chosenDate);
  check(true,'Calendar supports arrow-key navigation');
@@ -190,14 +198,22 @@ const checks=`<script>
  check(document.querySelector('dialog[open]').textContent.includes('Tap Send in WhatsApp'),'UI asks the customer to send the prepared message');
  check(!document.querySelector('a[data-bridal-payment-link]'),'Opening WhatsApp alone does not enable payment');
  (await hit(document.getElementById('booking-details-sent'),'WhatsApp sent acknowledgement')).click();
+ await wait(()=>!document.querySelector('[data-bridal-payment-create]').disabled);
+ window.bridalQA.failPaymentLink=true;
+ document.querySelector('[data-bridal-payment-create]').click();
+ await wait(()=>document.querySelector('dialog[open] [role="alert"]')?.textContent.includes('temporarily unavailable'));
+ check(!document.querySelector('a[data-bridal-payment-link]'),'Failed link creation never opens the zero-amount page');
+ window.bridalQA.failPaymentLink=false;
+ document.querySelector('[data-bridal-payment-create]').click();
  await wait(()=>document.querySelector('a[data-bridal-payment-link]'));
  const link=document.querySelector('a[data-bridal-payment-link]');
- check(link.textContent.trim()==='Pay','Sent details enable the concise Pay link');
+ check(link.textContent.trim()==='Pay '+String.fromCharCode(8377)+'2,000','Pay button shows the selected booking advance');
  check(link.target==='_blank' && link.rel.includes('noopener'),'Razorpay opens safely in a new tab');
  (await hit(link,'Payment button')).click();
- check(clickedLink==='https://razorpay.me/@skbridalstudio','One session opens the common Razorpay link');
- check(document.querySelector('dialog[open]').textContent.includes('2000') && document.querySelector('dialog[open]').textContent.includes('as the amount on Razorpay'),'Customer is instructed to enter the selected advance');
- check(window.bridalQA.orders===0 && window.bridalQA.verifications===0,'Hosted payment link does not call Apps Script');
+ check(clickedLink==='https://rzp.io/i/advance2000','One day opens an API-generated INR 2,000 link');
+ check(document.querySelector('dialog[open]').textContent.includes('set automatically on Razorpay'),'Customer does not need to enter the advance again');
+ check(!document.querySelector('dialog[open]').textContent.includes('Payment verified'),'Creating a payment link does not claim payment success');
+ check(window.bridalQA.orders===0 && window.bridalQA.verifications===0,'Payment Links do not create legacy checkout orders or verify an unmade payment');
  check(document.querySelector('dialog[open]').textContent.includes('send the receipt'),'Customer is asked to share receipt for manual confirmation');
  document.querySelector('dialog[open] button[aria-label="Edit booking details"]').click();
  await wait(()=>document.querySelector('dialog[open] form'));
@@ -216,9 +232,11 @@ const checks=`<script>
  for(const detail of ['*Number of days* : 3','26/01/2027','27/01/2027','Reception','Engagement','pay 4000'])check(multiMessage.includes(detail),'Multi-day WhatsApp message includes '+detail);
  check(multiMessage.includes(['*Session* : Muhurtham','','*Day 2* : 26/01/2027'].join(String.fromCharCode(10))),'Each booking day is separated by a blank line');
  document.getElementById('booking-details-sent').click();
+ await wait(()=>!document.querySelector('[data-bridal-payment-create]').disabled);
+ document.querySelector('[data-bridal-payment-create]').click();
  await wait(()=>document.querySelector('a[data-bridal-payment-link]'));
  check(document.querySelector('dialog[open]').textContent.includes('Total advance: ₹4,000'),'Multi-day payment summary shows the full advance');
- check(document.querySelector('a[data-bridal-payment-link]').href==='https://razorpay.me/@skbridalstudio','Three sessions open the common Razorpay link');
+ check(document.querySelector('a[data-bridal-payment-link]').href==='https://rzp.io/i/advance4000','Three days open an API-generated INR 4,000 link');
  document.querySelector('dialog[open] button[aria-label="Edit booking details"]').click();
  await wait(()=>document.getElementById('booking-days'));
  await select('booking-days','2');await wait(()=>!document.getElementById('booking-eventDate-3'));
@@ -227,16 +245,18 @@ const checks=`<script>
  const twoDayMessage=new URL(window.bridalQA.opened[2]).searchParams.get('text');
  check(twoDayMessage.includes('pay 3000') && !twoDayMessage.includes('27/01/2027'),'Two-day booking removes the third day and recalculates INR 3,000');
  document.getElementById('booking-details-sent').click();
+ await wait(()=>!document.querySelector('[data-bridal-payment-create]').disabled);
+ document.querySelector('[data-bridal-payment-create]').click();
  await wait(()=>document.querySelector('a[data-bridal-payment-link]'));
- check(document.querySelector('a[data-bridal-payment-link]').href==='https://razorpay.me/@skbridalstudio','Two sessions open the common Razorpay link');
+ check(document.querySelector('a[data-bridal-payment-link]').href==='https://rzp.io/i/advance3000','Two days open an API-generated INR 3,000 link');
  document.querySelector('button[aria-label="Close booking form"]').click();
- const confirmationText=wrapper.querySelector('label[for="bridal-availability-confirmed"] span');
+ const confirmationText=wrapper.querySelector('label[for="bridal-availability-confirmed"]');
  (await hit(confirmationText,'Confirmation label')).click();
  await wait(()=>!document.querySelector('a[data-bridal-payment-link]'));
  check(document.querySelector('[data-bridal-booking-trigger]').disabled,'Removing acknowledgement disables payment again');
  }
  document.body.dataset.qa='passed';
- }catch(error){results.push('FAILED: '+error.message);document.body.dataset.qa='failed';}
+ }catch(error){results.push('FAILED: '+error.message);results.push(JSON.stringify({active:document.activeElement?.id||document.activeElement?.tagName,paused:document.querySelector('[data-advance-card]')?.dataset.motionPaused,playState:document.querySelector('[data-advance-card-motion]')&&getComputedStyle(document.querySelector('[data-advance-card-motion]')).animationPlayState}));document.body.dataset.qa='failed';}
  const output=document.createElement('pre');output.id='qa-result';output.textContent=JSON.stringify(results);document.body.append(output);
 })();
 </script>`;
@@ -247,10 +267,31 @@ const server=createServer((request,response)=>{
   response.setHeader('Content-Type',({'.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml'})[extname(path)]||'application/octet-stream');response.end(readFileSync(path));
  }else{response.setHeader('Content-Type','text/html');response.end(html);}
 });
-server.listen(0,'127.0.0.1',()=>{
- const child=spawn(browser,['--headless','--disable-gpu','--no-first-run','--no-default-browser-check',`--window-size=${process.argv[3]||'375,812'}`,`--user-data-dir=${mkdtempSync(join(tmpdir(),'sk-bridal-payment-'))}`,'--dump-dom','--virtual-time-budget=15000',`http://127.0.0.1:${server.address().port}/packages${process.argv[4]==='recovery'?'?recovery=1':''}`],{windowsHide:true});
- let output='';child.stdout.on('data',chunk=>output+=chunk);child.stderr.resume();
+// Use real render frames: virtual-time DOM dumps can skip calendar focus frames.
+server.listen(0, '127.0.0.1', async () => {
+ const child=spawn(browser,['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${mkdtempSync(join(tmpdir(),'sk-bridal-payment-'))}`,'about:blank'],{windowsHide:true});
+ let socket;
  const timer=setTimeout(()=>child.kill(),45000);
- child.on('error',error=>{console.error(error);server.close();clearTimeout(timer);process.exitCode=1;});
- child.on('close',()=>{server.close();clearTimeout(timer);console.log(output.match(/<pre id="qa-result">(.*?)<\/pre>/s)?.[1]||'Browser checks did not complete.');process.exitCode=output.includes('data-qa="passed"')?0:1;});
+ try {
+  const port=await new Promise((resolve,reject)=>{
+   let stderr='';child.once('error',reject);
+   child.stderr.on('data',chunk=>{stderr+=chunk;const match=stderr.match(/DevTools listening on ws:\/\/127\.0\.0\.1:(\d+)/);if(match)resolve(Number(match[1]));});
+   child.once('exit',()=>reject(Error('Browser closed before the check completed')));
+  });
+  const tabs=await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+  socket=new WebSocket(tabs.find(tab=>tab.type==='page').webSocketDebuggerUrl);
+  await new Promise((resolve,reject)=>{socket.addEventListener('open',resolve,{once:true});socket.addEventListener('error',reject,{once:true});});
+  let id=0;const pending=new Map();
+  socket.addEventListener('message',event=>{const message=JSON.parse(event.data),task=pending.get(message.id);if(task){pending.delete(message.id);message.error?task.reject(Error(message.error.message)):task.resolve(message.result);}});
+  socket.addEventListener('close',()=>{for(const task of pending.values())task.reject(Error('Browser connection closed'));pending.clear();});
+  const command=(method,params={})=>new Promise((resolve,reject)=>{const next=++id;pending.set(next,{resolve,reject});socket.send(JSON.stringify({id:next,method,params}));});
+  const [width,height]=(process.argv[3]||'375,812').split(',').map(Number);
+  await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1024});
+  await command('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/packages${process.argv[4]==='recovery'?'?recovery=1':''}`});
+  const evaluation=await command('Runtime.evaluate',{awaitPromise:true,returnByValue:true,expression:`new Promise((resolve,reject)=>{const timer=setInterval(()=>{const state=document.body?.dataset.qa,output=document.getElementById('qa-result');if((state==='passed'||state==='failed')&&output){clearInterval(timer);resolve({state,checks:JSON.parse(output.textContent)});}},40);setTimeout(()=>{clearInterval(timer);reject(Error('Booking checks timed out'));},35000);})`});
+  if(evaluation.exceptionDetails)throw Error(evaluation.exceptionDetails.exception?.description||evaluation.exceptionDetails.text);
+  const result=evaluation.result.value;
+  console.log(JSON.stringify(result.checks));process.exitCode=result.state==='passed'?0:1;
+ }catch(error){console.error(error.message);process.exitCode=1;}
+ finally{clearTimeout(timer);socket?.close();child.kill();server.close();}
 });

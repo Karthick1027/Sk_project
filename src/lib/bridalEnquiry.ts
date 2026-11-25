@@ -5,11 +5,6 @@ export interface BridalDay { eventDate: string; session: string }
 export interface BridalEnquiry { name: string; email: string; phone: string; days: BridalDay[]; venue: string }
 export const BRIDAL_DAY_ADVANCES: Record<number, number> = { 1: 2000, 2: 3000, 3: 4000 };
 export const bridalAdvanceTotal = (details: BridalEnquiry) => BRIDAL_DAY_ADVANCES[details.days.length] || 0;
-export function bridalPaymentDestination(details: BridalEnquiry): { url: string; amountPreset: boolean } {
-  const total = bridalAdvanceTotal(details);
-  if (![2000, 3000, 4000].includes(total)) throw new Error('Choose 1, 2 or 3 booking days.');
-  return { url: BRIDAL_PAYMENT_URL, amountPreset: false };
-}
 export const bridalDayField = (index: number, field: keyof BridalDay) => index === 0 ? field : `${field}-${index + 1}`;
 
 export function validateBridalEnquiry(details: BridalEnquiry): Record<string, string> {

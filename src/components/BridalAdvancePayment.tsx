@@ -104,7 +104,7 @@ function PreviousBridalPayment({ availabilityConfirmed }: { availabilityConfirme
   const label = 'mb-1 block text-sm font-medium text-cocoa';
   return (
     <>
-      <button type="button" disabled={Boolean(stage) || (!availabilityConfirmed && !receipt)} onClick={reopen} className="btn-light mt-3 w-full !whitespace-normal text-center">
+      <button data-bridal-booking-trigger type="button" disabled={Boolean(stage) || (!availabilityConfirmed && !receipt)} onClick={reopen} className="btn-light mt-3 w-full !whitespace-normal text-center">
         {stage ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Lock className="h-4 w-4 shrink-0" />}
         {receipt?.verified ? 'View Payment Receipt' : receipt ? 'Retry Payment Verification' : 'Pay ₹2,000 Advance'}
       </button>

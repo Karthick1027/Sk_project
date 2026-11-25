@@ -92,7 +92,7 @@ declare global {
   interface Window { Razorpay?: new (options: CheckoutOptions) => Checkout }
 }
 
-export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbydFnmOzR1QlMBNjcX5yy1BKVMW7ktNomOC7ZzhpKNyrDs3yrzfx43cgP8gp8ZwLzf5/exec';
+export const WORKSHOP_API_URL = 'https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec';
 
 export class WorkshopCommunicationError extends Error {
   constructor() {
@@ -101,13 +101,13 @@ export class WorkshopCommunicationError extends Error {
   }
 }
 
-export async function postWorkshopAction(payload: object): Promise<Record<string, unknown>> {
+export async function postWorkshopAction(payload: object, apiUrl: string = WORKSHOP_API_URL): Promise<Record<string, unknown>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 90000);
   try {
     // A simple POST avoids a JSON preflight. CORS still has to permit reading
     // the redirected response; an opaque/no-cors response is never confirmation.
-    const response = await fetch(WORKSHOP_API_URL, {
+    const response = await fetch(apiUrl, {
       method: 'POST', mode: 'cors', redirect: 'follow', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload), signal: controller.signal,

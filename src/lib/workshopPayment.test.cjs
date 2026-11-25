@@ -257,3 +257,14 @@ test('empty, unsupported and oversized local proofs fail inline without a backen
   }
   assert.equal(requests, 0);
 });
+
+
+test('availability endpoint override does not change the workshop default', async () => {
+  const requested = [];
+  const availabilityEndpoint = 'https://script.google.com/macros/s/test-endpoint-override/exec';
+  fetchHandler = async url => { requested.push(url); return jsonResponse({ ok: true }); };
+  await exportsObject.postWorkshopAction({ action: 'check_bridal_availability' }, availabilityEndpoint);
+  await exportsObject.postWorkshopAction({ action: 'verify_payment' });
+  assert.deepEqual(requested, [availabilityEndpoint, WORKSHOP_API_URL]);
+  assert.equal(WORKSHOP_API_URL, 'https://script.google.com/macros/s/AKfycbzj1dDVfYQt-zOTTdkV8fTegusSdISJZHUr4RuzHPc5gwWnUCcE77NToadNgrWsNYgQlw/exec');
+});

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, MessageCircle, Plus, X, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Lock, MessageCircle, Plus, X, XCircle } from 'lucide-react';
 import { BRIDAL_WHATSAPP_NUMBER } from '../lib/bridalEnquiry';
-import { BRIDAL_AVAILABILITY_OCCASIONS, BRIDAL_SESSIONS, checkBridalAvailability, type BridalAvailabilityOccasion, type BridalSession } from '../lib/bridalAvailability';
+import { BRIDAL_AVAILABILITY_OCCASIONS, BRIDAL_SESSIONS, bridalSessionsOverlap, checkBridalAvailability, type BridalAvailabilityOccasion, type BridalSession } from '../lib/bridalAvailability';
 import BridalDatePicker from './BridalDatePicker';
 import WorkshopDropdown from './WorkshopDropdown';
 import './BridalBookingEnquiry.css';
@@ -26,7 +26,7 @@ const validDate = (value: string) => {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
 
-export default function BridalAvailability() {
+export default function BridalAvailability({ onContinue }: { onContinue: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const nextId = useRef(2);
   const latestKey = useRef(new Map<number, string>());
@@ -36,6 +36,7 @@ export default function BridalAvailability() {
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [preparedUrl, setPreparedUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const continueToBooking = () => { dialog.current?.close(); onContinue(); };
 
   useEffect(() => {
     const activeIds = new Set(events.map(event => event.id));
@@ -79,11 +80,12 @@ export default function BridalAvailability() {
     const result = availability[event.id];
     return result?.key === selectionKey(event) && result.state === 'available';
   };
-  const sharesSlot = (event: AvailabilityEvent) => events.some(other => other.id !== event.id && other.eventDate === event.eventDate && other.session === event.session);
+  const sharesSlot = (event: AvailabilityEvent) => events.some(other => other.id !== event.id && other.eventDate === event.eventDate && bridalSessionsOverlap(other.session, event.session));
   const allAvailable = events.length > 0 && events.every(event => validDate(event.eventDate) && isAvailable(event) && !sharesSlot(event));
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (preparedUrl) { continueToBooking(); return; }
     if (submitting) return;
     const invalid: Record<number, string> = {};
     events.forEach((entry, index) => { if (!validDate(entry.eventDate)) invalid[index] = 'Choose your event date.'; });
@@ -131,13 +133,23 @@ export default function BridalAvailability() {
 
   const statusContent = (entry: AvailabilityEvent) => {
     if (!validDate(entry.eventDate)) return <span className="text-cocoa">Choose a date to check availability.</span>;
-    if (sharesSlot(entry)) return <span className="inline-flex items-center gap-2 text-red-800"><XCircle aria-hidden="true" className="h-4 w-4" />This date and session are already selected for another event.</span>;
+    if (sharesSlot(entry)) return <span className="inline-flex items-center gap-2"><XCircle aria-hidden="true" className="h-4 w-4" />This event overlaps another selected session on the same date.</span>;
     const result = availability[entry.id];
     const state = result?.key === selectionKey(entry) ? result.state : 'loading';
-    if (state === 'loading') return <span className="inline-flex items-center gap-2 text-cocoa"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Checking {entry.session.toLowerCase()} availability…</span>;
-    if (state === 'available') return <span className="inline-flex items-center gap-2 text-green-800"><CheckCircle2 aria-hidden="true" className="h-4 w-4" />Available for {entry.session.toLowerCase()}</span>;
-    if (state === 'booked') return <span className="inline-flex items-center gap-2 text-red-800"><XCircle aria-hidden="true" className="h-4 w-4" />{entry.session} is booked. Choose another session or date.</span>;
-    return <span className="flex flex-wrap items-center gap-2 text-cocoa"><AlertCircle aria-hidden="true" className="h-4 w-4" />Unable to check availability. <button type="button" className="underline underline-offset-2" onClick={() => { latestKey.current.delete(entry.id); setEvents(previous => previous.map(item => item.id === entry.id ? { ...item } : item)); }}>Check again</button></span>;
+    if (state === 'loading') return <span className="inline-flex items-center gap-2"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Checking {entry.session.toLowerCase()} availability…</span>;
+    if (state === 'available') return <span className="inline-flex items-center gap-2"><CheckCircle2 aria-hidden="true" className="h-4 w-4" />Available for {entry.session.toLowerCase()}</span>;
+    if (state === 'booked') return <span className="inline-flex items-center gap-2"><XCircle aria-hidden="true" className="h-4 w-4" />{entry.session === 'Full Day' ? 'Full day is blocked. Choose another date or session.' : entry.session + ' is booked. Choose another session or date.'}</span>;
+    return <span className="flex flex-wrap items-center gap-2"><AlertCircle aria-hidden="true" className="h-4 w-4" />Unable to check availability. <button type="button" className="underline underline-offset-2" onClick={() => { latestKey.current.delete(entry.id); setEvents(previous => previous.map(item => item.id === entry.id ? { ...item } : item)); }}>Check again</button></span>;
+  };
+
+  const statusTone = (entry: AvailabilityEvent) => {
+    if (!validDate(entry.eventDate)) return 'border-champagne bg-sand/45 text-chocolate';
+    if (sharesSlot(entry)) return 'border-clay bg-clay/30 text-red-950';
+    const result = availability[entry.id];
+    const state = result?.key === selectionKey(entry) ? result.state : 'loading';
+    if (state === 'available') return 'border-sage bg-sage/30 text-green-950';
+    if (state === 'booked' || state === 'error') return 'border-clay bg-clay/30 text-red-950';
+    return 'border-champagne bg-sand/45 text-chocolate';
   };
 
   return <>
@@ -158,13 +170,13 @@ export default function BridalAvailability() {
             <div><label id={`availability-occasion-${index}-label`} htmlFor={`availability-occasion-${index}`} className="mb-1 block text-sm text-cocoa">Occasion *</label><WorkshopDropdown id={`availability-occasion-${index}`} name={`availability-occasion-${index}`} inlineMenu value={entry.occasion} onChange={value => update(index, 'occasion', value)} options={BRIDAL_AVAILABILITY_OCCASIONS.map(occasion => ({ value: occasion, label: occasion }))} /></div>
             <div><label id={`availability-session-${index}-label`} htmlFor={`availability-session-${index}`} className="mb-1 block text-sm text-cocoa">Session *</label><WorkshopDropdown id={`availability-session-${index}`} name={`availability-session-${index}`} inlineMenu value={entry.session} onChange={value => update(index, 'session', value)} options={BRIDAL_SESSIONS.map(session => ({ value: session, label: session }))} /></div>
           </div>
-          <p role="status" aria-live="polite" className="mt-3 rounded-lg border border-sand bg-beige p-2.5 text-sm">{statusContent(entry)}</p>
+          <p role="status" aria-live="polite" className={`mt-3 rounded-lg border p-2.5 text-sm font-bold ${statusTone(entry)}`}>{statusContent(entry)}</p>
         </div>)}
         {events.length < 3 && <button type="button" className="flex min-h-11 items-center gap-2 rounded-lg border border-sand px-3 py-2 text-sm text-cocoa transition-colors hover:border-champagne hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa" onClick={() => { const id = nextId.current++; setEvents(previous => [...previous, { id, eventDate: '', occasion: 'Reception', session: 'Evening' }]); setPreparedUrl(''); }}><Plus className="h-4 w-4" />Add another event</button>}
         <div><label htmlFor="availability-venue" className="mb-1 block text-sm text-cocoa">Venue / city (optional)</label><input id="availability-venue" name="venue" className="field" maxLength={200} value={venue} onChange={event => { setVenue(event.target.value); setPreparedUrl(''); }} placeholder="Event location" /></div>
-        <button type="submit" disabled={!allAvailable || submitting} className="btn-primary w-full !whitespace-normal disabled:cursor-not-allowed disabled:opacity-60">{submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}{submitting ? 'Rechecking availability…' : 'Send Dates on WhatsApp'}</button>
-        <p className="text-center text-sm text-cocoa">All selected dates and sessions must be available. Tap Send in WhatsApp to share your request.</p>
-        {preparedUrl && <div role="status" className="rounded-lg border border-sand bg-beige p-3 text-sm text-cocoa">Your event details are ready. <a href={preparedUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Open WhatsApp again</a><button type="button" onClick={() => dialog.current?.close()} className="mt-2 flex min-h-11 w-full items-center justify-center rounded-lg border border-sand text-chocolate hover:bg-ivory">Done</button></div>}
+        {preparedUrl ? <button data-bridal-continue type="button" onClick={continueToBooking} className="btn-primary w-full !whitespace-normal"><Lock aria-hidden="true" className="h-4 w-4" />Details &amp; Pay</button> : <button type="submit" disabled={!allAvailable || submitting} className="btn-primary w-full !whitespace-normal disabled:cursor-not-allowed disabled:opacity-60">{submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}{submitting ? 'Rechecking availability...' : 'Send Dates on WhatsApp'}</button>}
+        <p className="text-center text-sm text-cocoa">{preparedUrl ? 'Tap Send in WhatsApp, then continue with Details & Pay once the studio confirms availability.' : 'All selected dates and sessions must be available. Tap Send in WhatsApp to share your request.'}</p>
+        {preparedUrl && <div role="status" className="rounded-lg border border-sand bg-beige p-3 text-sm text-cocoa">Your event details are ready. <a href={preparedUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Open WhatsApp again</a></div>}
       </form>
     </dialog>
   </>;

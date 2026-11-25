@@ -62,90 +62,45 @@ const enquiryLink = (pkg: BridalPackage, mode: BookingMode) => {
 };
 
 /**
- * Tilt only the decorative surface. Keep content and controls in a flat layer
- * so animation cannot move click targets or alter browser hit testing.
+ * Float the whole card while idle; freeze its current pose during hover or
+ * keyboard interaction so the controls stay steady while being used.
  */
 const DatePass: React.FC = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  const motion = useRef<HTMLDivElement>(null);
   const cardRoot = useRef<HTMLDivElement>(null);
-  const stopped = useRef(false);
-  const [hasStopped, setHasStopped] = useState(false);
   const [inView, setInView] = useState(false);
-  const frame = useRef<number | null>(null);
-  const settleFrame = useRef<number | null>(null);
-  const target = useRef({ x: 0.5, y: 0.5 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [hasOpenDialog, setHasOpenDialog] = useState(false);
   const [availabilityConfirmed, setAvailabilityConfirmed] = useState(false);
-  useEffect(() => () => { if (frame.current !== null) cancelAnimationFrame(frame.current); if (settleFrame.current !== null) cancelAnimationFrame(settleFrame.current); }, []);
   useEffect(() => {
     if (!cardRoot.current) return;
     const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
     observer.observe(cardRoot.current);
     return () => observer.disconnect();
   }, []);
-
-  const reset = () => {
-    if (frame.current !== null) cancelAnimationFrame(frame.current);
-    frame.current = null;
-    ref.current?.style.setProperty('--rx', '0deg');
-    ref.current?.style.setProperty('--ry', '0deg');
-    ref.current?.style.setProperty('--gx', '50%');
-    ref.current?.style.setProperty('--gy', '0%');
-  };
-  const stopAnimation = () => {
-    if (stopped.current) return;
-    stopped.current = true;
-    reset();
-    const surface = motion.current;
-    if (surface) {
-      const pose = getComputedStyle(surface).transform;
-      surface.style.animation = 'none';
-      surface.style.transform = pose;
-      // Preserve the visible pose before easing back to a flat card.
-      surface.getBoundingClientRect();
-      settleFrame.current = requestAnimationFrame(() => {
-        settleFrame.current = null;
-        surface.style.transform = 'rotateX(0deg) rotateY(0deg)';
-      });
-    }
-    setHasStopped(true);
-  };
-
-  const tilt = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (stopped.current) return;
-    // Keep payment controls steady, and avoid tilt for touch or reduced motion.
-    if (e.pointerType !== 'mouse' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches || (e.target as HTMLElement).closest('a, button, input, label, dialog')) {
-      reset(); return;
-    }
-    const bounds = e.currentTarget.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) return;
-    target.current = {
-      x: Math.max(0, Math.min(1, (e.clientX - bounds.left) / bounds.width)),
-      y: Math.max(0, Math.min(1, (e.clientY - bounds.top) / bounds.height)),
+  useEffect(() => {
+    const root = cardRoot.current;
+    if (!root) return;
+    const syncDialogState = () => {
+      setHasOpenDialog(Boolean(root.querySelector('dialog[open]')));
+      const active = document.activeElement;
+      setIsFocused(active instanceof HTMLElement && root.contains(active) && (window.matchMedia('(max-width: 1023px)').matches || active.matches(':focus-visible')));
     };
-    if (frame.current !== null) return;
-    frame.current = requestAnimationFrame(() => {
-      frame.current = null;
-      const el = ref.current;
-      if (!el) return;
-      const { x, y } = target.current;
-      el.style.setProperty('--ry', `${(x - 0.5) * 8}deg`);
-      el.style.setProperty('--rx', `${(0.5 - y) * 6}deg`);
-      el.style.setProperty('--gx', `${x * 100}%`);
-      el.style.setProperty('--gy', `${y * 100}%`);
-    });
-  };
+    const observer = new MutationObserver(syncDialogState);
+    observer.observe(root, { subtree: true, attributes: true, attributeFilter: ['open'] });
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div ref={cardRoot} data-advance-card data-motion-stopped={hasStopped} onClickCapture={stopAnimation} onPointerMove={tilt} onPointerLeave={reset} onPointerCancel={reset} onFocusCapture={reset} onKeyDownCapture={event => { if (event.key === 'Enter' || event.key === ' ') stopAnimation(); }} className="relative mt-10 [perspective:1100px]">
+    <div ref={cardRoot} data-advance-card data-motion-paused={isHovered || isFocused || hasOpenDialog} onPointerEnter={event => { if (event.pointerType === 'mouse') setIsHovered(true); }} onPointerLeave={() => setIsHovered(false)} onPointerCancel={() => setIsHovered(false)} onFocusCapture={event => setIsFocused(window.matchMedia('(max-width: 1023px)').matches || (event.target as HTMLElement).matches(':focus-visible'))} onPointerDownCapture={event => { if (event.pointerType === 'mouse') setIsFocused(false); else setIsHovered(true); }} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsFocused(false); }} onKeyDownCapture={event => { if (event.key === 'Tab' || event.key === 'Enter' || event.key === ' ') setIsFocused(true); }} className="advance-card-scene relative mt-10" style={{ '--advance-motion-state': inView && !isHovered && !isFocused && !hasOpenDialog ? 'running' : 'paused' } as React.CSSProperties}>
       {/* Soft ground shadow */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 -bottom-5 h-10 rounded-full bg-chocolate/35 blur-2xl" />
+      <div aria-hidden="true" className="advance-card-ground-shadow pointer-events-none absolute inset-x-8 -bottom-6 h-12 rounded-full bg-chocolate/35 blur-xl" />
 
-      <div className="group relative isolate rounded-3xl bg-chocolate text-ivory">
+      <div data-advance-card-motion className="advance-card-motion group relative rounded-3xl bg-chocolate text-ivory">
+        <div aria-hidden="true" className="advance-card-depth pointer-events-none absolute inset-0 rounded-3xl" />
+        <div aria-hidden="true" className="advance-card-rim pointer-events-none absolute inset-0 rounded-3xl" />
         <div className="relative">
-          <div ref={motion} data-advance-card-motion aria-hidden="true" className={`pointer-events-none absolute inset-0 [transform-style:preserve-3d] ${hasStopped ? 'advance-card-motion-stopped' : 'advance-card-motion'}`} style={{ animationPlayState: inView ? 'running' : 'paused' }}>
           <div
-          ref={ref}
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-0 rounded-3xl transition-transform duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none [will-change:transform] [transform-style:preserve-3d]"
           style={{ transform: 'rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))' }}
@@ -155,7 +110,8 @@ const DatePass: React.FC = () => {
 
           {/* Card face */}
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl bg-gradient-to-br from-[#5a3d30] via-chocolate to-[#241610] ring-1 ring-champagne/30">
-            <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-champagne/25 blur-2xl" />
+            <div className="advance-card-aura absolute -right-10 -top-12 h-48 w-48 rounded-full bg-champagne/30 blur-2xl" />
+            <div className="advance-card-sheen absolute inset-0 overflow-hidden rounded-3xl" />
             <div className="absolute inset-2 rounded-[1.25rem] border border-champagne/25" />
             <div
               className="absolute inset-0 opacity-60 transition-opacity duration-300 group-hover:opacity-100"
@@ -163,10 +119,9 @@ const DatePass: React.FC = () => {
             />
           </div>
           </div>
-          </div>
 
-          {/* Controls stay above decoration without any 3D transforms. */}
-          <div className="relative z-10 px-6 py-7 sm:px-8">
+          {/* The whole card moves together and pauses while its controls are used. */}
+          <div className="advance-card-content relative z-10 px-6 py-7 sm:px-8">
             <div className="flex items-start justify-between gap-4">
               <p className="font-inter text-[11px] font-semibold uppercase tracking-[0.35em] text-champagne">Booking advance from</p>
               <CalendarCheck className="h-6 w-6 shrink-0 text-champagne" />
@@ -184,7 +139,11 @@ const DatePass: React.FC = () => {
               <span className="absolute -right-6 sm:-right-8 -top-3 h-6 w-3 rounded-l-full bg-beige" />
             </div>
 
-            <BridalAvailability />
+            <BridalAvailability onContinue={() => {
+              const bookingButton = cardRoot.current?.querySelector<HTMLButtonElement>('[data-bridal-booking-trigger]');
+              if (bookingButton && !bookingButton.disabled) bookingButton.click();
+              else document.getElementById('bridal-availability-confirmed')?.focus();
+            }} />
             <label htmlFor="bridal-availability-confirmed" className="mt-4 flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-champagne/25 bg-ivory/5 p-3 font-inter text-sm leading-relaxed text-sand">
               <input id="bridal-availability-confirmed" type="checkbox" checked={availabilityConfirmed} onChange={event => setAvailabilityConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-champagne" />
               <span>SK Bridal Studio has confirmed my date and session availability.</span>
@@ -205,7 +164,7 @@ interface PackageCardProps {
   onToggleExpanded: () => void;
   onShowCombo: () => void;
   delay: number;
-  /** The active (hovered) card is rendered dark. */
+  /** The active card is dark: viewport highlight on mobile, hover/selection on desktop. */
   active: boolean;
   onHover: () => void;
   onSelect: () => void;
@@ -221,6 +180,8 @@ const PackageCard: React.FC<PackageCardProps> = ({
   return (
     <article
       id={`package-${pkg.id}`}
+      data-package-id={pkg.id}
+      data-active={active}
       // Hover only for a real mouse; touch browsers fire a fake hover on tap that never clears
       onPointerEnter={(e) => e.pointerType === 'mouse' && onHover()}
       onClick={onSelect}
@@ -479,11 +440,52 @@ const Packages: React.FC = () => {
   const [mode, setMode] = useState<BookingMode>('single');
   // Shared across cards so the three columns stay the same height
   const [expanded, setExpanded] = useState(false);
-  // The hovered card turns dark; otherwise the clicked/tapped one does, so touch users get it too.
-  // With neither, every card stays light.
+  // Stacked cards follow scrolling; desktop cards keep hover and click selection.
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const activeId = hoveredId ?? selectedId;
+  const packageGrid = useRef<HTMLDivElement>(null);
+  const [visibleId, setVisibleId] = useState<number | null>(null);
+  const activeId = visibleId ?? hoveredId ?? selectedId;
+
+  useEffect(() => {
+    const grid = packageGrid.current;
+    if (!grid) return;
+    const stacked = window.matchMedia('(max-width: 1023px)');
+    let frame: number | null = null;
+    const updateVisibleCard = () => {
+      frame = null;
+      let nextId: number | null = null;
+      if (stacked.matches) {
+        const viewportTop = Math.max(0, document.querySelector('header')?.getBoundingClientRect().bottom ?? 0);
+        let greatestVisibleHeight = 0;
+        for (const card of grid.querySelectorAll<HTMLElement>('[data-package-id]')) {
+          const bounds = card.getBoundingClientRect();
+          const visibleHeight = Math.max(0, Math.min(bounds.bottom, window.innerHeight) - Math.max(bounds.top, viewportTop));
+          if (visibleHeight > greatestVisibleHeight) {
+            greatestVisibleHeight = visibleHeight;
+            nextId = Number(card.dataset.packageId);
+          }
+        }
+      }
+      setVisibleId(previous => previous === nextId ? previous : nextId);
+    };
+    const scheduleUpdate = () => {
+      if (frame === null) frame = requestAnimationFrame(updateVisibleCard);
+    };
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    stacked.addEventListener('change', scheduleUpdate);
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    resizeObserver.observe(grid);
+    scheduleUpdate();
+    return () => {
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      stacked.removeEventListener('change', scheduleUpdate);
+      resizeObserver.disconnect();
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   useEffect(() => {
     const prevTitle = document.title;
@@ -604,6 +606,7 @@ const Packages: React.FC = () => {
 
         {/* Package cards */}
         <div
+          ref={packageGrid}
           onPointerLeave={() => setHoveredId(null)}
           className="mt-8 sm:mt-10 grid gap-6 lg:gap-6 xl:gap-8 lg:grid-cols-3 lg:items-stretch max-w-xl lg:max-w-none mx-auto"
         >
