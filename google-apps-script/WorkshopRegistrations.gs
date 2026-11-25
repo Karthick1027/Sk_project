@@ -186,6 +186,7 @@ function doPost(event) {
     const action = String(request.action || request.type || "").trim().toLowerCase();
     console.log("Workshop request action: " + action);
 
+    if (action === "check_bridal_availability") return jsonResponse(checkBridalAvailability_(request));
     if (action === "create_bridal_order") return jsonResponse(createBridalOrder_(request));
     if (action === "verify_bridal_payment") return jsonResponse(verifyBridalPayment_(request));
 
@@ -222,6 +223,161 @@ function doPost(event) {
       saved: false
     });
   }
+}
+
+const BRIDAL_AVAILABILITY_CONFIG = {
+  SPREADSHEET_ID: "1m5sE85VjltmUIaVyYMleLZ8Ai1UeFD3Gr4zZ33G0fwA",
+  SHEET_NAME: "Customer Booking Details",
+  OCCASIONS: ["Muhurtham", "Reception", "Engagement", "Baby Shower", "Puberty Ceremony"],
+  SESSIONS: ["Morning", "Evening"]
+};
+
+function checkBridalAvailability_(parameters) {
+  const date = String(parameters.date || "").trim();
+  const normalizedDate = bridalNormalizeAvailabilityDate_(date);
+  const occasion = String(parameters.occasion || "").trim();
+  const session = String(parameters.session || "").trim();
+  if (!normalizedDate) return bridalAvailabilityError_(date, session, "Enter a valid date in DD/MM/YYYY or YYYY-MM-DD format.");
+  if (BRIDAL_AVAILABILITY_CONFIG.OCCASIONS.indexOf(occasion) === -1) return bridalAvailabilityError_(date, session, "Choose a valid occasion.");
+  if (BRIDAL_AVAILABILITY_CONFIG.SESSIONS.indexOf(session) === -1) return bridalAvailabilityError_(date, session, "Choose Morning or Evening.");
+
+  const lock = LockService.getScriptLock();
+  let locked = false;
+  const diagnostics = {
+    phase: "lock",
+    spreadsheetOpened: false,
+    sheetFound: false,
+    requiredColumnsAccessible: false
+  };
+  try {
+    lock.waitLock(20000);
+    locked = true;
+    diagnostics.phase = "spreadsheet_open";
+    const spreadsheet = SpreadsheetApp.openById(BRIDAL_AVAILABILITY_CONFIG.SPREADSHEET_ID);
+    diagnostics.spreadsheetOpened = true;
+    diagnostics.phase = "sheet_lookup";
+    const sheet = spreadsheet.getSheetByName(BRIDAL_AVAILABILITY_CONFIG.SHEET_NAME);
+    if (!sheet) throw new Error("Booking sheet not found.");
+    diagnostics.sheetFound = true;
+    diagnostics.phase = "required_column_access";
+    if (sheet.getMaxColumns() < 17) throw new Error("Required bridal availability columns C-D, N, and P-Q are not present.");
+    const rowCount = sheet.getLastRow() - 1;
+    let booked = false;
+
+    if (rowCount > 0) {
+      const dateAndYear = sheet.getRange(2, 3, rowCount, 2).getValues();
+      const confirmations = sheet.getRange(2, 14, rowCount, 1).getValues();
+      const sessionAndStatus = sheet.getRange(2, 16, rowCount, 2).getValues();
+      diagnostics.requiredColumnsAccessible = true;
+      const timezone = spreadsheet.getSpreadsheetTimeZone();
+
+      for (let index = 0; index < rowCount; index += 1) {
+        const status = String(sessionAndStatus[index][1] || confirmations[index][0] || "").trim().toUpperCase();
+        if (bridalSheetDate_(dateAndYear[index][0], dateAndYear[index][1], timezone) !== normalizedDate) continue;
+        if (status === "CANCELLED" || status === "CANCELED") continue;
+
+        const bookedSession = String(sessionAndStatus[index][0] || "").trim();
+        if (!bookedSession || BRIDAL_AVAILABILITY_CONFIG.SESSIONS.indexOf(bookedSession) === -1) {
+          booked = true;
+          break;
+        }
+        if (bookedSession !== session) continue;
+        booked = true;
+        break;
+      }
+    } else {
+      sheet.getRange(1, 3, 1, 2).getValues();
+      sheet.getRange(1, 14, 1, 1).getValues();
+      sheet.getRange(1, 16, 1, 2).getValues();
+      diagnostics.requiredColumnsAccessible = true;
+    }
+
+    return {
+      ok: true,
+      available: !booked,
+      status: booked ? "BOOKED" : "AVAILABLE",
+      date: date,
+      session: session
+    };
+  } catch (error) {
+    console.error("Bridal availability lookup failed: " + JSON.stringify({
+      message: String(error && error.message || error || "Unknown error"),
+      stack: String(error && error.stack || "Stack trace unavailable."),
+      phase: diagnostics.phase,
+      spreadsheetId: BRIDAL_AVAILABILITY_CONFIG.SPREADSHEET_ID,
+      sheetName: BRIDAL_AVAILABILITY_CONFIG.SHEET_NAME,
+      spreadsheetOpened: diagnostics.spreadsheetOpened,
+      sheetFound: diagnostics.sheetFound,
+      requiredColumnsAccessible: diagnostics.requiredColumnsAccessible
+    }));
+    return bridalAvailabilityError_(date, session, "Unable to check availability right now. Please try again.");
+  } finally {
+    if (locked) lock.releaseLock();
+  }
+}
+
+function bridalAvailabilityError_(date, session, message) {
+  return { ok: false, available: false, date: date, session: session, status: "ERROR", message: message };
+}
+
+function bridalIsIsoDate_(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parts = value.split("-").map(Number);
+  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  return date.getUTCFullYear() === parts[0] && date.getUTCMonth() === parts[1] - 1 && date.getUTCDate() === parts[2];
+}
+
+function bridalNormalizeAvailabilityDate_(value) {
+  if (bridalIsIsoDate_(value)) return value;
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return "";
+  const normalized = match[3] + "-" + match[2] + "-" + match[1];
+  return bridalIsIsoDate_(normalized) ? normalized : "";
+}
+
+function bridalSheetDate_(dateValue, yearValue, timezone) {
+  let year;
+  let month;
+  let day;
+
+  if (Object.prototype.toString.call(dateValue) === "[object Date]" && !isNaN(dateValue.getTime())) {
+    const formatted = Utilities.formatDate(dateValue, timezone, "yyyy-MM-dd");
+    const parts = formatted.split("-").map(Number);
+    year = parts[0]; month = parts[1]; day = parts[2];
+  } else {
+    const text = String(dateValue == null ? "" : dateValue).trim();
+    let match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(text);
+    if (match) {
+      year = Number(match[1]); month = Number(match[2]); day = Number(match[3]);
+    } else {
+      match = /^(\d{1,2})[/\.\-](\d{1,2})[/\.\-](\d{4})$/.exec(text);
+      if (match) {
+        const first = Number(match[1]);
+        const second = Number(match[2]);
+        month = first > 12 ? second : second > 12 ? first : second;
+        day = first > 12 ? first : second > 12 ? second : first;
+        year = Number(match[3]);
+      } else {
+        match = /^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/.exec(text);
+        if (match) {
+          const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+          const monthName = match[1].toLowerCase();
+          month = monthNames.findIndex(function(name) { return name === monthName || name.slice(0, 3) === monthName; }) + 1;
+          day = Number(match[2]); year = Number(match[3]);
+          if (!month) return "";
+        } else {
+          const parsed = new Date(text);
+          if (isNaN(parsed.getTime())) return "";
+          year = parsed.getFullYear(); month = parsed.getMonth() + 1; day = parsed.getDate();
+        }
+      }
+    }
+  }
+
+  const registerYear = Number(yearValue);
+  if (Number.isInteger(registerYear) && registerYear >= 1000 && registerYear <= 9999) year = registerYear;
+  const normalized = String(year).padStart(4, "0") + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+  return bridalIsIsoDate_(normalized) ? normalized : "";
 }
 
 function razorpayCredentials_() {

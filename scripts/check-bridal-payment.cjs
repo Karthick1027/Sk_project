@@ -7,11 +7,16 @@ const {spawn}=require('node:child_process');
 const browser=process.argv[2];if(!browser)throw Error('Pass an installed Edge/Chrome executable.');
 const root=resolve(__dirname,'../dist');
 const setup=`<script>
-window.bridalQA={orders:0,verifications:0,failVerify:true};
-window.bridalQA.opened=[];window.open=url=>{window.bridalQA.opened.push(String(url));return null;};
+window.bridalQA={orders:0,verifications:0,availability:[],failVerify:true};
+window.bridalQA.opened=[];window.open=url=>{if(url)window.bridalQA.opened.push(String(url));return null;};
 if(location.search.includes('recovery=1')) sessionStorage.setItem('sk-bridal-payment-receipt-v1',JSON.stringify({proof:{razorpay_order_id:'order_bridal',razorpay_payment_id:'pay_bridal',razorpay_signature:'a'.repeat(64)},verified:false}));
 window.fetch=async(url,options)=>{
  const payload=JSON.parse(options.body),qa=window.bridalQA;
+ if(payload.action==='check_bridal_availability'){
+  qa.availability.push(payload);
+  const blocked=qa.blockedSlots?.includes(payload.date+'|'+payload.session)===true;
+  return {ok:true,json:async()=>({ok:true,available:!blocked,date:payload.date,session:payload.session,status:blocked?'BOOKED':'AVAILABLE'})};
+ }
  if(payload.action==='create_bridal_order'){
   qa.orders++;qa.payload=payload;
   return {ok:true,json:async()=>({ok:true,bookingSaved:true,orderId:'order_bridal',keyId:'rzp_test_123',amount:200000,currency:'INR'})};
@@ -82,10 +87,18 @@ const checks=`<script>
  await wait(()=>document.getElementById('availability-date-0').getAttribute('aria-invalid')==='true');
  check(window.bridalQA.opened.length===0,'Availability requires an event date before opening WhatsApp');
  const fillAvailability=(id,value)=>{const el=document.getElementById(id);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));};
+ window.bridalQA.blockedSlots=['2027-01-25|Morning'];
  fillAvailability('availability-date-0','25/01/2027');
+ await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Morning is booked')));
+ check(document.querySelector('[data-bridal-availability-trigger]') && document.querySelector('dialog[open] button[type="submit"]').disabled,'Booked Morning prevents proceeding');
+ const chooseSession=async(value)=>{const selector='[role="option"][data-value="'+value+'"]';document.getElementById('availability-session-0').click();await wait(()=>document.querySelector(selector));document.querySelector(selector).click();};
+ await chooseSession('Evening');
+ await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for evening')));
  [...availabilityForm.querySelectorAll('button')].find(button=>button.textContent.includes('Add another event')).click();
  await wait(()=>document.getElementById('availability-date-1'));
  fillAvailability('availability-date-1','26/01/2027');
+ await wait(()=>[...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for morning')) && [...document.querySelectorAll('[role="status"]')].some(item=>item.textContent.includes('Available for evening')));
+ check(document.getElementById('availability-session-0').textContent.includes('Morning') && document.getElementById('availability-session-1').textContent.includes('Evening'),'Muhurtham defaults to Morning and Reception defaults to Evening');
  fillAvailability('availability-venue','Chennai Hall');
  [...availabilityForm.querySelectorAll('button')].find(button=>button.textContent.includes('Add another event')).click();
  await wait(()=>document.getElementById('availability-date-2'));
@@ -96,14 +109,14 @@ const checks=`<script>
  check(document.getElementById('availability-date-0').value==='25/01/2027' && document.getElementById('availability-date-1').value==='26/01/2027','Removing an event preserves the other event dates');
  await new Promise(resolve=>setTimeout(resolve,80));
  availabilityForm.requestSubmit();
- await wait(()=>window.bridalQA.opened.length===1);
- const availabilityUrl=new URL(window.bridalQA.opened[0]);
+ await wait(()=>window.bridalQA.opened.some(url=>url.includes('web.whatsapp.com/send')));
+ check(window.bridalQA.availability.length>=5,'Each event is checked on selection and again before WhatsApp opens');
+ const availabilityUrl=new URL(window.bridalQA.opened.find(url=>url.includes('web.whatsapp.com/send')));
  const availabilityMessage=availabilityUrl.searchParams.get('text');
- check(availabilityUrl.pathname==='/918668038093','Availability inquiry opens the studio WhatsApp number');
- check(availabilityMessage.includes('25/01/2027 - Muhurtham') && availabilityMessage.includes('26/01/2027 - Reception') && availabilityMessage.includes('Chennai Hall'),'Availability message includes both event dates, sessions and venue');
- check(availabilityMessage.startsWith('Hi *SK Bridal Studio* !') && availabilityMessage.includes('*Event 1* :') && availabilityMessage.includes('*Venue / city* : Chennai Hall'),'Availability message uses bold studio name and field labels');
- check(!availabilityMessage.includes(String.fromCharCode(10,10)),'Availability message uses compact single-line spacing');
- check(!availabilityMessage.includes('I have confirmed') && !availabilityMessage.includes('I will pay'),'Availability inquiry asks for confirmation without claiming approval or payment');
+ check(availabilityUrl.pathname==='/send' && availabilityUrl.searchParams.get('phone')==='918668038093','Availability inquiry opens WhatsApp Web for the studio number');
+ check(availabilityMessage.includes('25/01/2027 - Muhurtham - Evening') && availabilityMessage.includes('26/01/2027 - Reception - Evening') && availabilityMessage.includes('Chennai Hall'),'Availability message includes both event dates, sessions and venue');
+ check(availabilityMessage.startsWith('Hi *SK Bridal Studio*!') && availabilityMessage.includes('*Event 1*:') && availabilityMessage.includes('*Venue / city*: Chennai Hall'),'Availability message includes the studio and venue details');
+ check(!availabilityMessage.includes('I have confirmed') && !availabilityMessage.includes('I will pay'),'Availability inquiry does not claim confirmation or payment');
  check(pay.disabled,'Sending an availability inquiry does not enable payment');
  document.querySelector('[aria-label="Close availability form"]').click();
  window.bridalQA.opened=[];

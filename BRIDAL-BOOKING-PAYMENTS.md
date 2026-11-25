@@ -1,5 +1,13 @@
 # Bridal booking advances
 
+## Live session availability
+
+The Packages page availability modal posts `check_bridal_availability` to the existing Apps Script Web App URL in `src/lib/workshopPayment.ts`. This keeps availability, workshop registration and bridal payment actions on the same existing `SK Bridal Studio WhatsApp Automation` project and deployment.
+
+The lookup reads only date/year (C-D), confirmation (N), session (P) and booking status (Q) from the existing `Customer Booking Details` tab in spreadsheet `1m5sE85VjltmUIaVyYMleLZ8Ai1UeFD3Gr4zZ33G0fwA`. It does not read or return customer details, does not inspect Fully Settled (O), and does not write or reserve rows. `CONFIRMED`, `PENDING` and `COMPLETED` block that session; `CANCELLED` does not. A dated non-cancelled row with a blank or invalid session blocks both slots until corrected. Muhurtham defaults to Morning and Reception to Evening; the other supported occasions default to Morning and can use either session.
+
+The frontend checks each event after its date, occasion or session changes, rejects duplicate date/session selections within the request, and rechecks all events immediately before opening WhatsApp Web. The backend serializes availability reads with `LockService` and checks the register while holding the script lock. The action remains read-only and does not reserve a slot; preventing two customers from both receiving an available result before a booking is written requires the booking write path to recheck and save the reservation while holding the same script lock.
+
 ## Current flow: hosted Razorpay payment page
 
 ### Common payment link
@@ -10,7 +18,7 @@ After acknowledging confirmed date availability, customers select Pay INR 2,000 
 
 Customers can select 1, 2 or 3 days. Each selected day requires its own date and session, with one session per day. The form and WhatsApp message use the agreed advances: INR 2,000 for 1 day, INR 3,000 for 2 days, INR 4,000 for 3 days. All dates must be distinct. Reducing the number of days removes the unused day from the message and total while preserving the remaining schedule. The payment link stays the same.
 
-The customer returns to the form and acknowledges sending their details. Only then is the common Pay link enabled. The website tells the customer which amount to enter and asks them to share the receipt in the same WhatsApp conversation. Editing details resets the acknowledgement. New bridal enquiries do not use the custom Apps Script order actions. No v8 Apps Script deployment is needed for this flow.
+The customer returns to the form and acknowledges sending their details. Only then is the common Pay link enabled. The website tells the customer which amount to enter and asks them to share the receipt in the same WhatsApp conversation. Editing details resets the acknowledgement. The live availability check is separate from this hosted payment flow and does not change order creation or payment verification.
 
 The website displays the advance for the selected number of days. The hosted page controls the actual payable amount; the website does not override it or infer payment success from opening the link. After payment, customers share their receipt on WhatsApp and the studio verifies it before confirming the booking. The link's amount configuration must be checked in Razorpay by the owner.
 
@@ -36,10 +44,12 @@ Each order covers one session. Muhurtham and Reception require separate session 
 
 ## Deployment
 
-1. Replace the existing Apps Script source with all of [WorkshopRegistrations.gs](google-apps-script/WorkshopRegistrations.gs). Do not add a second copy of its global definitions.
-2. Keep the existing Razorpay key ID and secret in Script Properties.
-3. Publish a new version of the existing deployment, retaining its URL, execute-as-owner setting and website access. The health version should be `workshop-auto-verify-v8-bridal-advances`.
-4. Build and publish the frontend after the backend update. No new payment link or frontend API credentials are required.
+1. Open the existing `SK Bridal Studio WhatsApp Automation` Apps Script project. Do not create a project or deployment.
+2. Copy the updated local [WorkshopRegistrations.gs](google-apps-script/WorkshopRegistrations.gs) into the existing project. It contains the availability constants/helpers and the `check_bridal_availability` dispatch in the existing `doPost(e)`. Do not add another Apps Script project or deploy the standalone Bridal Availability project. Keep the existing `doGet`, workshop actions, payment actions and Script Properties unchanged.
+3. Ensure P1 and Q1 in the existing booking tab are labelled `Session` and `Booking Status`; do not move or rewrite columns A-O. Fill in existing bookings' sessions/statuses as appropriate. Blank sessions are intentionally treated as blocking both slots unless cancelled.
+4. Save and deploy a new version of the existing Web App deployment. Keep its deployment URL, execute-as-owner setting and current website access setting. The script owner must have read access to the bridal booking spreadsheet. The existing frontend API URL remains in `src/lib/workshopPayment.ts`; no new frontend secret or API URL is needed.
+5. In Apps Script, update the existing Web App deployment to a new version containing `check_bridal_availability`. Keep the existing deployment URL, execute-as-owner setting and access policy; the separate Bridal Availability URL currently returns “Script function not found” and is not used by the site.
+6. Build and publish the frontend to the existing Firebase Hosting site: run `npm run build`, then `firebase deploy --only hosting` from the project directory.
 
 The `Bridal Bookings` tab is created on the first bridal order. If a tab with that name already exists with different headers, the backend rejects the request rather than overwriting it. Workshop rows and unique-contact rules remain separate.
 
@@ -49,6 +59,7 @@ Automated tests mock Razorpay, Sheets and browser network calls. No real orders,
 
 ```powershell
 node --test google-apps-script/BridalBookings.test.cjs google-apps-script/WorkshopRegistrations.test.cjs src/lib/bridalPayment.test.cjs src/lib/workshopPayment.test.cjs src/lib/workshopCheckout.test.cjs
+node --test google-apps-script/BridalAvailability.test.cjs src/lib/bridalAvailability.test.cjs
 npx tsc -p tsconfig.app.json --noEmit
 npm run build
 node scripts/check-bridal-payment.cjs "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
