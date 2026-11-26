@@ -5,6 +5,7 @@ import { BRIDAL_AVAILABILITY_OCCASIONS, BRIDAL_SESSIONS, bridalSessionsOverlap, 
 import BridalDatePicker from './BridalDatePicker';
 import WorkshopDropdown from './WorkshopDropdown';
 import './BridalBookingEnquiry.css';
+import type { BridalBookingStart } from './BridalBookingFlow';
 
 interface AvailabilityEvent {
   id: number;
@@ -26,8 +27,9 @@ const validDate = (value: string) => {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
 
-export default function BridalAvailability({ onContinue }: { onContinue: () => void }) {
+export default function BridalAvailability({ onContinue, bookingFlow = false, openRequest = 0 }: { onContinue: (selection?: Omit<BridalBookingStart, 'revision'>) => void; bookingFlow?: boolean; openRequest?: number }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (openRequest) dialog.current?.showModal(); }, [openRequest]);
   const nextId = useRef(2);
   const latestKey = useRef(new Map<number, string>());
   const [events, setEvents] = useState<AvailabilityEvent[]>([{ id: 1, eventDate: '', occasion: 'Muhurtham', session: 'Morning' }]);
@@ -36,6 +38,7 @@ export default function BridalAvailability({ onContinue }: { onContinue: () => v
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [preparedUrl, setPreparedUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [studioConfirmed, setStudioConfirmed] = useState(false);
   const continueToBooking = () => { dialog.current?.close(); onContinue(); };
 
   useEffect(() => {
@@ -80,7 +83,7 @@ export default function BridalAvailability({ onContinue }: { onContinue: () => v
     const result = availability[event.id];
     return result?.key === selectionKey(event) && result.state === 'available';
   };
-  const sharesSlot = (event: AvailabilityEvent) => events.some(other => other.id !== event.id && other.eventDate === event.eventDate && bridalSessionsOverlap(other.session, event.session));
+  const sharesSlot = (event: AvailabilityEvent) => events.some(other => other.id !== event.id && other.eventDate === event.eventDate && (bookingFlow || bridalSessionsOverlap(other.session, event.session)));
   const allAvailable = events.length > 0 && events.every(event => validDate(event.eventDate) && isAvailable(event) && !sharesSlot(event));
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -95,10 +98,11 @@ export default function BridalAvailability({ onContinue }: { onContinue: () => v
       return;
     }
     if (!allAvailable) return;
+    if (bookingFlow && !studioConfirmed) return;
 
     setSubmitting(true);
     setPreparedUrl('');
-    const whatsappWindow = window.open('', '_blank');
+    const whatsappWindow = bookingFlow ? null : window.open('', '_blank');
     const checks = await Promise.all(events.map(async entry => {
       try {
         const result = await checkBridalAvailability(entry.eventDate, entry.occasion, entry.session);
@@ -112,6 +116,12 @@ export default function BridalAvailability({ onContinue }: { onContinue: () => v
     setSubmitting(false);
     if (!checks.every(Boolean)) {
       whatsappWindow?.close();
+      return;
+    }
+
+    if (bookingFlow) {
+      dialog.current?.close();
+      onContinue({ days: events.map(entry => ({ eventDate: entry.eventDate, session: entry.occasion })), venue });
       return;
     }
 
@@ -154,7 +164,7 @@ export default function BridalAvailability({ onContinue }: { onContinue: () => v
 
   return <>
     <button data-bridal-availability-trigger type="button" onClick={() => dialog.current?.showModal()} className="btn-light w-full !whitespace-normal text-center hover:!translate-y-0">
-      <MessageCircle className="h-4 w-4" />Check Date Availability
+      <MessageCircle className="h-4 w-4" />{bookingFlow ? 'Check Availability & Book' : 'Check Date Availability'}
     </button>
     <dialog ref={dialog} aria-labelledby="availability-title" className="bridal-booking-dialog m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg overflow-y-auto rounded-2xl border border-sand bg-ivory p-4 text-left text-chocolate shadow-luxe backdrop:bg-chocolate/60">
       <div className="sticky -top-4 z-30 -mx-4 -mt-4 mb-4 flex items-start justify-between gap-3 border-b border-sand bg-ivory px-4 py-3">
@@ -174,8 +184,9 @@ export default function BridalAvailability({ onContinue }: { onContinue: () => v
         </div>)}
         {events.length < 3 && <button type="button" className="flex min-h-11 items-center gap-2 rounded-lg border border-sand px-3 py-2 text-sm text-cocoa transition-colors hover:border-champagne hover:bg-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-cocoa" onClick={() => { const id = nextId.current++; setEvents(previous => [...previous, { id, eventDate: '', occasion: 'Reception', session: 'Evening' }]); setPreparedUrl(''); }}><Plus className="h-4 w-4" />Add another event</button>}
         <div><label htmlFor="availability-venue" className="mb-1 block text-sm text-cocoa">Venue / city (optional)</label><input id="availability-venue" name="venue" className="field" maxLength={200} value={venue} onChange={event => { setVenue(event.target.value); setPreparedUrl(''); }} placeholder="Event location" /></div>
-        {preparedUrl ? <button data-bridal-continue type="button" onClick={continueToBooking} className="btn-primary w-full !whitespace-normal"><Lock aria-hidden="true" className="h-4 w-4" />Details &amp; Pay</button> : <button type="submit" disabled={!allAvailable || submitting} className="btn-primary w-full !whitespace-normal disabled:cursor-not-allowed disabled:opacity-60">{submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}{submitting ? 'Rechecking availability...' : 'Send Dates on WhatsApp'}</button>}
-        <p className="text-center text-sm text-cocoa">{preparedUrl ? 'Tap Send in WhatsApp, then continue with Details & Pay once the studio confirms availability.' : 'All selected dates and sessions must be available. Tap Send in WhatsApp to share your request.'}</p>
+        {bookingFlow && <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-sand p-3 text-sm text-cocoa"><input id="bridal-availability-confirmed" type="checkbox" checked={studioConfirmed} onChange={event => setStudioConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-chocolate" /><span>SK Bridal Studio has confirmed my date and session availability.</span></label>}
+        {preparedUrl ? <button data-bridal-continue type="button" onClick={continueToBooking} className="btn-primary w-full !whitespace-normal"><Lock aria-hidden="true" className="h-4 w-4" />Details &amp; Pay</button> : <button type="submit" disabled={!allAvailable || submitting || (bookingFlow && !studioConfirmed)} className="btn-primary w-full !whitespace-normal disabled:cursor-not-allowed disabled:opacity-60">{submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}{submitting ? 'Rechecking availability...' : bookingFlow ? 'Continue to Details' : 'Send Dates on WhatsApp'}</button>}
+        <p className="text-center text-sm text-cocoa">{bookingFlow ? 'Next, add your contact details, send everything on WhatsApp, then pay securely.' : preparedUrl ? 'Tap Send in WhatsApp, then continue with Details & Pay once the studio confirms availability.' : 'All selected dates and sessions must be available. Tap Send in WhatsApp to share your request.'}</p>
         {preparedUrl && <div role="status" className="rounded-lg border border-sand bg-beige p-3 text-sm text-cocoa">Your event details are ready. <a href={preparedUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Open WhatsApp again</a></div>}
       </form>
     </dialog>

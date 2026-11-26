@@ -3,6 +3,7 @@ import { Lock, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { BRIDAL_SESSIONS, createBridalOrder, verifyBridalPayment, type BridalBooking } from '../lib/bridalPayment';
 import { loadCheckout, normalizePhone, type PaymentProof } from '../lib/workshopPayment';
 import BridalBookingEnquiry from './BridalBookingEnquiry';
+import type { BridalBookingStart } from './BridalBookingFlow';
 
 const RECEIPT_KEY = 'sk-bridal-payment-receipt-v1';
 const REQUEST_KEY = 'sk-bridal-payment-request-v1';
@@ -16,11 +17,11 @@ function readReceipt(): { proof: PaymentProof; verified: boolean } | null {
 
 export { BRIDAL_PAYMENT_URL } from '../lib/bridalEnquiry';
 
-export default function BridalAdvancePayment({ availabilityConfirmed }: { availabilityConfirmed: boolean }) {
+export default function BridalAdvancePayment({ availabilityConfirmed, bookingStart, hideTrigger, onReceipt, onChangeDates }: { availabilityConfirmed: boolean; bookingStart?: BridalBookingStart; hideTrigger?: boolean; onReceipt?: () => void; onChangeDates?: () => void }) {
   // Retain verification-only recovery for any previously captured API payment.
   const [hasPreviousReceipt] = useState(() => Boolean(readReceipt()));
   if (hasPreviousReceipt) return <PreviousBridalPayment availabilityConfirmed={availabilityConfirmed} />;
-  return <BridalBookingEnquiry availabilityConfirmed={availabilityConfirmed} />;
+  return <BridalBookingEnquiry availabilityConfirmed={availabilityConfirmed} bookingStart={bookingStart} hideTrigger={hideTrigger} onReceipt={onReceipt} onChangeDates={onChangeDates} />;
 }
 
 function PreviousBridalPayment({ availabilityConfirmed }: { availabilityConfirmed: boolean }) {

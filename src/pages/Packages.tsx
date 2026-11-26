@@ -6,8 +6,7 @@ import {
   Smartphone, SmartphoneNfc, QrCode, Landmark, Banknote, CreditCard, type LucideIcon,
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
-import BridalAdvancePayment from '../components/BridalAdvancePayment';
-import BridalAvailability from '../components/BridalAvailability';
+import BridalBookingFlow from '../components/BridalBookingFlow';
 import { PackagesBackdrop } from '../components/PageBackdrops';
 import './Packages.css';
 import {
@@ -71,7 +70,6 @@ const DatePass: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [hasOpenDialog, setHasOpenDialog] = useState(false);
-  const [availabilityConfirmed, setAvailabilityConfirmed] = useState(false);
   useEffect(() => {
     if (!cardRoot.current) return;
     const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
@@ -139,16 +137,7 @@ const DatePass: React.FC = () => {
               <span className="absolute -right-6 sm:-right-8 -top-3 h-6 w-3 rounded-l-full bg-beige" />
             </div>
 
-            <BridalAvailability onContinue={() => {
-              const bookingButton = cardRoot.current?.querySelector<HTMLButtonElement>('[data-bridal-booking-trigger]');
-              if (bookingButton && !bookingButton.disabled) bookingButton.click();
-              else document.getElementById('bridal-availability-confirmed')?.focus();
-            }} />
-            <label htmlFor="bridal-availability-confirmed" className="mt-4 flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-champagne/25 bg-ivory/5 p-3 font-inter text-sm leading-relaxed text-sand">
-              <input id="bridal-availability-confirmed" type="checkbox" checked={availabilityConfirmed} onChange={event => setAvailabilityConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-champagne" />
-              <span>SK Bridal Studio has confirmed my date and session availability.</span>
-            </label>
-            <BridalAdvancePayment availabilityConfirmed={availabilityConfirmed} />
+            <BridalBookingFlow />
             <p className="mt-2 font-inter text-xs leading-relaxed text-champagne">Advance varies by number of days and is non-refundable.</p>
           </div>
         </div>
@@ -769,20 +758,22 @@ const Packages: React.FC = () => {
                 );
               })}
             </ol>
-            <div className="mt-auto rounded-2xl border border-sand bg-ivory/70 p-4 sm:p-5 lg:ml-20">
-              <h4 className="mb-3 font-inter text-sm font-semibold text-cocoa">We accept</h4>
-              <ul className="flex flex-wrap gap-2">
+            </div>
+            <div className="min-w-0 rounded-2xl border border-sand bg-ivory/70 p-4 sm:p-5 lg:col-span-5">
+              <div className="flex items-center gap-4 overflow-x-auto pb-1">
+              <h4 className="shrink-0 whitespace-nowrap font-inter text-sm font-semibold text-cocoa">We accept</h4>
+              <ul className="flex shrink-0 flex-nowrap gap-2">
                 {paymentMethods.map((method) => {
                   const Icon = paymentIcons[method] ?? Wallet;
                   return (
-                    <li key={method} className="inline-flex items-center gap-2 rounded-lg border border-champagne/25 bg-chocolate px-3 py-2 font-inter text-sm text-ivory">
+                    <li key={method} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-champagne/25 bg-chocolate px-3 py-2 font-inter text-sm text-ivory">
                       <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-champagne" />
                       {method}
                     </li>
                   );
                 })}
               </ul>
-            </div>
+              </div>
             </div>
           </div>
 

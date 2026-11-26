@@ -71,6 +71,8 @@ interface CheckoutOptions {
   key: string; amount: number; currency: string; order_id: string;
   name: string; description: string;
   prefill: { name: string; contact: string; email?: string };
+  readonly?: { contact: boolean; email: boolean };
+  hidden?: { contact: boolean; email: boolean };
   theme: { color: string };
   redirect: false;
   retry: { enabled: boolean };

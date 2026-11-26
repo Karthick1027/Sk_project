@@ -25,7 +25,7 @@ function backend(options={}){
  };
  vm.createContext(context);
  vm.runInContext(readFileSync(__dirname+'/WorkshopRegistrations.gs','utf8'),context);
- vm.runInContext(readFileSync(__dirname+'/BridalPaymentLinks.gs','utf8'),context);
+ // Match the owner deployment: copying the main file alone must include payments.
  return{calls,links,post:payload=>context.doPost({postData:{contents:JSON.stringify(payload)}})};
 }
 
@@ -45,6 +45,27 @@ test('retries and lost create responses reuse a unique booking link without crea
   const api=backend(options);assert.equal(api.post(request()).ok,true);assert.equal(api.post(request()).ok,true);
   assert.equal(api.calls.filter(call=>call.init.method==='post').length,1);assert.equal(api.links.length,1);
  }
+});
+
+test('checkout reuses collected contact details and requests hidden fields without forcing a payment method',()=>{
+ for(const phone of ['9876543210', '+91 98765 43210']){
+  const api=backend();assert.equal(api.post(request({booking:{...booking,phone}})).ok,true);
+  const payload=JSON.parse(api.calls.find(call=>call.init.method==='post').init.payload);
+  assert.deepEqual(payload.options.checkout,{
+   prefill:{name:'Bride',email:'bride@example.com',contact:'+919876543210'},
+   readonly:{email:true,contact:true},
+   hidden:{email:true,contact:true}
+  });
+  assert.equal(payload.options.checkout.prefill.method,undefined);
+  assert.deepEqual(payload.notify,{sms:false,email:false});
+ }
+});
+
+test('older links are reused without creating a second payable link for checkout settings',()=>{
+ const api=backend();assert.equal(api.post(request()).ok,true);
+ delete api.links[0].options;
+ assert.equal(api.post(request()).ok,true);
+ assert.equal(api.calls.filter(call=>call.init.method==='post').length,1);
 });
 test('missing acknowledgement and invalid booking details cannot contact Razorpay',()=>{
  for(const changes of [{availabilityConfirmed:false},{detailsSent:false},{booking:{...booking,days:[]}},{booking:{...booking,days:[days[0],days[0]]}},{booking:{...booking,email:'invalid'}},{booking:{...booking,days:[{eventDate:'2027-02-30',session:'Reception'}]}}]){
@@ -69,6 +90,11 @@ test('missing API keys and malformed provider collections fail without creating 
 });
 test('read-only API readiness exposes capability and key mode without revealing credentials',()=>{
  const api=backend();const result=api.post({action:'bridal_payment_link_status'});
- assert.deepEqual(JSON.parse(JSON.stringify(result)),{ok:true,api:'bridal-payment-links-v1',ready:true,mode:'test'});assert.equal(api.calls.length,0);
+ assert.deepEqual(JSON.parse(JSON.stringify(result)),{ok:true,api:'bridal-payment-links-v1',checkoutProfile:'standard-checkout-v1',ready:true,mode:'test'});assert.equal(api.calls.length,0);
  assert.equal(backend({noKeys:true}).post({action:'bridal_payment_link_status'}).ready,false);
+});
+
+test('main script alone dispatches payment creation before accessing provider services',()=>{
+ const api=backend();const result=api.post({action:'create_bridal_payment_link'});
+ assert.equal(result.code,'AVAILABILITY_REQUIRED');assert.equal(api.calls.length,0);
 });

@@ -100,13 +100,8 @@ const server = createServer((request, response) => {
       await new Promise(resolve=>setTimeout(resolve,200));
       const later=availabilityDialog.getBoundingClientRect();
       if(Math.abs(box.top-later.top)+Math.abs(box.left-later.left)>.01)throw Error('Availability dialog moves with the card');
-      availabilityDialog.querySelector('[aria-label="Close availability form"]').click();
-      const confirmed=document.getElementById('bridal-availability-confirmed');
-      if(!confirmed.checked)confirmed.click();
-      wrapper.querySelector('[data-bridal-booking-trigger]').click();
-      await wait(()=>document.querySelector('dialog[open] #booking-eventDate'));
       const bookingDialog=document.querySelector('dialog[open]');
-      const date=document.getElementById('booking-eventDate');
+      const date=document.getElementById('availability-date-0');
       date.nextElementSibling.click();
       await wait(()=>bookingDialog.querySelector('[data-date]:not(:disabled)'));
       bookingDialog.querySelector('[data-date]:not(:disabled)').click();
@@ -117,15 +112,17 @@ const server = createServer((request, response) => {
       await wait(()=>document.activeElement===chosen);
       chosen.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
       await wait(()=>document.activeElement?.hasAttribute('data-date')&&document.activeElement.dataset.date!==chosen.dataset.date);
-      bookingDialog.querySelector('[aria-label="Close booking form"]').click();
-      return 'Whole card visibly moves, pauses on hover, and keeps both dialogs and calendar keyboard navigation stable';
+      bookingDialog.querySelector('[aria-label="Close availability form"]').click();
+      return 'Whole card visibly moves, pauses on hover, and keeps the availability dialog and calendar keyboard navigation stable';
     })()`);
     await evaluate("document.querySelector('[data-bridal-availability-trigger]').focus({preventScroll:true})");
     await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     await evaluate(`new Promise((resolve,reject)=>{const timer=setInterval(()=>{if(getComputedStyle(document.querySelector('[data-advance-card-motion]')).animationPlayState==='paused'){clearInterval(timer);resolve(true);}},40);setTimeout(()=>{clearInterval(timer);reject(Error('Keyboard focus did not pause the card'));},3000);})`);
-    await evaluate("document.querySelector('[data-package-id] button').focus({preventScroll:true})");
-    await evaluate(`new Promise((resolve,reject)=>{const timer=setInterval(()=>{if(getComputedStyle(document.querySelector('[data-advance-card-motion]')).animationPlayState==='running'){clearInterval(timer);resolve(true);}},40);setTimeout(()=>{clearInterval(timer);reject(Error('Leaving keyboard focus did not resume the card'));},3000);})`);
+    // With one card action, Tab can scroll to the next section. Keep the card
+    // visible when checking that leaving keyboard focus resumes its animation.
+    await evaluate("document.querySelector('[data-package-id] button').focus({preventScroll:true}); document.querySelector('[data-advance-card]').scrollIntoView({block:'center',behavior:'instant'})");
+    await evaluate(`new Promise((resolve,reject)=>{const timer=setInterval(()=>{if(getComputedStyle(document.querySelector('[data-advance-card-motion]')).animationPlayState==='running'){clearInterval(timer);resolve(true);}},40);setTimeout(()=>{clearInterval(timer);reject(Error('Leaving keyboard focus did not resume the card: '+JSON.stringify({active:document.activeElement?.outerHTML?.slice(0,150),paused:document.querySelector('[data-advance-card]').dataset.motionPaused,dialogs:document.querySelectorAll('dialog[open]').length})));},3000);})`);
     await command('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     const reducedMotion = await evaluate(`new Promise((resolve,reject)=>{setTimeout(()=>{getComputedStyle(document.querySelector('[data-advance-card-motion]')).animationName==='none'?resolve('Reduced-motion preference disables the card loop'):reject(Error('Reduced-motion preference was ignored'));},100);})`);
     console.log(JSON.stringify([...results, desktop, cardMotion, 'Real Tab-key focus pauses the card and leaving it resumes motion', 'Depth, gold sheen and floating shadow share the hover pause', reducedMotion]));

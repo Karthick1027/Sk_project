@@ -8,21 +8,43 @@ The lookup reads only date/year (C-D), confirmation (N), session (P) and booking
 
 The frontend checks each event after its date, occasion or session changes, rejects duplicate date/session selections within the request, and rechecks all events immediately before opening WhatsApp Web. The backend serializes availability reads with `LockService` and checks the register while holding the script lock. The action remains read-only and does not reserve a slot; preventing two customers from both receiving an available result before a booking is written requires the booking write path to recheck and save the reservation while holding the same script lock.
 
-## Current flow: API-generated fixed-amount payment links
+## Current flow: workshop-style Standard Checkout
+
+The advance card has one entry button, **Check Availability & Book**. It opens the date/session check, keeps the studio confirmation acknowledgement inside that step, and continues directly to contact details after rechecking availability. Selected dates and venue carry forward. **Change dates** returns to the availability check while preserving contact details. Customers send one complete WhatsApp message, acknowledge sending it, then pay. Once a receipt exists, the card's single action becomes **View payment receipt** (older receipts retain their existing recovery action).
+
+The bridal Pay button now opens the same Razorpay Standard Checkout SDK used by workshops. The customer's collected name, phone and email are prefilled; phone/email fields are hidden and read-only. No payment method is forced, so Checkout displays the account's enabled methods. The native booking dialog closes while the gateway opens so it cannot block the payment iframe.
+
+The frontend calls `create_bridal_checkout` with the 1-3 day booking and WhatsApp acknowledgement. The backend validates it and calculates INR 2,000 / 3,000 / 4,000 in paise, ignoring client amounts. A deterministic receipt and script lock reuse the same order after cancellations, retries or lost API responses. Paid orders reject another checkout. Existing hosted payment links for identical details block creating a second payment route; the studio must review an old active link before switching that booking. No existing live links are automatically cancelled.
+
+After Checkout returns a signed receipt, the frontend stores it before calling `verify_bridal_checkout`. The backend checks the signature, order type/reference, day-count amount, currency and captured payment, capturing an authorized payment if needed. Only confirmed server verification displays Payment verified. Failed verification and page reloads offer verification-only recovery with the actual payment ID; they never start a second payment. Customers still share the receipt on WhatsApp for studio booking confirmation. This flow does not reserve dates or write booking rows, and it does not implement a webhook.
+
+Deploy the complete `WorkshopRegistrations.gs` as a new version on the existing Apps Script deployment first. The read-only `bridal_payment_link_status` action must return `checkoutProfile: standard-checkout-v1` and `ready: true`. Then build and deploy the website to Firebase Hosting. Until the backend is activated, keep the live frontend in place. Run owner acceptance in Razorpay Test Mode. Automated checks mock the provider and do not create real orders or charges.
+
+## Earlier flow: API-generated fixed-amount payment links
 
 After availability confirmation, customers send their booking details on WhatsApp and acknowledge sending them. Pay now calls the separate `create_bridal_payment_link` action on `BRIDAL_AVAILABILITY_API_URL`. The server validates 1-3 distinct event dates and calculates INR 2,000 / 3,000 / 4,000 in paise from the day count, ignoring any client amount. It creates a Standard Razorpay Payment Link with partial payments disabled; customers no longer enter an amount manually.
 
 The server uses `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` from Apps Script Script Properties. No secret is sent to the browser. Customer details accompany the link request; notifications and reminders are disabled. Opening the payment link is a customer action. The API does not reserve dates, write booking rows, or mark payments successful. Customers still share the receipt on WhatsApp for studio verification.
 
+New links also send the validated name, email and international phone in `options.checkout.prefill`, mark contact/email read-only and request they be hidden with `options.checkout.hidden`. No `prefill.method` is set, so customers can choose from the account's enabled payment methods. Razorpay documents prefilling/read-only fields for Payment Links and hidden contact fields for Standard Checkout; the hosted Payment Link page must be checked after deployment to confirm it honors the hidden-field settings. Provider-required authentication may still appear.
+
+Deploy a new Apps Script version for this change; a website build is unnecessary. Existing payment links keep their original checkout settings. The backend deliberately reuses them rather than creating another payable link for the same booking; do not change booking details or the reference just to obtain a different checkout. Verify the new settings with a fresh booking in Test Mode. No live payment link is created by the automated tests.
+
 A deterministic booking reference and the Apps Script lock reuse existing links for identical details, including after a lost create response. Paid or partially paid links block another payment; expired/cancelled links require studio review. The client checks the response amount, currency, link ID and provider hostname before navigating. Changed details invalidate the local link; a blocked popup leaves a validated Pay link available for a second tap.
 
 ### Activate this backend before publishing the frontend
 
-1. Copy the updated `WorkshopRegistrations.gs` and new `BridalPaymentLinks.gs` into the existing Apps Script project serving `BRIDAL_AVAILABILITY_API_URL`.
+1. Replace the existing main script with the complete updated `WorkshopRegistrations.gs` in the Apps Script project serving `BRIDAL_AVAILABILITY_API_URL`. It now includes the payment-link helpers. If `BridalPaymentLinks.gs` already exists in the editor, replace it with the local comment-only copy to avoid duplicate function definitions.
 2. Keep the studio's matching Razorpay key pair in that project's Script Properties. Use test credentials for owner-run acceptance before using live credentials. Do not place secrets in frontend files or chat.
 3. Save and deploy a New version of that existing Web App, preserving its URL and execution/access settings.
-4. Send the read-only `bridal_payment_link_status` POST action. It must return `api: bridal-payment-links-v1` and `ready: true`. This checks deployment capability and credential presence; it does not prove a live payment or create a link.
+4. Send the read-only `bridal_payment_link_status` POST action. It must return `api: bridal-payment-links-v1`, `checkoutProfile: standard-checkout-v1` and `ready: true`. An absent or different `checkoutProfile` means Standard Checkout is not confirmed deployed. This checks deployment capability and credential presence; it does not prove a live payment or create a link.
 5. Build, verify the booking UI, then publish Firebase Hosting. Until activation, keep the current live frontend in place. No live links, charges, SMS or email notifications were created by the automated checks; provider calls are mocked.
+
+### Payment button returns REQUEST_FAILED before opening Razorpay
+
+If both `bridal_payment_link_status` and `create_bridal_payment_link` (even without booking data) return `REQUEST_FAILED`, the deployment can be missing the payment-link helper file. The readiness action does not contact Razorpay, and an empty create request should return `AVAILABILITY_REQUIRED` before contacting Razorpay. Apps Script can show the execution as Completed because `doPost` catches the exception and returns an error response.
+
+The main script now contains these helpers, removing the separate-file deployment dependency. Replace the complete main script as above, save, then use **Deploy > Manage deployments > Edit > New version > Deploy** on the existing deployment. Saving code alone does not update the live Web App. Verify the deployed readiness action returns `ok: true`, `api: bridal-payment-links-v1`, and `ready: true` before retrying payment. No frontend deployment is required for this backend-only repair.
 
 Existing signed receipts from the older order/Checkout flow retain verification-only recovery. Workshop registration and payment verification retain their existing API connection.
 

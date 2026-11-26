@@ -1,0 +1,91 @@
+module.exports = `<script>
+(async()=>{
+ const results=[];
+ const wait=async(fn)=>{for(let i=0;i<150;i++){if(fn())return;await new Promise(r=>setTimeout(r,50));}throw Error('Timed out');};
+ const check=(ok,label)=>{if(!ok)throw Error(label);results.push(label);};
+ const clickText=text=>[...document.querySelectorAll('dialog[open] button')].find(b=>b.textContent.includes(text)).click();
+ const input=(id,value)=>{const el=document.getElementById(id);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));};
+ try{
+ if(location.search.includes('recovery=1')){
+  await wait(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Retry Payment Verification')));
+  [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Retry Payment Verification')).click();
+  await wait(()=>document.querySelector('dialog[open]'));clickText('Retry Verification');
+  await wait(()=>document.querySelector('dialog[open] [role=alert]'));
+  window.bridalQA.failVerify=false;clickText('Retry Verification');
+  await wait(()=>document.querySelector('dialog[open] h3')?.textContent==='Payment verified');
+  check(window.bridalQA.orders===0,'Older receipt recovers without another order');
+ }else if(location.search.includes('checkoutRecovery=1')){
+  await wait(()=>document.querySelector('[data-bridal-booking-trigger]')?.textContent.includes('View payment receipt'));
+  document.querySelector('[data-bridal-booking-trigger]').click();
+  await wait(()=>document.querySelector('dialog[open]'));
+  check(!document.querySelector('dialog[open]').textContent.includes('Payment verified'),'Reload rechecks verification');
+  window.bridalQA.failVerify=false;clickText('Retry Verification');
+  await wait(()=>document.querySelector('dialog[open] [role=status]')?.textContent==='Payment verified');
+  check(window.bridalQA.orders===0,'Receipt recovery never creates another order');
+ }else{
+  await wait(()=>document.querySelector('[data-bridal-availability-trigger]'));
+  const card=document.querySelector('[data-advance-card]');
+  const visibleButtons=()=>[...card.querySelectorAll('button')].filter(b=>b.getClientRects().length && !b.closest('dialog'));
+  check(visibleButtons().length===1,'Card has exactly one visible action');
+  check(visibleButtons()[0].textContent.includes('Check Availability & Book'),'Single action describes the booking flow');
+  visibleButtons()[0].click();
+  await wait(()=>document.querySelector('dialog[open] #availability-date-0'));
+  input('availability-date-0','25/01/2027');
+  await wait(()=>document.querySelector('dialog[open] [role=status]')?.textContent.includes('Available'));
+  check(document.querySelector('dialog[open] button[type=submit]').disabled,'Studio confirmation stays required inside the flow');
+  document.getElementById('bridal-availability-confirmed').click();
+  clickText('Add another event');await wait(()=>document.getElementById('availability-date-1'));
+  input('availability-date-1','25/01/2027');
+  await wait(()=>document.querySelector('dialog[open] button[type=submit]').disabled);
+  check(true,'Duplicate booking dates cannot proceed');
+  input('availability-date-1','26/01/2027');clickText('Add another event');
+  await wait(()=>document.getElementById('availability-date-2'));input('availability-date-2','27/01/2027');
+  input('availability-venue','Chennai Hall');
+  await wait(()=>!document.querySelector('dialog[open] button[type=submit]').disabled);
+  const before=window.bridalQA.availability.length;
+  document.querySelector('dialog[open] form').requestSubmit();
+  await wait(()=>document.querySelector('dialog[open] #booking-name'));
+  check(window.bridalQA.availability.length>=before+3,'Dates are rechecked before entering details');
+  check(window.bridalQA.opened.length===0,'Availability continues directly to details without a separate WhatsApp request');
+  check(document.getElementById('booking-venue').value==='Chennai Hall','Venue carries into the details form');
+  check(!document.getElementById('booking-eventDate'),'Selected dates do not need to be entered again');
+  check(document.querySelector('dialog[open]').textContent.includes('27/01/2027'),'All selected dates carry forward');
+  document.querySelector('dialog[open] form').requestSubmit();
+  await wait(()=>document.getElementById('booking-name').getAttribute('aria-invalid')==='true');
+  input('booking-name','Test Bride');input('booking-email','bride@example.com');input('booking-phone','9876543210');
+  await new Promise(r=>setTimeout(r,50));document.querySelector('dialog[open] form').requestSubmit();
+  await wait(()=>window.bridalQA.opened.length===1);
+  const message=new URL(window.bridalQA.opened[0]).searchParams.get('text');
+  check(message.includes('27/01/2027') && message.includes('pay 4000'),'One WhatsApp message includes the details, dates and correct advance');
+  check(document.querySelector('[data-bridal-payment-create]').disabled,'Payment requires acknowledging the WhatsApp message');
+  document.getElementById('booking-details-sent').click();window.bridalQA.cancelCheckout=true;
+  await wait(()=>!document.querySelector('[data-bridal-payment-create]').disabled);
+  document.querySelector('[data-bridal-payment-create]').click();
+  await wait(()=>document.querySelector('dialog[open] [role=alert]')?.textContent.includes('closed'));
+  check(window.bridalQA.checkout.amount===400000,'Three-day booking opens the correct checkout amount');
+  clickText('Back');await wait(()=>document.querySelector('dialog[open] #booking-name'));
+  clickText('Change dates');await wait(()=>document.querySelector('dialog[open] #availability-date-0'));
+  document.querySelector('[aria-label="Remove event 3"]').click();
+  await wait(()=>!document.getElementById('availability-date-2'));
+  await wait(()=>!document.querySelector('dialog[open] button[type=submit]').disabled);
+  document.querySelector('dialog[open] form').requestSubmit();await wait(()=>document.querySelector('dialog[open] #booking-name'));
+  check(document.getElementById('booking-name').value==='Test Bride','Changing dates preserves entered contact details');
+  document.querySelector('dialog[open] form').requestSubmit();await wait(()=>document.getElementById('booking-details-sent'));
+  document.getElementById('booking-details-sent').click();window.bridalQA.cancelCheckout=false;
+  await wait(()=>!document.querySelector('[data-bridal-payment-create]').disabled);
+  document.querySelector('[data-bridal-payment-create]').click();
+  await wait(()=>document.querySelector('dialog[open] [role=alert]')?.textContent.includes('Do not pay again'));
+  check(window.bridalQA.checkout.amount===300000,'Changed dates recalculate the two-day advance');
+  check(window.bridalQA.checkout.hidden.contact && window.bridalQA.checkout.prefill.contact==='+919876543210','Workshop-style checkout reuses the collected phone');
+  const orders=window.bridalQA.orders;window.bridalQA.failVerify=false;clickText('Retry Verification');
+  await wait(()=>document.querySelector('dialog[open] [role=status]')?.textContent==='Payment verified');
+  check(window.bridalQA.orders===orders,'Verification retry creates no new order');
+  document.querySelector('[aria-label="Close booking form"]').click();
+  await wait(()=>visibleButtons().length===1);
+  check(visibleButtons()[0].textContent.includes('View payment receipt'),'After payment the single card action opens the receipt');
+ }
+ document.body.dataset.qa='passed';
+ }catch(error){results.push('FAILED: '+error.message);document.body.dataset.qa='failed';}
+ const output=document.createElement('pre');output.id='qa-result';output.textContent=JSON.stringify(results);document.body.append(output);
+})();
+</script>`;
