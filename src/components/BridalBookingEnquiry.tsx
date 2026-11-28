@@ -102,6 +102,8 @@ export default function BridalBookingEnquiry({ availabilityConfirmed, bookingSta
       const instance = new window.Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
         name: 'SK Bridal Studio', description: `Bridal booking advance - ${details.days.length} day(s)`,
+        image: `${window.location.origin}/Sk_logo_black.png`,
+        notes: { about_url: `${window.location.origin}/about`, privacy_policy_url: `${window.location.origin}/privacy-policy` },
         prefill: { name: details.name.trim(), email: details.email.trim().toLowerCase(), contact: `+91${details.phone}` },
         readonly: { contact: true, email: true }, hidden: { contact: true, email: true },
         theme: { color: '#4B3025' }, redirect: false, retry: { enabled: false },

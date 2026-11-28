@@ -69,7 +69,8 @@ export interface PendingPayment { paymentId: string; registration: Registration;
 interface WorkshopOrder { orderId: string; amount: number; currency: string; keyId: string }
 interface CheckoutOptions {
   key: string; amount: number; currency: string; order_id: string;
-  name: string; description: string;
+  name: string; description: string; image: string;
+  notes: { about_url: string; privacy_policy_url: string };
   prefill: { name: string; contact: string; email?: string };
   readonly?: { contact: boolean; email: boolean };
   hidden?: { contact: boolean; email: boolean };

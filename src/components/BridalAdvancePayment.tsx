@@ -68,6 +68,8 @@ function PreviousBridalPayment({ availabilityConfirmed }: { availabilityConfirme
       const checkout = new window.Razorpay({
         key: order.keyId, order_id: order.orderId, amount: order.amount, currency: order.currency,
         name: 'SK Bridal Studio', description: `Bridal advance · ${submitted.eventDate} · ${submitted.session}`,
+        image: `${window.location.origin}/Sk_logo_black.png`,
+        notes: { about_url: `${window.location.origin}/about`, privacy_policy_url: `${window.location.origin}/privacy-policy` },
         prefill: { name: submitted.name, email: submitted.email, contact: submitted.phone },
         theme: { color: '#3B261E' }, redirect: false, retry: { enabled: false },
         modal: { handleback: false, ondismiss: () => {

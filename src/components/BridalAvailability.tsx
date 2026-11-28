@@ -163,8 +163,8 @@ export default function BridalAvailability({ onContinue, bookingFlow = false, op
   };
 
   return <>
-    <button data-bridal-availability-trigger type="button" onClick={() => dialog.current?.showModal()} className="btn-light w-full !whitespace-normal text-center hover:!translate-y-0">
-      <MessageCircle className="h-4 w-4" />{bookingFlow ? 'Check Availability & Book' : 'Check Date Availability'}
+    <button data-bridal-availability-trigger type="button" onClick={() => dialog.current?.showModal()} className="btn-light w-full !px-3 !py-3 text-[13px] text-center sm:!px-7 sm:text-[15px] hover:!translate-y-0">
+      <MessageCircle className="h-4 w-4 shrink-0" />{bookingFlow ? 'Check Availability & Book' : 'Check Date Availability'}
     </button>
     <dialog ref={dialog} aria-labelledby="availability-title" className="bridal-booking-dialog m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg overflow-y-auto rounded-2xl border border-sand bg-ivory p-4 text-left text-chocolate shadow-luxe backdrop:bg-chocolate/60">
       <div className="sticky -top-4 z-30 -mx-4 -mt-4 mb-4 flex items-start justify-between gap-3 border-b border-sand bg-ivory px-4 py-3">

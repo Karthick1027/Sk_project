@@ -760,19 +760,19 @@ const Packages: React.FC = () => {
             </ol>
             </div>
             <div className="min-w-0 rounded-2xl border border-sand bg-ivory/70 p-4 sm:p-5 lg:col-span-5">
-              <div className="flex items-center gap-4 overflow-x-auto pb-1">
-              <h4 className="shrink-0 whitespace-nowrap font-inter text-sm font-semibold text-cocoa">We accept</h4>
-              <ul className="flex shrink-0 flex-nowrap gap-2">
-                {paymentMethods.map((method) => {
-                  const Icon = paymentIcons[method] ?? Wallet;
-                  return (
-                    <li key={method} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-champagne/25 bg-chocolate px-3 py-2 font-inter text-sm text-ivory">
-                      <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-champagne" />
-                      {method}
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="flex min-w-0 flex-col gap-3">
+                <h4 className="shrink-0 whitespace-nowrap font-inter text-sm font-semibold text-cocoa">We accept</h4>
+                <ul className="grid w-full grid-cols-4 gap-1.5 sm:grid-cols-5 sm:gap-2 xl:grid-cols-5 2xl:grid-cols-7">
+                  {paymentMethods.map((method) => {
+                    const Icon = paymentIcons[method] ?? Wallet;
+                    return (
+                      <li key={method} className="flex min-w-0 flex-col items-center justify-center gap-1 whitespace-nowrap rounded-md border border-champagne/25 bg-chocolate px-1 py-2 text-center font-inter text-[9px] leading-tight text-ivory sm:flex-row sm:gap-1.5 sm:px-1.5 sm:text-[11px] 2xl:px-2.5 2xl:text-sm">
+                        <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-champagne sm:h-4 sm:w-4" />
+                        <span className="max-w-full truncate">{method}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </div>
           </div>

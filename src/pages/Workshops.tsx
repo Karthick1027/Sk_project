@@ -370,6 +370,8 @@ const Workshops: React.FC = () => {
       const instance = new window.Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
         name: 'SK Bridal Studio', description: `${submitted.course} — ${formatPaymentAmount(order.amount / 100)} advance`,
+        image: `${window.location.origin}/Sk_logo_black.png`,
+        notes: { about_url: `${window.location.origin}/about`, privacy_policy_url: `${window.location.origin}/privacy-policy` },
         prefill: { name: submitted.name, contact: submitted.phone, ...(submitted.email ? { email: submitted.email } : {}) },
         theme: { color: '#4B3025' }, redirect: false, retry: { enabled: false },
         modal: { handleback: false, ondismiss: () => {
