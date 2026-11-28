@@ -450,7 +450,7 @@ const Workshops: React.FC = () => {
     // Clear development notices when code reloads without clearing student data.
     if (import.meta.env.DEV) { setFormError(''); setResultDetail(''); }
     const prevTitle = document.title;
-    document.title = 'Live Makeup & Hair Workshops | SK Bridal Studio';
+    document.title = 'Live Bridal Makeup Workshop | SK Bridal Studio';
     return () => {
       document.title = prevTitle;
     };
@@ -478,22 +478,22 @@ const Workshops: React.FC = () => {
                 <span className="absolute inset-0 rounded-full bg-clay animate-ping motion-reduce:hidden" />
                 <span className="relative h-2 w-2 rounded-full bg-clay" />
               </span>
-              Live Virtual Masterclass
+              Live Online Workshop
             </span>
 
             <h1 className="mt-5 sm:mt-7 font-playfair text-4xl sm:text-5xl xl:text-6xl font-medium leading-[1.05] text-chocolate">
-              2 Days.
+              Learn Bridal Makeup
               <br />
-              <span className="font-cormorant italic text-cocoa">Learn Live.</span>
+              <span className="font-cormorant italic text-cocoa">Live in 2 Days</span>
             </h1>
 
             <div className="mt-5 sm:mt-6 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-center lg:justify-start">
               <a href="#registration" className="btn-primary !py-3 sm:!py-3.5">
                 <Send className="h-4 w-4" />
-                Register for a Course
+                Register for the Workshop
               </a>
               <a href="#programme" className="btn-outline !py-3 sm:!py-3.5">
-                Explore the 2 Days
+                Explore the 2-Day Workshop
                 <ArrowDown className="h-4 w-4" />
               </a>
             </div>
@@ -513,7 +513,7 @@ const Workshops: React.FC = () => {
             </dl>
 
             <p className="mx-auto mt-4 max-w-xl font-inter text-base leading-relaxed text-ink lg:mx-0">
-              Learn muhurtham and reception looks live with Srinithi, with step-by-step demos and Q&amp;A.
+              Join Srinithi for a 2-day online demo workshop featuring live Muhurtham and Reception bridal makeup looks, step-by-step demonstrations and interactive Q&amp;A.
             </p>
           </div>
 
